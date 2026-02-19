@@ -42,4 +42,9 @@ hrms.patches.v16_0.delete_old_workspaces #2026-01-09
 hrms.patches.v16_0.create_holiday_list_assignments
 hrms.patches.v16_0.set_base_paid_amount_in_employee_advance
 hrms.patches.v16_0.set_currency_and_base_fields_in_expense_claim
+<<<<<<< HEAD
 hrms.patches.v16_0.remove_ess_user_type_limit
+=======
+hrms.patches.v16_0.remove_ess_user_type_limit
+hrms.patches.v16_0.merge_interview_round_with_interview_type
+>>>>>>> cf0b0b41 (fix(Recruitment)!: rename and merge interview round with interview type)

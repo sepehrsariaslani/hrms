@@ -2,9 +2,29 @@
 # For license information, please see license.txt
 
 
-# import frappe
+import json
+
+import frappe
 from frappe.model.document import Document
 
 
 class InterviewType(Document):
 	pass
+
+
+@frappe.whitelist()
+def create_interview(doc):
+	if isinstance(doc, str):
+		doc = json.loads(doc)
+		doc = frappe.get_doc(doc)
+
+	interview = frappe.new_doc("Interview")
+	interview.interview_type = doc.name
+	interview.designation = doc.designation
+
+	if doc.interviewers:
+		interview.interview_details = []
+		for d in doc.interviewers:
+			interview.append("interview_details", {"interviewer": d.user})
+
+	return interview

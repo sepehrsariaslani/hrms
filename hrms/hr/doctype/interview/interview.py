@@ -31,13 +31,13 @@ class Interview(Document):
 	def validate_duplicate_interview(self):
 		duplicate_interview = frappe.db.exists(
 			"Interview",
-			{"job_applicant": self.job_applicant, "interview_round": self.interview_round, "docstatus": 1},
+			{"job_applicant": self.job_applicant, "interview_type": self.interview_type, "docstatus": 1},
 		)
 
 		if duplicate_interview:
 			frappe.throw(
 				_(
-					"Job Applicants are not allowed to appear twice for the same Interview round. Interview {0} already scheduled for Job Applicant {1}"
+					"Job Applicants are not allowed to appear twice for the same Interview Type. Interview {0} already scheduled for Job Applicant {1}"
 				).format(
 					frappe.bold(get_link_to_form("Interview", duplicate_interview)),
 					frappe.bold(self.job_applicant),
@@ -50,8 +50,8 @@ class Interview(Document):
 			if self.designation != applicant_designation:
 				frappe.throw(
 					_(
-						"Interview Round {0} is only for Designation {1}. Job Applicant has applied for the role {2}"
-					).format(self.interview_round, frappe.bold(self.designation), applicant_designation),
+						"Interview Type {0} is only for Designation {1}. Job Applicant has applied for the role {2}"
+					).format(self.interview_type, frappe.bold(self.designation), applicant_designation),
 					exc=DuplicateInterviewRoundError,
 				)
 		else:
@@ -126,8 +126,8 @@ class Interview(Document):
 
 
 @frappe.whitelist()
-def get_interviewers(interview_round: str) -> list[str]:
-	return frappe.get_all("Interviewer", filters={"parent": interview_round}, fields=["user as interviewer"])
+def get_interviewers(interview_type: str) -> list[str]:
+	return frappe.get_all("Interviewer", filters={"parent": interview_type}, fields=["user as interviewer"])
 
 
 def get_recipients(name, for_feedback=0):
@@ -308,9 +308,13 @@ def send_daily_feedback_reminder():
 
 
 @frappe.whitelist()
+<<<<<<< HEAD
 def get_expected_skill_set(interview_round):
+=======
+def get_expected_skill_set(interview_type: str) -> list[dict]:
+>>>>>>> cf0b0b41 (fix(Recruitment)!: rename and merge interview round with interview type)
 	return frappe.get_all(
-		"Expected Skill Set", filters={"parent": interview_round}, fields=["skill"], order_by="idx"
+		"Expected Skill Set", filters={"parent": interview_type}, fields=["skill"], order_by="idx"
 	)
 
 
@@ -393,7 +397,7 @@ def get_events(start, end, filters=None):
 	interviews = frappe.db.sql(
 		f"""
 			SELECT DISTINCT
-				`tabInterview`.name, `tabInterview`.job_applicant, `tabInterview`.interview_round,
+				`tabInterview`.name, `tabInterview`.job_applicant, `tabInterview`.interview_type,
 				`tabInterview`.scheduled_on, `tabInterview`.status, `tabInterview`.from_time as from_time,
 				`tabInterview`.to_time as to_time
 			from
@@ -410,7 +414,7 @@ def get_events(start, end, filters=None):
 
 	for d in interviews:
 		subject_data = []
-		for field in ["name", "job_applicant", "interview_round"]:
+		for field in ["name", "job_applicant", "interview_type"]:
 			if not d.get(field):
 				continue
 			subject_data.append(d.get(field))

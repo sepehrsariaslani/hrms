@@ -58,30 +58,35 @@ class JobApplicant(Document):
 
 
 @frappe.whitelist()
+<<<<<<< HEAD
 def create_interview(doc, interview_round):
 	import json
 
 	if isinstance(doc, str):
 		doc = json.loads(doc)
 		doc = frappe.get_doc(doc)
+=======
+def create_interview(job_applicant: str, interview_type: str) -> Document:
+	doc = frappe.get_doc("Job Applicant", job_applicant)
+>>>>>>> cf0b0b41 (fix(Recruitment)!: rename and merge interview round with interview type)
 
-	round_designation = frappe.db.get_value("Interview Round", interview_round, "designation")
+	round_designation = frappe.db.get_value("Interview Type", interview_type, "designation")
 
 	if round_designation and doc.designation and round_designation != doc.designation:
 		frappe.throw(
-			_("Interview Round {0} is only applicable for the Designation {1}").format(
-				interview_round, round_designation
+			_("Interview Type {0} is only applicable for the Designation {1}").format(
+				interview_type, round_designation
 			)
 		)
 
 	interview = frappe.new_doc("Interview")
-	interview.interview_round = interview_round
+	interview.interview_type = interview_type
 	interview.job_applicant = doc.name
 	interview.designation = doc.designation
 	interview.resume_link = doc.resume_link
 	interview.job_opening = doc.job_title
 
-	interviewers = get_interviewers(interview_round)
+	interviewers = get_interviewers(interview_type)
 	for d in interviewers:
 		interview.append("interview_details", {"interviewer": d.interviewer})
 
@@ -93,7 +98,7 @@ def get_interview_details(job_applicant):
 	interview_details = frappe.db.get_all(
 		"Interview",
 		filters={"job_applicant": job_applicant, "docstatus": ["!=", 2]},
-		fields=["name", "interview_round", "scheduled_on", "average_rating", "status"],
+		fields=["name", "interview_type", "scheduled_on", "average_rating", "status"],
 	)
 	interview_detail_map = {}
 	meta = frappe.get_meta("Interview")

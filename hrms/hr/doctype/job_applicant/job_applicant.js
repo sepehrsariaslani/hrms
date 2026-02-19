@@ -83,13 +83,13 @@ frappe.ui.form.on("Job Applicant", {
 
 	create_dialog: function (frm) {
 		let d = new frappe.ui.Dialog({
-			title: __("Enter Interview Round"),
+			title: __("Enter Interview Type"),
 			fields: [
 				{
-					label: "Interview Round",
-					fieldname: "interview_round",
+					label: "Interview Type",
+					fieldname: "interview_type",
 					fieldtype: "Link",
-					options: "Interview Round",
+					options: "Interview Type",
 				},
 			],
 			primary_action_label: __("Create Interview"),
@@ -105,8 +105,13 @@ frappe.ui.form.on("Job Applicant", {
 		frappe.call({
 			method: "hrms.hr.doctype.job_applicant.job_applicant.create_interview",
 			args: {
+<<<<<<< HEAD
 				doc: frm.doc,
 				interview_round: values.interview_round,
+=======
+				job_applicant: frm.doc.name,
+				interview_type: values.interview_type,
+>>>>>>> cf0b0b41 (fix(Recruitment)!: rename and merge interview round with interview type)
 			},
 			callback: function (r) {
 				var doclist = frappe.model.sync(r.message);
