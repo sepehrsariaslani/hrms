@@ -48,7 +48,6 @@ frappe.ui.form.on("Job Opening", {
 
 	job_opening_template: function (frm) {
 		if (!frm.doc.job_opening_template) return;
-
 		frappe.db.get_doc("Job Opening Template", frm.doc.job_opening_template).then((doc) => {
 			frm.set_value({
 				designation: doc.designation,
