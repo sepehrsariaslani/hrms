@@ -65,4 +65,15 @@ frappe.ui.form.on("Job Opening", {
 			frm.refresh_fields();
 		});
 	},
+	publish: function (frm) {
+		if (frm.doc.publish && !frm.doc.route) {
+			frm.trigger("set_route");
+		}
+	},
+	set_route: function (frm) {
+		if (frm.doc.publish && !frm.doc.route) {
+			route = `jobs/${frappe.scrub(frm.doc.company)}/${frappe.scrub(frm.doc.designation)}`;
+			frm.set_value("route", route);
+		}
+	},
 });
