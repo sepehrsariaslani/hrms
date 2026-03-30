@@ -56,6 +56,11 @@ frappe.ui.form.on("Job Opening", {
 				employment_type: doc.employment_type,
 				location: doc.location,
 				description: doc.description,
+				currency: doc.currency,
+				upper_range: doc.upper_range,
+				lower_range: doc.lower_range,
+				salary_per: doc.salary_per,
+				publish_salary_range: doc.publish_salary_range,
 			});
 
 			frm.refresh_fields();
