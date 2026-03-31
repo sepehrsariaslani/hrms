@@ -14,10 +14,11 @@
   "applicant_name",
   "email_id",
   "phone_number",
-  "country",
   "column_break_3",
-  "job_title",
   "designation",
+  "country",
+  "column_break_enue",
+  "job_title",
   "status",
   "source_and_rating_section",
   "source",
@@ -26,10 +27,10 @@
   "column_break_13",
   "applicant_rating",
   "section_break_6",
+  "resume_link",
+  "resume_attachment",
   "notes",
   "cover_letter",
-  "resume_attachment",
-  "resume_link",
   "section_break_16",
   "currency",
   "column_break_18",
@@ -42,7 +43,7 @@
    "fieldname": "applicant_name",
    "fieldtype": "Data",
    "in_global_search": 1,
-   "label": "Applicant Name",
+   "label": "Full Name",
    "reqd": 1
   },
   {
@@ -189,17 +190,21 @@
    "fieldtype": "Link",
    "label": "Designation",
    "options": "Designation"
+  },
+  {
+   "fieldname": "column_break_enue",
+   "fieldtype": "Column Break"
   }
  ],
  "icon": "fa fa-user",
  "idx": 1,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-01-16 13:06:05.312255",
+ "modified": "2026-03-31 14:29:57.420235",
  "modified_by": "Administrator",
  "module": "HR",
  "name": "Job Applicant",
- "naming_rule": "Expression (old style)",
+ "naming_rule": "Expression",
  "owner": "Administrator",
  "permissions": [
   {
@@ -214,6 +219,7 @@
    "write": 1
   }
  ],
+ "row_format": "Dynamic",
  "search_fields": "applicant_name, email_id, job_title, phone_number",
  "sender_field": "email_id",
  "sort_field": "creation",
