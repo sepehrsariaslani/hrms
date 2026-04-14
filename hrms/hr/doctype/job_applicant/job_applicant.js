@@ -48,7 +48,7 @@ frappe.ui.form.on("Job Applicant", {
 		frm.get_field("resume_preview_html").$wrapper.html($preview);
 	},
 	open_resume_button: function (frm) {
-		window.open(frm.doc.resume_link, "_blank");
+		window.open(frm.doc.resume_link, "_blank", "noopener");
 	},
 	create_custom_buttons: function (frm) {
 		if (!frm.doc.__islocal) {
