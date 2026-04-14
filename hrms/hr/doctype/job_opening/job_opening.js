@@ -72,7 +72,7 @@ frappe.ui.form.on("Job Opening", {
 	},
 	set_route: function (frm) {
 		if (frm.doc.publish && !frm.doc.route) {
-			route = `jobs/${frappe.scrub(frm.doc.company)}/${frappe.scrub(frm.doc.designation)}`;
+			route = `jobs/${frappe.scrub(frm.doc.company)}/${frappe.scrub(frm.doc.job_title)}`;
 			frm.set_value("route", route);
 		}
 	},
