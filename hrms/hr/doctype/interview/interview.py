@@ -156,7 +156,7 @@ class Interview(Document):
 
 
 @frappe.whitelist()
-def get_interviewers(interview_type: str) -> list[str]:
+def get_interviewers(interview_type: str) -> list[dict]:
 	return frappe.get_all("Interviewer", filters={"parent": interview_type}, fields=["user as interviewer"])
 
 
