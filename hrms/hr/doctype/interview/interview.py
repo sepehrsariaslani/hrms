@@ -16,6 +16,36 @@ class DuplicateInterviewRoundError(frappe.ValidationError):
 
 
 class Interview(Document):
+<<<<<<< HEAD
+=======
+	# begin: auto-generated types
+	# This code is auto-generated. Do not modify anything in this block.
+
+	from typing import TYPE_CHECKING
+
+	if TYPE_CHECKING:
+		from frappe.types import DF
+
+		from hrms.hr.doctype.interview_detail.interview_detail import InterviewDetail
+
+		amended_from: DF.Link | None
+		average_rating: DF.Rating
+		designation: DF.Link | None
+		expected_average_rating: DF.Rating
+		from_time: DF.Time
+		interview_details: DF.Table[InterviewDetail]
+		interview_summary: DF.Text | None
+		interview_type: DF.Link
+		job_applicant: DF.Link
+		job_opening: DF.Link | None
+		reminded: DF.Check
+		resume_link: DF.Data | None
+		scheduled_on: DF.Date
+		status: DF.Literal["Pending", "Under Review", "Cleared", "Rejected", "Cancelled"]
+		to_time: DF.Time
+	# end: auto-generated types
+
+>>>>>>> b4111911 (chore: export type checks in doctype)
 	def validate(self):
 		self.validate_duplicate_interview()
 		self.validate_designation()
