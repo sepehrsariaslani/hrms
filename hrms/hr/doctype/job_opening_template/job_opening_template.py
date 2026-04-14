@@ -23,7 +23,7 @@ def create_job_opening_from_template(source: str | Document) -> Document:
 		{
 			"Job Opening Template": {"doctype": "Job Opening"},
 			"field_map": {
-				"job_opening_template": "name",
+				"name": "job_opening_template",
 			},
 		},
 		target_doc,
