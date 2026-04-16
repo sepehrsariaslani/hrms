@@ -1139,10 +1139,19 @@ class TestLeaveAllocation(HRMSTestSuite):
 		leave_allocation = frappe.get_value(
 			"Leave Allocation",
 			{"employee": self.employee.name, "leave_type": "Test Earned Leave", "from_date": this_year_start},
-			"total_leaves_allocated",
+			["total_leaves_allocated", "name"],
+			as_dict=1,
 		)
-		self.assertEqual(leave_allocation, 11)
-		self.assertEqual(leave_balance, 11)
+		self.assertEqual(leave_allocation.total_leaves_allocated, 12)
+		self.assertEqual(leave_balance, 12)
+
+		# schedule shows 1 leave instead of 2
+		earned_leaves_allocated = frappe.get_value(
+			"Earned Leave Schedule",
+			{"parent": leave_allocation.name, "allocation_date": frappe.flags.current_date},
+			"number_of_leaves",
+		)
+		self.assertEqual(earned_leaves_allocated, 1)
 
 
 def create_earned_leave_type(
