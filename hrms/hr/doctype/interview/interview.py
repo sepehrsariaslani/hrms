@@ -16,8 +16,6 @@ class DuplicateInterviewRoundError(frappe.ValidationError):
 
 
 class Interview(Document):
-<<<<<<< HEAD
-=======
 	# begin: auto-generated types
 	# This code is auto-generated. Do not modify anything in this block.
 
@@ -45,7 +43,6 @@ class Interview(Document):
 		to_time: DF.Time
 	# end: auto-generated types
 
->>>>>>> b4111911 (chore: export type checks in doctype)
 	def validate(self):
 		self.validate_duplicate_interview()
 		self.validate_designation()
@@ -338,15 +335,7 @@ def send_daily_feedback_reminder():
 
 
 @frappe.whitelist()
-<<<<<<< HEAD
-<<<<<<< HEAD
-def get_expected_skill_set(interview_round):
-=======
 def get_expected_skill_set(interview_type: str) -> list[dict]:
->>>>>>> cf0b0b41 (fix(Recruitment)!: rename and merge interview round with interview type)
-=======
-def get_expected_skill_set(interview_type: str):
->>>>>>> 92527aaf (fix(Interview): missing type hints for whilelisted methods)
 	return frappe.get_all(
 		"Expected Skill Set", filters={"parent": interview_type}, fields=["skill"], order_by="idx"
 	)

@@ -18,8 +18,6 @@ class DuplicationError(frappe.ValidationError):
 
 
 class JobApplicant(Document):
-<<<<<<< HEAD
-=======
 	# begin: auto-generated types
 	# This code is auto-generated. Do not modify anything in this block.
 
@@ -48,7 +46,6 @@ class JobApplicant(Document):
 		upper_range: DF.Currency
 	# end: auto-generated types
 
->>>>>>> 21b424ed (fix(Job Applicant): Unnest Action buttons when there's only one)
 	def onload(self):
 		job_offer = frappe.get_all("Job Offer", filters={"job_applicant": self.name})
 		if job_offer:
@@ -89,17 +86,8 @@ class JobApplicant(Document):
 
 
 @frappe.whitelist()
-<<<<<<< HEAD
-def create_interview(doc, interview_round):
-	import json
-
-	if isinstance(doc, str):
-		doc = json.loads(doc)
-		doc = frappe.get_doc(doc)
-=======
 def create_interview(job_applicant: str, interview_type: str) -> Document:
 	doc = frappe.get_doc("Job Applicant", job_applicant)
->>>>>>> cf0b0b41 (fix(Recruitment)!: rename and merge interview round with interview type)
 
 	round_designation = frappe.db.get_value("Interview Type", interview_type, "designation")
 

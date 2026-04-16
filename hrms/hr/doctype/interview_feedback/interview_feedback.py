@@ -10,8 +10,6 @@ from frappe.utils import flt, get_link_to_form, getdate
 
 
 class InterviewFeedback(Document):
-<<<<<<< HEAD
-=======
 	# begin: auto-generated types
 	# This code is auto-generated. Do not modify anything in this block.
 
@@ -33,7 +31,6 @@ class InterviewFeedback(Document):
 		skill_assessment: DF.Table[SkillAssessment]
 	# end: auto-generated types
 
->>>>>>> b4111911 (chore: export type checks in doctype)
 	def validate(self):
 		self.validate_interviewer()
 		self.validate_interview_date()
