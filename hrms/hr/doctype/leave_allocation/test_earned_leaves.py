@@ -12,7 +12,6 @@ from frappe.utils import (
 from frappe.utils.user import add_role
 
 from hrms.hr.doctype.holiday_list_assignment.test_holiday_list_assignment import assign_holiday_list
-from hrms.hr.doctype.leave_allocation.leave_allocation import OverAllocationError
 from hrms.hr.doctype.leave_allocation.test_leave_allocation import create_leave_allocation
 from hrms.hr.doctype.leave_application.leave_application import (
 	get_leave_balance_on,
@@ -1132,8 +1131,7 @@ class TestLeaveAllocation(HRMSTestSuite):
 		# max leave allowed is 12
 		frappe.db.set_value("Leave Type", "Test Earned Leave", "max_leaves_allowed", 12)
 		frappe.flags.current_date = get_last_day(this_year_start)
-		# when the scheduler runs, the leaves being allocated are 2, but then the total exeeds the max limit
-		# set in leave type so it skips the allocation
+		# earned leave according to policy is 2 but allocates 1 due to max leave limit
 		allocate_earned_leaves()
 		leave_balance = get_leave_balance_on(self.employee.name, self.leave_type, frappe.flags.current_date)
 		leave_allocation = frappe.get_value(
