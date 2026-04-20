@@ -504,11 +504,9 @@ class TestExpenseClaim(HRMSTestSuite):
 			create_driver,
 			create_vehicle,
 		)
-		from erpnext.tests.utils import create_test_contact_and_address
 
 		driver = create_driver()
 		create_vehicle()
-		create_test_contact_and_address()
 		address = create_address(driver)
 
 		delivery_trip = create_delivery_trip(driver, address, company="_Test Company")
