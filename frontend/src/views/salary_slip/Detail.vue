@@ -1,55 +1,57 @@
 <template>
-	<ion-page>
-		<ion-content :fullscreen="true">
-			<FormView
-				v-if="formFields.data"
-				doctype="Salary Slip"
-				v-model="salarySlip"
-				:fields="formFields.data"
-				:id="props.id"
-				:tabbedView="true"
-				:tabs="tabs"
-				:showFormButton="false"
-			>
-				<!-- Child Tables -->
-				<template #earnings="{ isFormReadOnly }">
-					<SalaryDetailTable
-						type="Earnings"
-						:salarySlip="salarySlip"
-						:isReadOnly="isFormReadOnly"
-					/>
-				</template>
+	<BaseLayout :pageTitle="pageTitle">
+		<template #body>
+			<div class="w-full max-w-5xl mx-auto mt-7 mb-7 p-4">
+				<FormView
+					v-if="formFields.data"
+					doctype="Salary Slip"
+					v-model="salarySlip"
+					:fields="formFields.data"
+					:id="props.id"
+					:tabbedView="true"
+					:tabs="tabs"
+					:showFormButton="false"
+				>
+					<!-- Child Tables -->
+					<template #earnings="{ isFormReadOnly }">
+						<SalaryDetailTable
+							type="Earnings"
+							:salarySlip="salarySlip"
+							:isReadOnly="isFormReadOnly"
+						/>
+					</template>
 
-				<template #deductions="{ isFormReadOnly }">
-					<SalaryDetailTable
-						type="Deductions"
-						:salarySlip="salarySlip"
-						:isReadOnly="isFormReadOnly"
-					/>
-				</template>
+					<template #deductions="{ isFormReadOnly }">
+						<SalaryDetailTable
+							type="Deductions"
+							:salarySlip="salarySlip"
+							:isReadOnly="isFormReadOnly"
+						/>
+					</template>
 
-				<template #formButton>
-					<ErrorMessage :message="downloadError" class="mt-2" />
-					<Button
-						class="w-full rounded py-5 text-base disabled:bg-gray-700 disabled:text-white"
-						@click="downloadPDF"
-						variant="solid"
-						:loading="loading"
-					>
-						{{ __("Download PDF") }}
-					</Button>
-				</template>
-			</FormView>
-		</ion-content>
-	</ion-page>
+					<template #formButton>
+						<ErrorMessage :message="downloadError" class="mt-2" />
+						<Button
+							class="w-full rounded py-5 text-base disabled:bg-gray-700 disabled:text-white"
+							@click="downloadPDF"
+							variant="solid"
+							:loading="loading"
+						>
+							{{ __("Download PDF") }}
+						</Button>
+					</template>
+				</FormView>
+			</div>
+		</template>
+	</BaseLayout>
 </template>
 
 <script setup>
-import { ref, watch } from "vue"
-import { IonPage, IonContent } from "@ionic/vue"
+import { ref, watch, inject, computed } from "vue"
 
 import { createResource, ErrorMessage } from "frappe-ui"
 
+import BaseLayout from "@/components/BaseLayout.vue"
 import FormView from "@/components/FormView.vue"
 import SalaryDetailTable from "@/components/SalaryDetailTable.vue"
 
@@ -61,6 +63,8 @@ const props = defineProps({
 		required: true,
 	},
 })
+const __ = inject("$translate")
+const pageTitle = computed(() => __("Salary Slip"))
 
 const downloadError = ref("")
 const loading = ref(false)

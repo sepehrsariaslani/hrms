@@ -70,9 +70,10 @@
 </template>
 
 <script setup>
-import { inject, computed } from "vue"
+import { inject, computed, watch } from "vue"
 import { IonModal } from "@ionic/vue"
 import { FeatherIcon, createResource } from "frappe-ui"
+import { formatJalaliDate } from "@/utils/jalali"
 
 const employee = inject("$employee")
 const dayjs = inject("$dayjs")
@@ -80,19 +81,32 @@ const __ = inject("$translate")
 
 const holidays = createResource({
 	url: "hrms.api.get_holidays_for_employee",
-	params: {
-		employee: employee.data.name,
+	auto: false,
+	makeParams() {
+		return {
+			employee: employee.data?.name,
+		}
 	},
-	auto: true,
 	transform: (data) => {
 		return data.map((holiday) => {
 			const holidayDate = dayjs(holiday.holiday_date)
 			holiday.is_upcoming = holidayDate.isAfter(dayjs())
-			holiday.formatted_holiday_date = holidayDate.format("ddd, D MMM YYYY")
+			holiday.formatted_holiday_date = formatJalaliDate(holiday.holiday_date, {
+				withWeekday: true,
+			})
 			return holiday
 		})
 	},
 })
+
+watch(
+	() => employee.data?.name,
+	(employeeName) => {
+		if (!employeeName) return
+		holidays.reload()
+	},
+	{ immediate: true }
+)
 
 const upcomingHolidays = computed(() => {
 	const filteredHolidays = holidays.data?.filter(

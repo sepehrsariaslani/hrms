@@ -15,6 +15,7 @@ from hrms.hr.utils import (
 	set_geolocation_from_coordinates,
 	validate_active_employee,
 )
+from hrms.utils.attendance_device_mapping import resolve_employee_by_attendance_device_id
 
 
 class CheckinRadiusExceededError(frappe.ValidationError):
@@ -156,15 +157,41 @@ def add_log_based_on_employee_field(
 	if not employee_field_value or not timestamp:
 		frappe.throw(_("'employee_field_value' and 'timestamp' are required."))
 
-	employee = frappe.db.get_values(
-		"Employee",
-		{employee_fieldname: employee_field_value},
-		["name", "employee_name", employee_fieldname],
-		as_dict=True,
-	)
-	if employee:
-		employee = employee[0]
-	else:
+	employee = None
+	if employee_fieldname == "attendance_device_id":
+		employee_name, match_method, conflicts = resolve_employee_by_attendance_device_id(
+			employee_field_value, device_id=device_id
+		)
+		if employee_name:
+			employee = frappe.db.get_value(
+				"Employee",
+				employee_name,
+				["name", "employee_name", "attendance_device_id"],
+				as_dict=True,
+			)
+		elif conflicts:
+			frappe.throw(
+				_(
+					"Multiple Employees found for the given attendance identifier. Code: {0}, Device: {1}, Candidates: {2}"
+				).format(employee_field_value, device_id or "-", ", ".join(conflicts))
+			)
+
+		if not employee and match_method != "not_found":
+			frappe.throw(
+				_("Unable to resolve Employee for attendance identifier. Match rule: {0}").format(match_method)
+			)
+
+	if not employee:
+		employee = frappe.db.get_values(
+			"Employee",
+			{employee_fieldname: employee_field_value},
+			["name", "employee_name", employee_fieldname],
+			as_dict=True,
+		)
+		if employee:
+			employee = employee[0]
+
+	if not employee:
 		frappe.throw(
 			_("No Employee found for the given employee field value. '{}': {}").format(
 				employee_fieldname, employee_field_value

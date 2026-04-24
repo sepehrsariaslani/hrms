@@ -13,6 +13,15 @@
   "department",
   "company",
   "column_break_5",
+  "request_mode",
+  "requested_log_type",
+  "requested_time",
+  "shift_request_approver",
+  "review_status",
+  "reviewed_log_type",
+  "reviewed_time",
+  "review_comment",
+  "employee_checkin",
   "from_date",
   "to_date",
   "half_day",
@@ -61,6 +70,65 @@
   {
    "fieldname": "column_break_5",
    "fieldtype": "Column Break"
+  },
+  {
+   "default": "Legacy Attendance",
+   "fieldname": "request_mode",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Request Mode",
+   "options": "Legacy Attendance\nCheckin Request"
+  },
+  {
+   "fieldname": "requested_log_type",
+   "fieldtype": "Select",
+   "label": "Requested Log Type",
+   "options": "IN\nOUT"
+  },
+  {
+   "fieldname": "requested_time",
+   "fieldtype": "Time",
+   "label": "Requested Time"
+  },
+  {
+   "fetch_from": "employee.shift_request_approver",
+   "fieldname": "shift_request_approver",
+   "fieldtype": "Link",
+   "label": "Shift Request Approver",
+   "options": "User",
+   "read_only": 1
+  },
+  {
+   "default": "Pending",
+   "fieldname": "review_status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Review Status",
+   "options": "Pending\nApproved\nRejected",
+   "read_only": 1
+  },
+  {
+   "fieldname": "reviewed_log_type",
+   "fieldtype": "Select",
+   "label": "Reviewed Log Type",
+   "options": "IN\nOUT"
+  },
+  {
+   "fieldname": "reviewed_time",
+   "fieldtype": "Time",
+   "label": "Reviewed Time"
+  },
+  {
+   "fieldname": "review_comment",
+   "fieldtype": "Small Text",
+   "label": "Review Comment"
+  },
+  {
+   "fieldname": "employee_checkin",
+   "fieldtype": "Link",
+   "label": "Employee Checkin",
+   "options": "Employee Checkin",
+   "read_only": 1
   },
   {
    "fieldname": "from_date",

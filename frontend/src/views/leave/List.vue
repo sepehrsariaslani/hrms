@@ -1,17 +1,24 @@
 <template>
-	<ion-page>
-		<ListView
-			doctype="Leave Application"
-			:pageTitle="__('Leave History')"
-			:tabButtons="TAB_BUTTONS"
-			:fields="LEAVE_FIELDS"
-			:filterConfig="FILTER_CONFIG"
-		/>
-	</ion-page>
+	<BaseLayout :pageTitle="__('مرخصی‌ها')">
+		<template #body>
+			<div class="w-full max-w-7xl mx-auto mt-7 mb-7 px-4">
+				<ListView
+					doctype="Leave Application"
+					:pageTitle="__('مرخصی‌ها')"
+					:tabButtons="TAB_BUTTONS"
+					:fields="LEAVE_FIELDS"
+					:filterConfig="FILTER_CONFIG"
+					:hideHeader="true"
+					:hideTabs="true"
+					:embedded="true"
+				/>
+			</div>
+		</template>
+	</BaseLayout>
 </template>
 
 <script setup>
-import { IonPage } from "@ionic/vue"
+import BaseLayout from "@/components/BaseLayout.vue"
 import ListView from "@/components/ListView.vue"
 import { inject } from "vue"
 
@@ -22,9 +29,14 @@ const LEAVE_FIELDS = [
 	"employee",
 	"employee_name",
 	"leave_type",
+	"leave_duration_mode",
+	"hourly_date",
+	"hourly_from_time",
+	"hourly_to_time",
 	"from_date",
 	"to_date",
 	"total_leave_days",
+	"total_leave_hours",
 	"status",
 ]
 const STATUS_FILTER_OPTIONS = ["Open", "Approved", "Rejected"] // __("Open"), __("Approved"), __("Rejected")

@@ -1,0 +1,188 @@
+{
+ "actions": [],
+ "allow_import": 1,
+ "autoname": "naming_series:",
+ "creation": "2026-04-14 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "naming_series",
+  "cycle",
+  "employee",
+  "employee_name",
+  "column_break_1",
+  "company",
+  "department",
+  "designation",
+  "source_section",
+  "appraisal",
+  "competency_assessment",
+  "column_break_2",
+  "performance_score",
+  "potential_score",
+  "result_section",
+  "box_code",
+  "box_label",
+  "recommended_path",
+  "notes"
+ ],
+ "fields": [
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "سری نام‌گذاری",
+   "options": "NINE-BOX-.YYYY.-.####",
+   "reqd": 1
+  },
+  {
+   "fieldname": "cycle",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "دوره ۹ خانه",
+   "options": "Nine Box Cycle",
+   "reqd": 1
+  },
+  {
+   "fieldname": "employee",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "کارمند",
+   "options": "Employee",
+   "reqd": 1
+  },
+  {
+   "fieldname": "employee_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "نام کارمند",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "شرکت",
+   "options": "Company",
+   "read_only": 1
+  },
+  {
+   "fieldname": "department",
+   "fieldtype": "Link",
+   "label": "دپارتمان",
+   "options": "Department",
+   "read_only": 1
+  },
+  {
+   "fieldname": "designation",
+   "fieldtype": "Link",
+   "label": "سمت",
+   "options": "Designation",
+   "read_only": 1
+  },
+  {
+   "fieldname": "source_section",
+   "fieldtype": "Section Break",
+   "label": "منابع امتیاز"
+  },
+  {
+   "fieldname": "appraisal",
+   "fieldtype": "Link",
+   "label": "ارزیابی عملکرد",
+   "options": "Appraisal"
+  },
+  {
+   "fieldname": "competency_assessment",
+   "fieldtype": "Link",
+   "label": "ارزیابی شایستگی",
+   "options": "Competency Assessment"
+  },
+  {
+   "fieldname": "column_break_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "performance_score",
+   "fieldtype": "Float",
+   "label": "امتیاز عملکرد",
+   "reqd": 1
+  },
+  {
+   "fieldname": "potential_score",
+   "fieldtype": "Float",
+   "label": "امتیاز پتانسیل",
+   "reqd": 1
+  },
+  {
+   "fieldname": "result_section",
+   "fieldtype": "Section Break",
+   "label": "نتیجه ۹ خانه"
+  },
+  {
+   "fieldname": "box_code",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "خانه ماتریس",
+   "read_only": 1
+  },
+  {
+   "fieldname": "box_label",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "برچسب خانه",
+   "read_only": 1
+  },
+  {
+   "fieldname": "recommended_path",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "پیشنهاد مسیر",
+   "read_only": 1
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Text",
+   "label": "توضیحات"
+  }
+ ],
+ "icon": "fa fa-th-large",
+ "modified": "2026-04-14 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "HR",
+ "name": "Nine Box Assessment",
+ "naming_rule": "By \"Naming Series\" field",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "HR User",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "import": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "HR Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "quick_entry": 1,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "title_field": "employee_name",
+ "translated_doctype": 1
+}

@@ -1,0 +1,108 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-04-11 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "shift_template_section",
+  "morning_shift_type",
+  "evening_shift_type",
+  "rules_section",
+  "required_days_per_week",
+  "minimum_hours_per_week",
+  "auto_generate_assignments",
+  "week_start_day"
+ ],
+ "fields": [
+  {
+   "fieldname": "shift_template_section",
+   "fieldtype": "Section Break",
+   "label": "Shift Templates"
+  },
+  {
+   "fieldname": "morning_shift_type",
+   "fieldtype": "Link",
+   "label": "Morning Shift Type",
+   "options": "Shift Type",
+   "reqd": 1
+  },
+  {
+   "fieldname": "evening_shift_type",
+   "fieldtype": "Link",
+   "label": "Evening Shift Type",
+   "options": "Shift Type",
+   "reqd": 1
+  },
+  {
+   "fieldname": "rules_section",
+   "fieldtype": "Section Break",
+   "label": "Validation Rules"
+  },
+  {
+   "default": "6",
+   "fieldname": "required_days_per_week",
+   "fieldtype": "Int",
+   "label": "Required Days Per Week",
+   "reqd": 1
+  },
+  {
+   "default": "48",
+   "fieldname": "minimum_hours_per_week",
+   "fieldtype": "Float",
+   "label": "Minimum Hours Per Week",
+   "reqd": 1
+  },
+  {
+   "default": "1",
+   "fieldname": "auto_generate_assignments",
+   "fieldtype": "Check",
+   "label": "Auto Generate Shift Assignments"
+  },
+  {
+   "default": "Saturday",
+   "fieldname": "week_start_day",
+   "fieldtype": "Select",
+   "label": "Week Start Day",
+   "options": "Saturday",
+   "reqd": 1
+  }
+ ],
+ "hide_toolbar": 1,
+ "index_web_pages_for_search": 1,
+ "issingle": 1,
+ "links": [],
+ "modified": "2026-04-11 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "HR",
+ "name": "Weekly Shift Planner Settings",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "HR User",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "HR Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC"
+}

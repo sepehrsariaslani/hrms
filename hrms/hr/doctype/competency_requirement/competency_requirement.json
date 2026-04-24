@@ -1,0 +1,69 @@
+{
+ "actions": [],
+ "creation": "2026-04-14 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "competency",
+  "competency_category",
+  "required_level",
+  "weightage",
+  "is_mandatory",
+  "notes"
+ ],
+ "fields": [
+  {
+   "fieldname": "competency",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "شایستگی",
+   "options": "Competency",
+   "reqd": 1
+  },
+  {
+   "fetch_from": "competency.competency_category",
+   "fieldname": "competency_category",
+   "fieldtype": "Read Only",
+   "in_list_view": 1,
+   "label": "دسته شایستگی"
+  },
+  {
+   "fieldname": "required_level",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "سطح موردنیاز",
+   "reqd": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "weightage",
+   "fieldtype": "Percent",
+   "in_list_view": 1,
+   "label": "وزن (%)"
+  },
+  {
+   "default": "1",
+   "fieldname": "is_mandatory",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "الزامی"
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Small Text",
+   "label": "توضیحات"
+  }
+ ],
+ "istable": 1,
+ "modified": "2026-04-14 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "HR",
+ "name": "Competency Requirement",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "translated_doctype": 1
+}
+

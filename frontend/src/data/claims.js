@@ -1,11 +1,17 @@
 import { createResource } from "frappe-ui"
 import { employeeResource } from "./employee"
 import { reactive } from "vue"
+import { watch } from "vue"
 
 export const expenseClaimSummary = createResource({
 	url: "hrms.api.get_expense_claim_summary",
-	auto: true,
+	auto: false,
 	cache: "hrms:expense_claim_summary",
+	makeParams() {
+		return {
+			employee: employeeResource.data?.name,
+		}
+	},
 })
 
 const transformClaimData = (data) => {
@@ -17,12 +23,14 @@ const transformClaimData = (data) => {
 
 export const myClaims = createResource({
 	url: "hrms.api.get_expense_claims",
-	params: {
-		employee: employeeResource.data.name,
-		limit: 10,
-	},
-	auto: true,
+	auto: false,
 	cache: "hrms:my_claims",
+	makeParams() {
+		return {
+			employee: employeeResource.data?.name,
+			limit: 10,
+		}
+	},
 	transform(data) {
 		return transformClaimData(data)
 	},
@@ -33,14 +41,16 @@ export const myClaims = createResource({
 
 export const teamClaims = createResource({
 	url: "hrms.api.get_expense_claims",
-	params: {
-		employee: employeeResource.data.name,
-		approver_id: employeeResource.data.user_id,
-		for_approval: 1,
-		limit: 10,
-	},
-	auto: true,
+	auto: false,
 	cache: "hrms:team_claims",
+	makeParams() {
+		return {
+			employee: employeeResource.data?.name,
+			approver_id: employeeResource.data?.user_id,
+			for_approval: 1,
+			limit: 10,
+		}
+	},
 	transform(data) {
 		return transformClaimData(data)
 	},
@@ -58,3 +68,14 @@ export const claimTypesResource = createResource({
 		})
 	},
 })
+
+watch(
+	() => employeeResource.data?.name,
+	(employeeName) => {
+		if (!employeeName) return
+		expenseClaimSummary.reload()
+		myClaims.reload()
+		teamClaims.reload()
+	},
+	{ immediate: true }
+)

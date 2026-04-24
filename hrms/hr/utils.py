@@ -792,6 +792,7 @@ def share_doc_with_approver(doc, user):
 			"Leave Application": "leave_approver",
 			"Expense Claim": "expense_approver",
 			"Shift Request": "approver",
+			"Employee Advance": "expense_approver",
 		}
 
 		approver = approvers.get(doc.doctype)

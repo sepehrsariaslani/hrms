@@ -1,0 +1,186 @@
+{
+ "actions": [],
+ "allow_import": 1,
+ "allow_rename": 1,
+ "autoname": "field:grade_code",
+ "creation": "2026-04-14 00:00:00.000000",
+ "doctype": "DocType",
+ "document_type": "Setup",
+ "engine": "InnoDB",
+ "field_order": [
+  "grade_code",
+  "grade_title",
+  "column_break_basics",
+  "level_number",
+  "career_track",
+  "score_section",
+  "min_score",
+  "max_score",
+  "column_break_score",
+  "grading_model",
+  "description",
+  "pay_band_section",
+  "currency",
+  "min_salary",
+  "column_break_pay",
+  "spread_percent",
+  "max_salary",
+  "leadership_competencies_section",
+  "leadership_competencies"
+ ],
+ "fields": [
+  {
+   "fieldname": "grade_code",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "کد گرید",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "grade_title",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "عنوان گرید",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_basics",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "level_number",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "سطح",
+   "reqd": 1
+  },
+  {
+   "fieldname": "career_track",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "مسیر شغلی",
+   "options": "\nتخصصی\nمدیریتی\nعملیاتی\nعمومی"
+  },
+  {
+   "fieldname": "score_section",
+   "fieldtype": "Section Break",
+   "label": "بازه امتیاز"
+  },
+  {
+   "fieldname": "min_score",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "حداقل امتیاز"
+  },
+  {
+   "fieldname": "max_score",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "حداکثر امتیاز"
+  },
+  {
+   "fieldname": "column_break_score",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "grading_model",
+   "fieldtype": "Select",
+   "label": "مدل ارزیابی شغل",
+   "options": "\nمرسر\nهی گروپ\nسفارشی"
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Text",
+   "label": "توضیحات"
+  },
+  {
+   "fieldname": "pay_band_section",
+   "fieldtype": "Section Break",
+   "label": "بازه حقوقی"
+  },
+  {
+   "fieldname": "currency",
+   "fieldtype": "Link",
+   "label": "ارز",
+   "options": "Currency"
+  },
+  {
+   "fieldname": "min_salary",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "حداقل حقوق",
+   "options": "currency"
+  },
+  {
+   "fieldname": "column_break_pay",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "50",
+   "fieldname": "spread_percent",
+   "fieldtype": "Percent",
+   "in_list_view": 1,
+   "label": "اسپرد حقوقی (%)"
+  },
+  {
+   "fieldname": "max_salary",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "حداکثر حقوق",
+   "options": "currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "leadership_competencies_section",
+   "fieldtype": "Section Break",
+   "label": "شایستگی‌های رهبری"
+  },
+  {
+   "fieldname": "leadership_competencies",
+   "fieldtype": "Table",
+   "label": "الزامات شایستگی مدیریتی",
+   "options": "Competency Requirement"
+  }
+ ],
+ "icon": "fa fa-layer-group",
+ "modified": "2026-04-14 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "HR",
+ "name": "Job Grade",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "HR User",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "import": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "HR Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "quick_entry": 1,
+ "show_name_in_global_search": 1,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "grade_title",
+ "translated_doctype": 1
+}

@@ -63,12 +63,12 @@ import EmptyState from "@/components/EmptyState.vue"
 import SalarySlipItem from "@/components/SalarySlipItem.vue"
 
 import { formatCurrency } from "@/utils/formatters"
+import { formatJalaliMonthYear } from "@/utils/jalali"
 
 let selectedPeriod = ref({})
 let periodsByName = ref({})
 
 const employee = inject("$employee")
-const dayjs = inject("$dayjs")
 const socket = inject("$socket")
 const __ = inject("$translate")
 
@@ -115,21 +115,34 @@ const documents = createListResource({
 const lastSalarySlip = computed(() => documents.data?.[0])
 
 function getPeriodLabel(period) {
-	return `${dayjs(period?.start_date).format("MMM YYYY")} - ${dayjs(
+	return `${formatJalaliMonthYear(period?.start_date)} - ${formatJalaliMonthYear(
 		period?.end_date
-	).format("MMM YYYY")}`
+	)}`
 }
 
 watch(
 	() => selectedPeriod.value,
 	(value) => {
 		let period = periodsByName.value[value?.value]
+		if (!period?.start_date || !period?.end_date) return
 		documents.filters.start_date = [
 			"between",
 			[period?.start_date, period?.end_date],
 		]
 		documents.reload()
 	}
+)
+
+watch(
+	() => employee.data?.name,
+	(employeeName) => {
+		if (!employeeName) return
+		payrollPeriods.filters.company = employee.data?.company
+		payrollPeriods.reload()
+		documents.filters.employee = employeeName
+		documents.reload()
+	},
+	{ immediate: true }
 )
 
 onMounted(() => {

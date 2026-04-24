@@ -21,19 +21,19 @@
 									{{
 										__("{0}: {1}", [
 											__("Sanctioned"),
-											formatCurrency(item.sanctioned_amount || 0, doc.currency),
+											formatCurrency(item.sanctioned_amount || 0, currency),
 										])
 									}}
 								</span>
 								<span class="whitespace-pre"> &middot; </span>
 								<span class="whitespace-nowrap" v-if="item.expense_date">
-									{{ dayjs(item.expense_date).format("D MMM") }}
+									{{ formatJalaliDateShort(item.expense_date) }}
 								</span>
 							</div>
 						</div>
 					</div>
 					<span class="text-gray-700 font-normal rounded text-base">
-						{{ formatCurrency(item.amount, doc.currency) }}
+						{{ formatCurrency(item.amount, currency) }}
 					</span>
 				</div>
 			</div>
@@ -42,9 +42,11 @@
 </template>
 
 <script setup>
-import { inject } from "vue"
+import { computed, inject } from "vue"
 
+import { getCompanyCurrency } from "@/data/currencies"
 import { formatCurrency } from "@/utils/formatters"
+import { formatJalaliDateShort } from "@/utils/jalali"
 
 const props = defineProps({
 	doc: {
@@ -53,5 +55,5 @@ const props = defineProps({
 	},
 })
 
-const dayjs = inject("$dayjs")
+const currency = computed(() => getCompanyCurrency(props.doc.company))
 </script>

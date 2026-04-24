@@ -6,6 +6,13 @@ import leaveRoutes from "./leaves"
 import claimRoutes from "./claims"
 import employeeAdvanceRoutes from "./advances"
 import salarySlipRoutes from "./salary_slips"
+import complaintRoutes from "./complaints"
+import mealRoutes from "./meals"
+import appraisalRoutes from "./appraisals"
+import newsletterRoutes from "./newsletters"
+import imprestRoutes from "./imprest"
+import missionRoutes from "./missions"
+import eventRoutes from "./events"
 
 const routes = [
 	{
@@ -45,6 +52,41 @@ const routes = [
 				name: "SalarySlipsDashboard",
 				component: () => import("@/views/salary_slip/Dashboard.vue"),
 			},
+			{
+				path: "/dashboard/complaints",
+				name: "ComplaintsDashboard",
+				component: () => import("@/views/complaint/Dashboard.vue"),
+			},
+			{
+				path: "/dashboard/meals",
+				name: "MealsDashboard",
+				component: () => import("@/views/meal/Dashboard.vue"),
+			},
+			{
+				path: "/dashboard/appraisals",
+				name: "AppraisalsDashboard",
+				component: () => import("@/views/appraisal/Dashboard.vue"),
+			},
+			{
+				path: "/dashboard/newsletters",
+				name: "NewslettersDashboard",
+				component: () => import("@/views/newsletter/Dashboard.vue"),
+			},
+			{
+				path: "/dashboard/missions",
+				name: "MissionsDashboard",
+				component: () => import("@/views/mission/Dashboard.vue"),
+			},
+			{
+				path: "/dashboard/imprest",
+				name: "ImprestDashboard",
+				component: () => import("@/views/imprest/Dashboard.vue"),
+			},
+			{
+				path: "/dashboard/events",
+				name: "EventsDashboard",
+				component: () => import("@/views/event/Dashboard.vue"),
+			},
 		],
 	},
 	{
@@ -68,6 +110,11 @@ const routes = [
 		component: () => import("@/views/AppSettings.vue"),
 	},
 	{
+		path: "/training",
+		name: "TrainingCenter",
+		component: () => import("@/views/TrainingCenter.vue"),
+	},
+	{
 		path: "/invalid-employee",
 		name: "InvalidEmployee",
 		component: () => import("@/views/InvalidEmployee.vue"),
@@ -77,6 +124,13 @@ const routes = [
 	...claimRoutes,
 	...employeeAdvanceRoutes,
 	...salarySlipRoutes,
+	...complaintRoutes,
+	...mealRoutes,
+	...appraisalRoutes,
+	...newsletterRoutes,
+	...imprestRoutes,
+	...missionRoutes,
+	...eventRoutes,
 ]
 
 const router = createRouter({

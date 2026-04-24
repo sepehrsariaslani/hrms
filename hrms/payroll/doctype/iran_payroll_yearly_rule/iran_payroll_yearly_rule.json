@@ -1,0 +1,122 @@
+{
+ "actions": [],
+ "creation": "2026-04-13 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "law_year",
+  "effective_from",
+  "effective_to",
+  "min_daily_wage",
+  "min_monthly_wage",
+  "min_hourly_wage",
+  "housing_allowance",
+  "grocery_allowance",
+  "marriage_allowance",
+  "child_allowance_per_child",
+  "seniority_daily_base",
+  "overtime_multiplier",
+  "monthly_tax_exemption",
+  "insurance_employee_rate",
+  "insurance_employer_rate",
+  "unemployment_rate"
+ ],
+ "fields": [
+  {
+   "fieldname": "law_year",
+   "fieldtype": "Int",
+   "label": "سال قانون",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "effective_from",
+   "fieldtype": "Date",
+   "label": "تاریخ شروع اعتبار",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "effective_to",
+   "fieldtype": "Date",
+   "label": "تاریخ پایان اعتبار",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "min_daily_wage",
+   "fieldtype": "Currency",
+   "label": "حداقل مزد روزانه"
+  },
+  {
+   "fieldname": "min_monthly_wage",
+   "fieldtype": "Currency",
+   "label": "حداقل مزد ماهیانه"
+  },
+  {
+   "fieldname": "min_hourly_wage",
+   "fieldtype": "Currency",
+   "label": "حداقل مزد ساعتی"
+  },
+  {
+   "fieldname": "housing_allowance",
+   "fieldtype": "Currency",
+   "label": "حق مسکن"
+  },
+  {
+   "fieldname": "grocery_allowance",
+   "fieldtype": "Currency",
+   "label": "بن خواربار"
+  },
+  {
+   "fieldname": "marriage_allowance",
+   "fieldtype": "Currency",
+   "label": "حق تاهل"
+  },
+  {
+   "fieldname": "child_allowance_per_child",
+   "fieldtype": "Currency",
+   "label": "حق اولاد هر فرزند"
+  },
+  {
+   "fieldname": "seniority_daily_base",
+   "fieldtype": "Currency",
+   "label": "پایه سنوات روزانه"
+  },
+  {
+   "fieldname": "overtime_multiplier",
+   "fieldtype": "Float",
+   "label": "ضریب اضافه کاری",
+   "default": "1.4"
+  },
+  {
+   "fieldname": "monthly_tax_exemption",
+   "fieldtype": "Currency",
+   "label": "معافیت ماهانه مالیات"
+  },
+  {
+   "fieldname": "insurance_employee_rate",
+   "fieldtype": "Percent",
+   "label": "درصد بیمه سهم کارگر",
+   "default": "7"
+  },
+  {
+   "fieldname": "insurance_employer_rate",
+   "fieldtype": "Percent",
+   "label": "درصد بیمه سهم کارفرما",
+   "default": "23"
+  },
+  {
+   "fieldname": "unemployment_rate",
+   "fieldtype": "Percent",
+   "label": "درصد بیمه بیکاری",
+   "default": "3"
+  }
+ ],
+ "istable": 1,
+ "module": "Payroll",
+ "name": "Iran Payroll Yearly Rule",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "ASC"
+}

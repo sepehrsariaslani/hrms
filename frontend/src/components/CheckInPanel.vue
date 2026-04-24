@@ -3,13 +3,18 @@
 		<h2 class="text-lg font-bold text-gray-900">
 			{{ __("Hey, {0} 👋", [employee?.data?.first_name]) }}
 		</h2>
+		<div class="font-medium text-sm text-gray-500 mt-1.5 flex items-center flex-wrap">
+			<span v-if="employeeBranch">{{ __("Branch") }}: {{ employeeBranch }}</span>
+			<span v-if="employeeBranch" class="whitespace-pre"> &middot; </span>
+			<span>{{ todayJalali }}</span>
+		</div>
 
 		<template v-if="settings.data?.allow_employee_checkin_from_mobile_app">
 			<div class="font-medium text-sm text-gray-500 mt-1.5" v-if="lastLog">
-				<span>{{ __("Last {0} was at {1}", [__(lastLogType), formatTimestamp(lastLog.time)]) }}</span>
+				<span>{{ __("Last {0} was at {1}", [__(lastLogType), formatTimestamp(lastLog.time, __)]) }}</span>
 				<span class="whitespace-pre"> &middot; </span>
 				<router-link :to="{ name: 'EmployeeCheckinListView' }" v-slot="{ navigate }">
-					<span @click="navigate" class="underline">View List</span>
+					<span @click="navigate" class="underline">{{ __("View List") }}</span>
 				</router-link>
 			</div>
 			<Button
@@ -26,10 +31,6 @@
 				{{ nextAction.label }}
 			</Button>
 		</template>
-
-		<div v-else class="font-medium text-sm text-gray-500 mt-1.5">
-			{{ dayjs().format("ddd, D MMMM, YYYY") }}
-		</div>
 	</div>
 
 	<ion-modal
@@ -42,10 +43,10 @@
 		<div class="h-120 w-full flex flex-col items-center justify-center gap-5 p-4 mb-5">
 			<div class="flex flex-col gap-1.5 mt-2 items-center justify-center">
 				<div class="font-bold text-xl">
-					{{ dayjs(checkinTimestamp).format("hh:mm:ss a") }}
+					{{ formatJalaliTime(checkinTimestamp, { withSeconds: true }) }}
 				</div>
 				<div class="font-medium text-gray-500 text-sm">
-					{{ dayjs().format("D MMM, YYYY") }}
+					{{ checkinDateJalali }}
 				</div>
 			</div>
 
@@ -63,7 +64,7 @@
 						marginheight="0"
 						marginwidth="0"
 						style="border: 0"
-						:src="`https://maps.google.com/maps?q=${latitude},${longitude}&hl=en&z=15&amp;output=embed`"
+						:src="`https://maps.google.com/maps?q=${latitude},${longitude}&hl=${mapLanguage}&z=15&amp;output=embed`"
 					>
 					</iframe>
 				</div>
@@ -77,12 +78,12 @@
 </template>
 
 <script setup>
-import { createListResource, toast, FeatherIcon } from "frappe-ui"
-import { computed, inject, ref, onMounted, onBeforeUnmount } from "vue"
+import { createResource, createListResource, toast, FeatherIcon } from "frappe-ui"
+import { computed, inject, ref, onMounted, onBeforeUnmount, watch } from "vue"
 import { IonModal, modalController } from "@ionic/vue"
 
 import { formatTimestamp } from "@/utils/formatters"
-import { settings } from "@/data/settings"
+import { formatJalaliDate, formatJalaliTime } from "@/utils/jalali"
 
 const DOCTYPE = "Employee Checkin"
 
@@ -94,16 +95,37 @@ const checkinTimestamp = ref(null)
 const latitude = ref(0)
 const longitude = ref(0)
 const locationStatus = ref("")
+const mapLanguage = (window.frappe?.boot?.lang ?? navigator.language ?? "en").split(/[-_]/)[0]
+const settings = createResource({
+	url: "hrms.api.get_hr_settings",
+	auto: true,
+})
+
+const employeeBranch = computed(() => {
+	return employee?.data?.branch || employee?.data?.branch_name || ""
+})
+
+const todayJalali = computed(() => formatJalaliDate(new Date(), { withWeekday: true }))
+const checkinDateJalali = computed(() => {
+	return formatJalaliDate(checkinTimestamp.value || new Date())
+})
 
 const checkins = createListResource({
 	doctype: DOCTYPE,
 	fields: ["name", "employee", "employee_name", "log_type", "time", "device_id"],
-	filters: {
-		employee: employee.data.name,
-	},
+	filters: {},
 	orderBy: "time desc",
 })
-checkins.reload()
+
+watch(
+	() => employee.data?.name,
+	(employeeName) => {
+		if (!employeeName) return
+		checkins.filters.employee = employeeName
+		checkins.reload()
+	},
+	{ immediate: true }
+)
 
 const lastLog = computed(() => {
 	if (checkins.list.loading || !checkins.data) return {}
@@ -131,7 +153,7 @@ function handleLocationSuccess(position) {
 }
 
 function handleLocationError(error) {
-	locationStatus.value = "Unable to retrieve your location"
+	locationStatus.value = __("Unable to retrieve your location")
 	if (error) locationStatus.value += `: ERROR(${error.code}): ${error.message}`
 }
 

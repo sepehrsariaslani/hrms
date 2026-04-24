@@ -16,7 +16,17 @@ import { inject } from "vue"
 
 const __ = inject("$translate")
 
-const ATTENDANCE_REQUEST_FIELDS = ["name", "reason", "from_date", "to_date", "docstatus"]
+const ATTENDANCE_REQUEST_FIELDS = [
+	"name",
+	"request_mode",
+	"review_status",
+	"requested_log_type",
+	"requested_time",
+	"reason",
+	"from_date",
+	"to_date",
+	"docstatus",
+]
 const FILTER_CONFIG = [
 	{
 		fieldname: "shift",

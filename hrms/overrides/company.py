@@ -9,6 +9,13 @@ from frappe import _
 from erpnext.accounts.doctype.account.account import get_account_currency
 
 
+def get_regional_country_slug(country: str | None) -> str:
+	country = (country or "").strip().lower()
+	if country in {"iran", "ایران", "iran, islamic republic of", "islamic republic of iran"}:
+		return "iran"
+	return frappe.scrub(country)
+
+
 def make_company_fixtures(doc, method=None):
 	if not frappe.flags.country_change:
 		return
@@ -26,7 +33,7 @@ def delete_company_fixtures():
 
 	for country in countries:
 		try:
-			module_name = f"hrms.regional.{frappe.scrub(country)}.setup.uninstall"
+			module_name = f"hrms.regional.{get_regional_country_slug(country)}.setup.uninstall"
 			frappe.get_attr(module_name)()
 		except (ImportError, AttributeError):
 			# regional file or method does not exist
@@ -40,7 +47,7 @@ def delete_company_fixtures():
 
 def run_regional_setup(country):
 	try:
-		module_name = f"hrms.regional.{frappe.scrub(country)}.setup.setup"
+		module_name = f"hrms.regional.{get_regional_country_slug(country)}.setup.setup"
 		frappe.get_attr(module_name)()
 	except ImportError:
 		pass
@@ -74,7 +81,7 @@ def make_salary_components(country):
 		file_path = frappe.get_app_path("hrms", "payroll", "data", file_name)
 		docs.extend(json.loads(read_data_file(file_path)))
 
-	file_path = frappe.get_app_path("hrms", "regional", frappe.scrub(country), "data", file_name)
+	file_path = frappe.get_app_path("hrms", "regional", get_regional_country_slug(country), "data", file_name)
 	docs.extend(json.loads(read_data_file(file_path)))
 
 	for d in docs:

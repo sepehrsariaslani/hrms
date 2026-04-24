@@ -1,8 +1,10 @@
 <template>
 	<div class="flex flex-col h-full w-full" v-if="isFormReady">
-		<div class="w-full h-full bg-white sm:w-96 flex flex-col">
+		<div class="w-full h-full bg-white max-w-5xl mx-auto flex flex-col md:rounded-xl md:border md:border-gray-100 md:shadow-sm">
 			<header
+				v-if="props.showFormHeader"
 				class="flex flex-row bg-white shadow-sm py-4 px-3 items-center sticky top-0 z-[1000]"
+				data-tour="form-header"
 			>
 				<Button
 					variant="ghost"
@@ -41,11 +43,6 @@
 								onClick: () => (showDeleteDialog = true),
 							},
 							{ label: __('Reload'), onClick: () => reloadDoc() },
-							{
-								label: __('Download PDF'),
-								condition: () => props.showDownloadPDFButton,
-								onClick: () => (handleDownload()),
-							},
 						]"
 						:button="{
 							label: __('Menu'),
@@ -59,8 +56,10 @@
 				</h2>
 			</header>
 
+			<slot name="headerNotice"></slot>
+
 			<!-- Form -->
-			<div class="bg-white grow overflow-y-auto">
+			<div class="bg-white grow overflow-y-auto" data-tour="form-body">
 				<!-- Tabs -->
 				<template v-if="tabbedView">
 					<div
@@ -102,6 +101,7 @@
 									v-model="formModel[field.fieldname]"
 									:default="field.default"
 									:label="__(field.label, null, props.doctype)"
+									:description="field.description"
 									:options="field.options"
 									:linkFilters="field.linkFilters"
 									:documentList="field.documentList"
@@ -124,35 +124,44 @@
 								<span class="text-gray-900 text-sm">{{ __("Uploading...") }} </span>
 							</div>
 
-							<FileUploaderView
-								v-else-if="showAttachmentView && index === 0"
-								v-model="fileAttachments"
-								@handleFileSelect="handleFileSelect"
-								@handleFileDelete="handleFileDelete"
-							/>
+							<div v-else-if="showAttachmentView && index === 0" data-tour="form-attachments">
+								<FileUploaderView
+									v-model="fileAttachments"
+									@handleFileSelect="handleFileSelect"
+									@handleFileDelete="handleFileDelete"
+								/>
+							</div>
 						</div>
 					</template>
 				</template>
 
 				<div class="flex flex-col space-y-4 p-4" v-else>
-					<FormField
-						v-for="field in props.fields"
-						:key="field.name"
-						:fieldtype="field.fieldtype"
-						:fieldname="field.fieldname"
-						v-model="formModel[field.fieldname]"
-						:default="field.default"
-						:label="__(field.label, null, props.doctype)"
-						:options="field.options"
-						:linkFilters="field.linkFilters"
-						:documentList="field.documentList"
-						:readOnly="isFieldReadOnly(field)"
-						:reqd="Boolean(field.reqd)"
-						:hidden="Boolean(field.hidden)"
-						:errorMessage="field.error_message"
-						:minDate="field.minDate"
-						:maxDate="field.maxDate"
-					/>
+					<template v-for="field in props.fields" :key="field.name">
+						<slot
+							v-if="field.fieldtype == 'Table'"
+							:name="field.fieldname"
+							:isFormReadOnly="isFormReadOnly"
+						></slot>
+
+						<FormField
+							v-else
+							:fieldtype="field.fieldtype"
+							:fieldname="field.fieldname"
+							v-model="formModel[field.fieldname]"
+							:default="field.default"
+							:label="__(field.label, null, props.doctype)"
+							:description="field.description"
+							:options="field.options"
+							:linkFilters="field.linkFilters"
+							:documentList="field.documentList"
+							:readOnly="isFieldReadOnly(field)"
+							:reqd="Boolean(field.reqd)"
+							:hidden="Boolean(field.hidden)"
+							:errorMessage="field.error_message"
+							:minDate="field.minDate"
+							:maxDate="field.maxDate"
+						/>
+					</template>
 
 					<!-- Attachment upload -->
 					<div
@@ -163,12 +172,13 @@
 						<span class="text-gray-900 text-sm">{{ __("Uploading...") }} </span>
 					</div>
 
-					<FileUploaderView
-						v-else-if="showAttachmentView"
-						v-model="fileAttachments"
-						@handleFileSelect="handleFileSelect"
-						@handleFileDelete="handleFileDelete"
-					/>
+					<div v-else-if="showAttachmentView" data-tour="form-attachments">
+						<FileUploaderView
+							v-model="fileAttachments"
+							@handleFileSelect="handleFileSelect"
+							@handleFileDelete="handleFileDelete"
+						/>
+					</div>
 				</div>
 			</div>
 
@@ -176,7 +186,8 @@
 			<!-- custom form button eg: Download button in salary slips -->
 			<div
 				v-if="!showFormButton"
-				class="px-4 pt-4 pb-4 standalone:pb-safe-bottom sm:w-96 bg-white sticky bottom-0 w-full drop-shadow-xl z-40 border-t rounded-t-lg"
+				class="px-4 pt-4 pb-4 standalone:pb-safe-bottom bg-white sticky bottom-0 w-full drop-shadow-xl z-40 border-t rounded-t-lg"
+				data-tour="form-primary-action"
 			>
 				<slot name="formButton"></slot>
 			</div>
@@ -192,7 +203,8 @@
 			<!-- save/submit/cancel -->
 			<div
 				v-else-if="isFormDirty || (!workflow?.hasWorkflow && formButton)"
-				class="px-4 pt-4 pb-4 standalone:pb-safe-bottom sm:w-96 bg-white sticky bottom-0 w-full drop-shadow-xl z-40 border-t rounded-t-lg"
+				class="px-4 pt-4 pb-4 standalone:pb-safe-bottom bg-white sticky bottom-0 w-full drop-shadow-xl z-40 border-t rounded-t-lg"
+				data-tour="form-primary-action"
 			>
 				<ErrorMessage
 					class="mb-2"
@@ -337,7 +349,6 @@ import { FileAttachment, guessStatusColor } from "@/composables"
 import useWorkflow from "@/composables/workflow"
 import { getCompanyCurrency } from "@/data/currencies"
 import { formatCurrency } from "@/utils/formatters"
-import { useDownloadPDF } from "@/utils/commonUtils"
 
 const props = defineProps({
 	doctype: {
@@ -375,20 +386,29 @@ const props = defineProps({
 		required: false,
 		default: false,
 	},
+	showFormHeader: {
+		type: Boolean,
+		required: false,
+		default: false,
+	},
 	showFormButton: {
 		type: Boolean,
 		required: false,
 		default: true,
 	},
-	showDownloadPDFButton: {
+	returnOnCreate: {
 		type: Boolean,
 		required: false,
 		default: false,
 	},
+	returnOnCreateRoute: {
+		type: String,
+		required: false,
+		default: "",
+	},
 })
-const emit = defineEmits(["validateForm", "update:modelValue", "formReloaded"])
+const emit = defineEmits(["validateForm", "update:modelValue", "afterSave"])
 const router = useRouter()
-const { downloadPDF } = useDownloadPDF()
 
 const __ = inject("$translate")
 
@@ -531,6 +551,16 @@ const docList = createListResource({
 				iconClasses: "text-green-500",
 			})
 			await uploadAllAttachments(data.doctype, data.name, fileAttachments.value)
+			emit("afterSave", { action: "insert", doc: data })
+
+			if (props.returnOnCreate) {
+				if (props.returnOnCreateRoute) {
+					router.replace({ name: props.returnOnCreateRoute })
+					return
+				}
+				router.back()
+				return
+			}
 
 			router.replace({
 				name: `${props.doctype.replace(/\s+/g, "")}DetailView`,
@@ -553,6 +583,7 @@ const docList = createListResource({
 const documentResource = createDocumentResource({
 	doctype: props.doctype,
 	name: props.id,
+	fields: "*",
 	setValue: {
 		onSuccess() {
 			toast({
@@ -677,6 +708,7 @@ async function handleDocUpdate(action) {
 		await documentResource.setValue.submit(params)
 		await documentResource.get.promise
 		resetForm()
+		emit("afterSave", { action: action || "update", doc: documentResource.doc })
 	}
 
 	if (action === "submit") showSubmitDialog.value = false
@@ -719,15 +751,6 @@ function resetForm() {
 	nextTick(() => {
 		isFormDirty.value = false
 		isFormUpdated.value = true
-		emit("formReloaded")
-	})
-}
-function handleDownload() {
-	if (!props.id) return
-	downloadPDF({
-		doctype: props.doctype,
-		docname: props.id,
-		filename: props.id,
 	})
 }
 

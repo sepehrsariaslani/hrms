@@ -47,7 +47,7 @@ app_include_css = "hrms.bundle.css"
 
 # include js in doctype views
 doctype_js = {
-	"Employee": "public/js/erpnext/employee.js",
+	"Employee": ["public/js/erpnext/employee.js", "public/js/employee_salary_calculator.js"],
 	"Company": "public/js/erpnext/company.js",
 	"Department": "public/js/erpnext/department.js",
 	"Timesheet": "public/js/erpnext/timesheet.js",
@@ -175,6 +175,9 @@ doc_events = {
 		],
 		"on_trash": "hrms.overrides.company.handle_linked_docs",
 	},
+	"Designation": {
+		"validate": "hrms.overrides.designation_job_architecture.apply_job_score",
+	},
 	"Holiday List": {
 		"on_update": "hrms.utils.holiday_list.invalidate_cache",
 		"on_trash": "hrms.utils.holiday_list.invalidate_cache",
@@ -205,7 +208,10 @@ doc_events = {
 	},
 	"Loan": {"validate": "hrms.hr.utils.validate_loan_repay_from_salary"},
 	"Employee": {
-		"validate": "hrms.overrides.employee_master.validate_onboarding_process",
+		"validate": [
+			"hrms.overrides.employee_master.validate_onboarding_process",
+			"hrms.overrides.employee_designation.sync_employee_designations",
+		],
 		"on_update": [
 			"hrms.overrides.employee_master.update_approver_role",
 			"hrms.overrides.employee_master.publish_update",
@@ -216,6 +222,9 @@ doc_events = {
 	},
 	"Project": {"validate": "hrms.controllers.employee_boarding_controller.update_employee_boarding_status"},
 	"Task": {"on_update": "hrms.controllers.employee_boarding_controller.update_task"},
+	"Salary Slip": {
+		"before_save": "hrms.regional.iran.utils.apply_iran_payroll_rules",
+	},
 }
 
 # Scheduled Tasks
@@ -245,6 +254,7 @@ scheduler_events = {
 		"hrms.hr.doctype.leave_ledger_entry.leave_ledger_entry.process_expired_allocation",
 		"hrms.hr.utils.generate_leave_encashment",
 		"hrms.hr.utils.allocate_earned_leaves",
+		"hrms.hr.doctype.employee_checkin.attendance_sync.sync_attendance_from_checkins",
 	],
 	"weekly": ["hrms.controllers.employee_reminders.send_reminders_in_advance_weekly"],
 	"monthly": ["hrms.controllers.employee_reminders.send_reminders_in_advance_monthly"],

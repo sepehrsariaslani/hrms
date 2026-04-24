@@ -34,7 +34,7 @@
 					{{ `${allocation.balance_leaves}/${allocation.allocated_leaves}` }}
 				</div>
 				<div class="text-gray-600 font-normal text-sm w-24 leading-4">
-					{{ __("{0} balance", [__(leave_type, null, "Leave Type")]) }}
+					{{ __("{0} balance", [localizeLeaveType(leave_type)]) }}
 				</div>
 			</div>
 		</div>
@@ -47,6 +47,7 @@
 import SemicircleChart from "@/components/SemicircleChart.vue"
 import { leaveBalance } from "@/data/leaves"
 import { inject } from "vue"
+import { localizeLeaveType } from "@/utils/leaveTypeLabels"
 
 const __ = inject("$translate")
 const getChartColor = (index) => {

@@ -6,9 +6,8 @@
 		:breakpoints="[0, 1]"
 		:backdrop-breakpoint="1"
 		:is-open="isOpen"
-		@willPresent="showModalBackdrop = true"
-		@willDismiss="showModalBackdrop = false"
-		@didDismiss="() => emit('did-dismiss')"
+		@didPresent="showModalBackdrop = true"
+		@didDismiss="handleDidDismiss"
 	>
 		<slot name="actionSheet"></slot>
 	</ion-modal>
@@ -27,7 +26,8 @@
  * @see https://github.com/ionic-team/ionic-framework/issues/24646
  * This custom ion-modal disables backdrop using backdrop-breakpoint=1 and we add a custom backdrop
  */
-import { ref } from "vue"
+import { onBeforeUnmount, ref, watch } from "vue"
+import { useRoute } from "vue-router"
 import { IonModal, modalController } from "@ionic/vue"
 
 const props = defineProps({
@@ -42,4 +42,30 @@ const props = defineProps({
 })
 const emit = defineEmits(["did-dismiss"])
 const showModalBackdrop = ref(false)
+const route = useRoute()
+
+watch(
+	() => props.isOpen,
+	(isOpen) => {
+		if (isOpen === false) {
+			showModalBackdrop.value = false
+		}
+	}
+)
+
+watch(
+	() => route.fullPath,
+	() => {
+		showModalBackdrop.value = false
+	}
+)
+
+onBeforeUnmount(() => {
+	showModalBackdrop.value = false
+})
+
+function handleDidDismiss() {
+	showModalBackdrop.value = false
+	emit("did-dismiss")
+}
 </script>

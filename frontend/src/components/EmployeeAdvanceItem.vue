@@ -42,8 +42,8 @@ import { computed, inject } from "vue"
 import ListItem from "@/components/ListItem.vue"
 import EmployeeAdvanceIcon from "@/components/icons/EmployeeAdvanceIcon.vue"
 import { formatCurrency } from "@/utils/formatters"
+import { formatJalaliDateShort } from "@/utils/jalali"
 
-const dayjs = inject("$dayjs")
 const props = defineProps({
 	doc: {
 		type: Object,
@@ -67,7 +67,7 @@ const colorMap = {
 }
 
 const postingDate = computed(() => {
-	return dayjs(props.doc.posting_date).format("D MMM")
+	return formatJalaliDateShort(props.doc.posting_date)
 })
 
 const status = computed(() => {

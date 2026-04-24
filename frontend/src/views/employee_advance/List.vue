@@ -1,17 +1,23 @@
 <template>
-	<ion-page>
-		<ListView
-			doctype="Employee Advance"
-			:pageTitle="__('Employee Advances')"
-			:tabButtons="TAB_BUTTONS"
-			:fields="EMPLOYEE_ADVANCE_FIELDS"
-			:filterConfig="FILTER_CONFIG"
-		/>
-	</ion-page>
+	<BaseLayout :pageTitle="__('Employee Advances')">
+		<template #body>
+			<div class="w-full max-w-7xl mx-auto mt-7 mb-7 px-4">
+				<ListView
+					doctype="Employee Advance"
+					:pageTitle="__('Employee Advances')"
+					:tabButtons="TAB_BUTTONS"
+					:fields="EMPLOYEE_ADVANCE_FIELDS"
+					:filterConfig="FILTER_CONFIG"
+					:embedded="true"
+					:forceShowCreateButton="true"
+				/>
+			</div>
+		</template>
+	</BaseLayout>
 </template>
 
 <script setup>
-import { IonPage } from "@ionic/vue"
+import BaseLayout from "@/components/BaseLayout.vue"
 import ListView from "@/components/ListView.vue"
 import { inject } from "vue"
 

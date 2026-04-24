@@ -1,0 +1,102 @@
+{
+ "actions": [],
+ "creation": "2026-04-13 00:00:00.000000",
+ "doctype": "DocType",
+ "document_type": "System",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "general_section",
+  "company",
+  "active_law_year",
+  "default_overtime_multiplier",
+  "weekly_working_hours",
+  "yearly_rules_section",
+  "yearly_rules",
+  "tax_slabs_section",
+  "tax_slabs"
+ ],
+ "fields": [
+  {
+   "fieldname": "general_section",
+   "fieldtype": "Section Break",
+   "label": "تنظیمات عمومی"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "شرکت",
+   "options": "Company"
+  },
+  {
+   "fieldname": "active_law_year",
+   "fieldtype": "Int",
+   "label": "سال قانون فعال",
+   "reqd": 1,
+   "default": "1405"
+  },
+  {
+   "fieldname": "default_overtime_multiplier",
+   "fieldtype": "Float",
+   "label": "ضریب پیش فرض اضافه کاری",
+   "default": "1.4"
+  },
+  {
+   "fieldname": "weekly_working_hours",
+   "fieldtype": "Float",
+   "label": "ساعت کار هفتگی",
+   "default": "44"
+  },
+  {
+   "fieldname": "yearly_rules_section",
+   "fieldtype": "Section Break",
+   "label": "قواعد سالانه قانون کار"
+  },
+  {
+   "fieldname": "yearly_rules",
+   "fieldtype": "Table",
+   "label": "قواعد سالانه",
+   "options": "Iran Payroll Yearly Rule"
+  },
+  {
+   "fieldname": "tax_slabs_section",
+   "fieldtype": "Section Break",
+   "label": "پله های مالیات"
+  },
+  {
+   "fieldname": "tax_slabs",
+   "fieldtype": "Table",
+   "label": "پله های مالیات",
+   "options": "Iran Payroll Tax Slab"
+  }
+ ],
+ "icon": "fa fa-cogs",
+ "issingle": 1,
+ "module": "Payroll",
+ "name": "Iran Payroll Settings",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "print": 1,
+   "email": 1,
+   "share": 1,
+   "role": "System Manager"
+  },
+  {
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "print": 1,
+   "email": 1,
+   "share": 1,
+   "role": "HR Manager"
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "track_changes": 1
+}

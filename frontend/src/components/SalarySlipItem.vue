@@ -36,6 +36,7 @@ import ListItem from "@/components/ListItem.vue"
 import SalaryIcon from "@/components/icons/SalaryIcon.vue"
 
 import { formatCurrency } from "@/utils/formatters"
+import { formatJalaliMonthYear } from "@/utils/jalali"
 
 const dayjs = inject("$dayjs")
 
@@ -48,12 +49,12 @@ const props = defineProps({
 const title = computed(() => {
 	if (dayjs(props.doc.start_date).isSame(props.doc.end_date, "month")) {
 		// monthly salary
-		return dayjs(props.doc.start_date).format("MMM YYYY")
+		return formatJalaliMonthYear(props.doc.start_date)
 	} else {
 		// quarterly, bimonthly, etc
-		return `${dayjs(props.doc.start_date).format("MMM YYYY")} - ${dayjs(
+		return `${formatJalaliMonthYear(props.doc.start_date)} - ${formatJalaliMonthYear(
 			props.doc.end_date
-		).format("MMM YYYY")}`
+		)}`
 	}
 })
 </script>

@@ -16,6 +16,7 @@ from frappe.utils import (
 	formatdate,
 	get_fullname,
 	get_link_to_form,
+	get_time,
 	getdate,
 	nowdate,
 )
@@ -36,7 +37,6 @@ from hrms.hr.utils import (
 )
 from hrms.mixins.pwa_notifications import PWANotificationsMixin
 from hrms.utils import get_employee_email
-from hrms.utils.holiday_list import get_holiday_dates_between_range
 
 
 class LeaveDayBlockedError(frappe.ValidationError):
@@ -65,6 +65,8 @@ class LeaveAcrossAllocationsError(frappe.ValidationError):
 
 from frappe.model.document import Document
 
+LEAVE_DAY_HOURS = 7 + (20 / 60)
+
 
 class LeaveApplication(Document, PWANotificationsMixin):
 	def get_feed(self):
@@ -76,6 +78,7 @@ class LeaveApplication(Document, PWANotificationsMixin):
 	def validate(self):
 		validate_active_employee(self.employee)
 		set_employee_name(self)
+		self.normalize_hourly_leave_fields()
 		self.validate_dates()
 		self.validate_balance_leaves()
 		self.validate_leave_overlap()
@@ -88,7 +91,35 @@ class LeaveApplication(Document, PWANotificationsMixin):
 		if frappe.db.get_value("Leave Type", self.leave_type, "is_optional_leave"):
 			self.validate_optional_leave()
 		self.validate_applicable_after()
-		self.validate_for_self_approval()
+
+	def normalize_hourly_leave_fields(self):
+		if self.leave_duration_mode not in ("روزانه", "ساعتی"):
+			self.leave_duration_mode = "روزانه"
+
+		if self.leave_duration_mode != "ساعتی":
+			self.hourly_date = None
+			self.hourly_from_time = None
+			self.hourly_to_time = None
+			self.total_leave_hours = 0
+			return
+
+		target_date = self.hourly_date or self.from_date or self.to_date
+		if not target_date:
+			frappe.throw(_("Hourly leave date is mandatory."))
+		self.hourly_date = target_date
+		self.from_date = target_date
+		self.to_date = target_date
+
+		if not (self.hourly_from_time and self.hourly_to_time):
+			frappe.throw(_("For hourly leave, both From Time and To Time are required."))
+
+		from_time = get_time(cstr(self.hourly_from_time))
+		to_time = get_time(cstr(self.hourly_to_time))
+		if to_time <= from_time:
+			frappe.throw(_("To Time should be after From Time for hourly leave."))
+
+		self.hourly_from_time = from_time.strftime("%H:%M:%S")
+		self.hourly_to_time = to_time.strftime("%H:%M:%S")
 
 	def on_update(self):
 		if self.status == "Open" and self.docstatus < 1:
@@ -105,40 +136,27 @@ class LeaveApplication(Document, PWANotificationsMixin):
 			frappe.throw(_("Only Leave Applications with status 'Approved' and 'Rejected' can be submitted"))
 
 		self.validate_back_dated_application()
-		self.update_attendance()
+		if self.leave_duration_mode != "ساعتی":
+			self.update_attendance()
+		self.validate_for_self_approval()
 
 		# notify leave applier about approval
 		if frappe.db.get_single_value("HR Settings", "send_leave_notification"):
 			self.notify_employee()
 
 		self.create_leave_ledger_entry()
-		# create a reverse ledger entry for backdated leave applications for whom expiry entry already exists
-		leave_allocation = self.get_leave_allocation()
-		if not leave_allocation:
-			return
-		to_date = leave_allocation.get("to_date")
-		can_expire = not frappe.db.get_value("Leave Type", self.leave_type, "is_carry_forward")
-
-		if to_date < getdate() and can_expire:
-			args = frappe._dict(
-				leaves=self.total_leave_days, from_date=to_date, to_date=to_date, is_carry_forward=0
-			)
-			create_leave_ledger_entry(self, args)
-
 		self.reload()
 
 	def before_cancel(self):
 		self.status = "Cancelled"
-
-	def on_discard(self):
-		self.db_set("status", "Cancelled")
 
 	def on_cancel(self):
 		self.create_leave_ledger_entry(submit=False)
 		# notify leave applier about cancellation
 		if frappe.db.get_single_value("HR Settings", "send_leave_notification"):
 			self.notify_employee()
-		self.cancel_attendance()
+		if self.leave_duration_mode != "ساعتی":
+			self.cancel_attendance()
 
 		self.publish_update()
 
@@ -264,22 +282,6 @@ class LeaveApplication(Document, PWANotificationsMixin):
 				).format(formatdate(future_allocation[0].from_date), future_allocation[0].name)
 			)
 
-	def get_leave_allocation(self):
-		date = self.posting_date or getdate()
-		LeaveAllocation = frappe.qb.DocType("Leave Allocation")
-		leave_allocation = (
-			frappe.qb.from_(LeaveAllocation)
-			.select(LeaveAllocation.to_date)
-			.where(
-				((LeaveAllocation.from_date <= date) & (date <= LeaveAllocation.to_date))
-				& (LeaveAllocation.docstatus == 1)
-				& (LeaveAllocation.leave_type == self.leave_type)
-				& (LeaveAllocation.employee == self.employee)
-			)
-		).run(as_dict=True)
-
-		return leave_allocation[0] if leave_allocation else None
-
 	def update_attendance(self):
 		if self.status != "Approved":
 			return
@@ -368,7 +370,7 @@ class LeaveApplication(Document, PWANotificationsMixin):
 			select start_date, end_date from `tabSalary Slip`
 			where docstatus = 1 and employee = %s
 			and ((%s between start_date and end_date) or (%s between start_date and end_date))
-			order by creation desc limit 1
+			order by modified desc limit 1
 		""",
 			(self.employee, self.to_date, self.from_date),
 		)
@@ -423,6 +425,8 @@ class LeaveApplication(Document, PWANotificationsMixin):
 					)
 				)
 
+			self.set_total_leave_metrics(precision)
+
 			if not is_lwp(self.leave_type):
 				leave_balance = get_leave_balance_on(
 					self.employee,
@@ -439,6 +443,27 @@ class LeaveApplication(Document, PWANotificationsMixin):
 					leave_balance_for_consumption < self.total_leave_days or not leave_balance_for_consumption
 				):
 					self.show_insufficient_balance_message(leave_balance_for_consumption)
+
+	def set_total_leave_metrics(self, precision: int):
+		standard_hours = self.get_standard_working_hours()
+		if self.leave_duration_mode == "ساعتی":
+			total_hours = self.get_hourly_leave_hours()
+			self.total_leave_hours = flt(total_hours, precision)
+			self.total_leave_days = flt(total_hours / standard_hours, precision)
+			return
+
+		self.total_leave_days = flt(self.total_leave_days, precision)
+		self.total_leave_hours = flt(self.total_leave_days * standard_hours, precision)
+
+	def get_hourly_leave_hours(self) -> float:
+		leave_date = self.hourly_date or self.from_date
+		start_datetime = datetime.datetime.combine(getdate(leave_date), get_time(cstr(self.hourly_from_time)))
+		end_datetime = datetime.datetime.combine(getdate(leave_date), get_time(cstr(self.hourly_to_time)))
+		return (end_datetime - start_datetime).total_seconds() / 3600
+
+	def get_standard_working_hours(self) -> float:
+		# Per business rule, one full leave day equals 7 hours and 20 minutes.
+		return LEAVE_DAY_HOURS
 
 	def show_insufficient_balance_message(self, leave_balance_for_consumption: float) -> None:
 		alloc_on_from_date, alloc_on_to_date = self.get_allocation_based_on_application_dates()
@@ -602,31 +627,20 @@ class LeaveApplication(Document, PWANotificationsMixin):
 	def validate_attendance(self):
 		attendance_dates = frappe.get_all(
 			"Attendance",
-			filters=[
-				["employee", "=", self.employee],
-				["attendance_date", "between", [self.from_date, self.to_date]],
-				["status", "in", ["Present", "Work From Home"]],
-				["docstatus", "=", 1],
-				["half_day_status", "!=", "Absent"],
-			],
+			filters={
+				"employee": self.employee,
+				"attendance_date": ("between", [self.from_date, self.to_date]),
+				"status": ("in", ["Present", "Work From Home"]),
+				"docstatus": 1,
+				"half_day_status": ("!=", "Absent"),
+			},
 			fields=["name", "attendance_date"],
 			order_by="attendance_date",
 		)
 		if attendance_dates:
-			frappe.throw(
-				_("Attendance for employee {0} is already marked for the following dates: {1}").format(
-					self.employee,
-					(
-						"<br><ul><li>"
-						+ "</li><li>".join(
-							get_link_to_form("Attendance", a.name, label=formatdate(a.attendance_date))
-							for a in attendance_dates
-						)
-						+ "</li></ul>"
-					),
-				),
-				AttendanceAlreadyMarkedError,
-			)
+			# In this deployment, leave requests should still be allowed even when
+			# attendance was auto-marked from checkins on the same date.
+			return
 
 	def validate_optional_leave(self):
 		leave_period = get_leave_period(self.from_date, self.to_date, self.company)
@@ -873,7 +887,6 @@ class LeaveApplication(Document, PWANotificationsMixin):
 			self_leave_approval_not_allowed
 			and employee_user == frappe.session.user
 			and not get_workflow_name("Leave Application")
-			and self.status == "Approved"
 		):
 			frappe.throw(_("Self-approval for leaves is not allowed"))
 
@@ -937,9 +950,7 @@ def get_number_of_leave_days(
 
 
 @frappe.whitelist()
-def get_leave_details(employee: str, date: str | datetime.date, for_salary_slip: bool = False) -> dict:
-	frappe.has_permission("Employee", "read", employee, throw=True)
-
+def get_leave_details(employee, date, for_salary_slip=False):
 	allocation_records = get_leave_allocation_records(employee, date)
 	leave_allocation = {}
 	precision = cint(frappe.db.get_single_value("System Settings", "float_precision")) or 2
@@ -999,27 +1010,19 @@ def get_leave_balance_on(
 	        if True, returns a dict eg: {'leave_balance': 10, 'leave_balance_for_consumption': 1}
 	        else, returns leave_balance (in this case 10)
 	"""
-	if frappe.request:
-		frappe.has_permission("Employee", "read", employee, throw=True)
 
 	if not to_date:
 		to_date = nowdate()
 
 	allocation_records = get_leave_allocation_records(employee, date, leave_type)
 	allocation = allocation_records.get(leave_type, frappe._dict())
-	end_date = (
-		allocation.to_date if (allocation and cint(consider_all_leaves_in_the_allocation_period)) else date
-	)
+
+	end_date = allocation.to_date if cint(consider_all_leaves_in_the_allocation_period) else date
 	cf_expiry = get_allocation_expiry_for_cf_leaves(employee, leave_type, to_date, allocation.from_date)
 
 	leaves_taken = get_leaves_for_period(employee, leave_type, allocation.from_date, end_date)
-	manually_expired_leaves = get_manually_expired_leaves(
-		employee, leave_type, allocation.from_date, end_date
-	)
 
-	remaining_leaves = get_remaining_leaves(
-		allocation, leaves_taken, date, cf_expiry, manually_expired_leaves
-	)
+	remaining_leaves = get_remaining_leaves(allocation, leaves_taken, date, cf_expiry)
 
 	if for_consumption:
 		return remaining_leaves
@@ -1031,7 +1034,6 @@ def get_leave_allocation_records(employee, date, leave_type=None):
 	"""Returns the total allocated leaves and carry forwarded leaves based on ledger entries"""
 	Ledger = frappe.qb.DocType("Leave Ledger Entry")
 	LeaveAllocation = frappe.qb.DocType("Leave Allocation")
-	LeaveAdjustment = frappe.qb.DocType("Leave Adjustment")
 
 	cf_leave_case = frappe.qb.terms.Case().when(Ledger.is_carry_forward == "1", Ledger.leaves).else_(0)
 	sum_cf_leaves = Sum(cf_leave_case).as_("cf_leaves")
@@ -1041,10 +1043,8 @@ def get_leave_allocation_records(employee, date, leave_type=None):
 
 	query = (
 		frappe.qb.from_(Ledger)
-		.left_join(LeaveAllocation)
+		.inner_join(LeaveAllocation)
 		.on(Ledger.transaction_name == LeaveAllocation.name)
-		.left_join(LeaveAdjustment)
-		.on(Ledger.transaction_name == LeaveAdjustment.name)
 		.select(
 			sum_cf_leaves,
 			sum_new_leaves,
@@ -1056,10 +1056,7 @@ def get_leave_allocation_records(employee, date, leave_type=None):
 		.where(
 			(Ledger.from_date <= date)
 			& (Ledger.docstatus == 1)
-			& (
-				(Ledger.transaction_type == "Leave Allocation")
-				| (Ledger.transaction_type == "Leave Adjustment")
-			)
+			& (Ledger.transaction_type == "Leave Allocation")
 			& (Ledger.employee == employee)
 			& (Ledger.is_expired == 0)
 			& (Ledger.is_lwp == 0)
@@ -1070,13 +1067,10 @@ def get_leave_allocation_records(employee, date, leave_type=None):
 				# it's between the leave allocation's from and to date
 				| (
 					(Ledger.is_carry_forward == 1)
-					& (
-						Ledger.to_date.between(LeaveAllocation.from_date, LeaveAllocation.to_date)
-						| (Ledger.to_date.between(LeaveAdjustment.from_date, LeaveAdjustment.to_date))
-					)
+					& (Ledger.to_date.between(LeaveAllocation.from_date, LeaveAllocation.to_date))
 					# only consider cf leaves from current allocation
-					& ((LeaveAllocation.from_date <= date) | (LeaveAdjustment.from_date <= date))
-					& ((date <= LeaveAllocation.to_date) | (date <= LeaveAdjustment.to_date))
+					& (LeaveAllocation.from_date <= date)
+					& (date <= LeaveAllocation.to_date)
 				)
 			)
 		)
@@ -1087,6 +1081,7 @@ def get_leave_allocation_records(employee, date, leave_type=None):
 	query = query.groupby(Ledger.employee, Ledger.leave_type)
 
 	allocation_details = query.run(as_dict=True)
+
 	allocated_leaves = frappe._dict()
 	for d in allocation_details:
 		allocated_leaves.setdefault(
@@ -1117,13 +1112,13 @@ def get_leaves_pending_approval_for_period(
 			"from_date": ["between", (from_date, to_date)],
 			"to_date": ["between", (from_date, to_date)],
 		},
-		fields=[{"SUM": "total_leave_days", "as": "leaves"}],
+		fields=["SUM(total_leave_days) as leaves"],
 	)[0]
 	return leaves["leaves"] if leaves["leaves"] else 0.0
 
 
 def get_remaining_leaves(
-	allocation: dict, leaves_taken: float, date: str, cf_expiry: str, manually_expired_leaves: float
+	allocation: dict, leaves_taken: float, date: str, cf_expiry: str
 ) -> dict[str, float]:
 	"""Returns a dict of leave_balance and leave_balance_for_consumption
 	leave_balance returns the available leave balance
@@ -1151,45 +1146,18 @@ def get_remaining_leaves(
 
 		# new leaves allocated - new leaves taken + cf leave balance
 		# Note: `new_leaves_taken` is added here because its already a -ve number in the ledger
-		leave_balance = (
-			(flt(allocation.new_leaves_allocated) + flt(new_leaves_taken))
-			+ flt(cf_leaves)
-			+ flt(manually_expired_leaves)
-		)
-		leave_balance_for_consumption = (
-			(flt(allocation.new_leaves_allocated) + flt(new_leaves_taken))
-			+ flt(remaining_cf_leaves)
-			+ flt(manually_expired_leaves)
+		leave_balance = (flt(allocation.new_leaves_allocated) + flt(new_leaves_taken)) + flt(cf_leaves)
+		leave_balance_for_consumption = (flt(allocation.new_leaves_allocated) + flt(new_leaves_taken)) + flt(
+			remaining_cf_leaves
 		)
 	else:
 		# allocation only contains newly allocated leaves
-		leave_balance = leave_balance_for_consumption = (
-			flt(allocation.total_leaves_allocated) + flt(leaves_taken) + flt(manually_expired_leaves)
+		leave_balance = leave_balance_for_consumption = flt(allocation.total_leaves_allocated) + flt(
+			leaves_taken
 		)
 
 	remaining_leaves = _get_remaining_leaves(leave_balance_for_consumption, allocation.to_date)
 	return frappe._dict(leave_balance=leave_balance, leave_balance_for_consumption=remaining_leaves)
-
-
-def get_manually_expired_leaves(
-	employee: str, leave_type: str, from_date: datetime.date, end_date: datetime.date
-):
-	ledger = frappe.qb.DocType("Leave Ledger Entry")
-
-	leaves = (
-		frappe.qb.from_(ledger)
-		.select(ledger.leaves)
-		.where(
-			(ledger.docstatus == 1)
-			& (ledger.employee == employee)
-			& (ledger.leave_type == leave_type)
-			& (ledger.from_date >= from_date)
-			& (ledger.to_date < end_date)
-			& (ledger.transaction_type == "Leave Allocation")
-			& ((ledger.is_expired == 1) & (ledger.is_carry_forward == 0))
-		)
-	).run()
-	return leaves[0][0] if leaves else 0.0
 
 
 def get_new_and_cf_leaves_taken(allocation: dict, cf_expiry: str) -> tuple[float, float]:
@@ -1291,8 +1259,17 @@ def get_leave_entries(employee, leave_type, from_date, to_date):
 @frappe.whitelist()
 def get_holidays(employee, from_date, to_date, holiday_list=None):
 	"""get holidays between two dates for the given employee"""
-	holidays = get_holiday_dates_between_range(employee, from_date, to_date)
-	return len(holidays)
+	if not holiday_list:
+		holiday_list = get_holiday_list_for_employee(employee)
+
+	holidays = frappe.db.sql(
+		"""select count(distinct holiday_date) from `tabHoliday` h1, `tabHoliday List` h2
+		where h1.parent = h2.name and h1.holiday_date between %s and %s
+		and h2.name = %s""",
+		(from_date, to_date, holiday_list),
+	)[0][0]
+
+	return holidays
 
 
 def is_lwp(leave_type):
@@ -1319,7 +1296,7 @@ def get_events(start, end, filters=None):
 		employee, company = employee.name, employee.company
 	else:
 		employee = ""
-		company = frappe.db.get_single_value("Global Defaults", "default_company")
+		company = frappe.db.get_value("Global Defaults", None, "default_company")
 
 	# show department leaves for employee
 	if "Employee" in frappe.get_roles():
@@ -1361,6 +1338,8 @@ def add_leaves(events, start, end, filters=None):
 		"docstatus",
 		"employee_name",
 		"leave_type",
+		"(1) as allDay",
+		"'Leave Application' as doctype",
 	]
 
 	show_leaves_of_all_members = frappe.db.get_single_value(
@@ -1370,10 +1349,9 @@ def add_leaves(events, start, end, filters=None):
 		leave_applications = frappe.get_all("Leave Application", filters=filters, fields=fields)
 	else:
 		leave_applications = frappe.get_list("Leave Application", filters=filters, fields=fields)
+
 	for d in leave_applications:
 		d["title"] = f"{d['employee_name']} ({d['leave_type']})"
-		d["allDay"] = 1
-		d["doctype"] = "Leave Application"
 		del d["employee_name"]
 		del d["leave_type"]
 		if d not in events:

@@ -10,7 +10,7 @@
 	/>
 
 	<div v-else-if="props.fieldtype === 'Date'" class="text-gray-900 text-base">
-		{{ dayjs(props.value).format("D MMM YYYY") }}
+		{{ formatJalaliDate(props.value) }}
 	</div>
 
 	<Input
@@ -62,8 +62,7 @@ import { inject } from "vue"
 import { Badge, FormControl, Input } from "frappe-ui"
 
 import EmployeeAvatar from "@/components/EmployeeAvatar.vue"
-
-const dayjs = inject("$dayjs")
+import { formatJalaliDate } from "@/utils/jalali"
 
 const props = defineProps({
 	value: [String, Number, Boolean, Array, Object],

@@ -1,6 +1,5 @@
 [pre_model_sync]
 hrms.patches.v15_0.check_version_compatibility_with_frappe #2023-06-27
-hrms.patches.v16_0.merge_interview_round_with_interview_type
 
 [post_model_sync]
 hrms.patches.post_install.set_payroll_entry_status
@@ -28,20 +27,34 @@ hrms.patches.v15_0.add_loan_docperms_to_ess #2024-05-14
 hrms.patches.v15_0.migrate_shift_assignment_schedule_to_shift_schedule
 hrms.patches.v15_0.update_payment_status_for_leave_encashment
 hrms.patches.v15_0.create_accounting_dimensions_in_leave_encashment
+hrms.patches.v15_0.create_marginal_relief_field_for_india_localisation
 hrms.patches.v15_0.set_half_day_status_to_present_in_exisiting_half_day_attendance
 hrms.patches.v14_0.create_marginal_relief_field_for_india_localisation
-hrms.patches.v15_0.create_marginal_relief_field_for_india_localisation
 hrms.patches.v15_0.fix_timesheet_status
-hrms.patches.v15_0.update_advance_payment_ledger_amount #2025-09-23 
-hrms.patches.v15_0.call_set_total_advance_paid_on_advance_documents #2025-09-23
-hrms.patches.v15_0.rename_claim_date_to_payroll_date_in_employee_benefit_claim
-hrms.patches.v15_0.add_leave_type_permission_for_ess
-hrms.patches.v15_0.remove_ess_user_type_limit
-hrms.patches.v15_0.update_approver_custom_fields
-hrms.patches.v16_0.create_custom_field_for_employee_advance_in_employee_master
-hrms.patches.v16_0.delete_old_workspaces #2026-01-09
-hrms.patches.v16_0.create_holiday_list_assignments
-hrms.patches.v16_0.set_base_paid_amount_in_employee_advance
-hrms.patches.v16_0.set_currency_and_base_fields_in_expense_claim
-hrms.patches.v16_0.remove_ess_user_type_limit
-hrms.patches.v16_0.add_default_hr_role_permissions
+hrms.patches.v15_0.call_set_total_advance_paid_on_advance_documents #2025-07-08
+hrms.patches.v15_0.create_weekly_shift_planner_fields #2026-04-11
+hrms.patches.v15_0.create_employee_grievance_mobile_setup #2026-04-12
+hrms.patches.v15_0.update_employee_grievance_feedback_fields #2026-04-12
+hrms.patches.v15_0.create_iran_localisation_fixtures #2026-04-13
+hrms.patches.v15_0.remap_smart_attendance_report_to_hr #2026-04-13
+hrms.patches.v15_0.seed_iran_payroll_default_rules #2026-04-13
+hrms.patches.v15_0.add_iran_workspace_links #2026-04-13
+hrms.patches.v15_0.update_iran_farsi_labels_and_employee_fields #2026-04-13
+hrms.patches.v15_0.add_iran_payroll_structure_and_components #2026-04-13
+hrms.patches.v15_0.create_meal_management_setup #2026-04-13
+hrms.patches.v15_0.extend_meal_management_for_chef_and_designations #2026-04-13
+hrms.patches.v15_0.localize_designations_and_create_appraisal_templates #2026-04-13
+hrms.patches.v15_0.seed_persian_appraisal_cycles_groups_grades_and_skill_maps #2026-04-13
+hrms.patches.v15_0.seed_hr_goals #2026-04-13
+hrms.patches.v15_0.create_employee_imprest_setup #2026-04-14
+hrms.patches.v15_0.add_imprest_fields_to_journal_entry #2026-04-14
+hrms.patches.v15_0.add_designation_jd_fields #2026-04-14
+hrms.patches.v15_0.localize_designation_labels_and_add_job_architecture #2026-04-14
+hrms.patches.v15_0.add_competency_model_setup #2026-04-14
+hrms.patches.v15_0.add_idp_and_nine_box_employee_fields #2026-04-14
+hrms.patches.v15_0.finalize_farsi_talent_setup #2026-04-15
+hrms.patches.v15_0.ensure_farsi_talent_workspace_visibility #2026-04-15
+hrms.patches.v15_0.restore_human_resources_workspace_structure #2026-04-15
+hrms.patches.v15_0.migrate_employee_attendance_device_mappings #2026-04-21
+hrms.patches.v15_0.backfill_attendance_device_master #2026-04-21
+hrms.patches.v15_0.normalize_attendance_device_ids #2026-04-21

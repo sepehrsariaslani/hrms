@@ -41,3 +41,23 @@ class PWANotification(Document):
 			return f"{base_url}/expense-claims/{self.reference_document_name}"
 
 		return base_url
+
+
+def get_permission_query_conditions(user=None):
+	user = user or frappe.session.user
+	if "System Manager" in frappe.get_roles(user):
+		return ""
+
+	escaped_user = frappe.db.escape(user)
+	return (
+		f"(`tabPWA Notification`.`to_user` = {escaped_user} "
+		f"or `tabPWA Notification`.`from_user` = {escaped_user})"
+	)
+
+
+def has_permission(doc, user=None, permission_type=None):
+	user = user or frappe.session.user
+	if "System Manager" in frappe.get_roles(user):
+		return True
+
+	return doc.to_user == user or doc.from_user == user

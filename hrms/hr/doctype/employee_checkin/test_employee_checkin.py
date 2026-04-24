@@ -4,6 +4,7 @@
 from datetime import datetime, timedelta
 
 import frappe
+from frappe.tests.utils import FrappeTestCase, change_settings
 from frappe.utils import (
 	add_days,
 	get_time,
@@ -27,18 +28,26 @@ from hrms.hr.doctype.employee_checkin.employee_checkin import (
 from hrms.hr.doctype.leave_type.test_leave_type import create_leave_type
 from hrms.hr.doctype.shift_type.test_shift_type import make_shift_assignment, setup_shift_type
 from hrms.payroll.doctype.salary_slip.test_salary_slip import make_holiday_list, make_leave_application
-from hrms.tests.utils import HRMSTestSuite
+from hrms.utils.attendance_device_mapping import (
+	append_employee_device_mapping,
+	ensure_employee_device_mapping_setup,
+)
 
 
-class TestEmployeeCheckin(HRMSTestSuite):
+class TestEmployeeCheckin(FrappeTestCase):
 	def setUp(self):
 		frappe.db.delete("Shift Type")
 		frappe.db.delete("Shift Assignment")
 		frappe.db.delete("Employee Checkin")
+
+		from_date = get_year_start(getdate())
+		to_date = get_year_ending(getdate())
+		self.holiday_list = make_holiday_list(from_date=from_date, to_date=to_date)
+
 		frappe.db.set_single_value("HR Settings", "allow_geolocation_tracking", 0)
 
 	def test_geolocation_tracking(self):
-		employee = make_employee("test_add_log_based_on_employee_field@example.com", company="_Test Company")
+		employee = make_employee("test_add_log_based_on_employee_field@example.com")
 		checkin = make_checkin(employee)
 		checkin.latitude = 23.31773
 		checkin.longitude = 66.82876
@@ -67,9 +76,10 @@ class TestEmployeeCheckin(HRMSTestSuite):
 		)
 
 	def test_add_log_based_on_employee_field(self):
-		employee = make_employee("test_add_log_based_on_employee_field@example.com", company="_Test Company")
+		employee = make_employee("test_add_log_based_on_employee_field@example.com")
 		employee = frappe.get_doc("Employee", employee)
-		employee.attendance_device_id = "3344"
+		ensure_employee_device_mapping_setup(hide_legacy_field=False)
+		append_employee_device_mapping(employee, "3344", "mumbai_first_floor")
 		employee.save()
 
 		time_now = now_datetime().replace(microsecond=0)
@@ -80,7 +90,7 @@ class TestEmployeeCheckin(HRMSTestSuite):
 		self.assertEqual(employee_checkin.log_type, "IN")
 
 	def test_mark_attendance_and_link_log(self):
-		employee = make_employee("test_mark_attendance_and_link_log@example.com", company="_Test Company")
+		employee = make_employee("test_mark_attendance_and_link_log@example.com")
 		logs = make_n_checkins(employee, 3)
 		mark_attendance_and_link_log(logs, "Skip", nowdate())
 		log_names = [log.name for log in logs]
@@ -105,7 +115,7 @@ class TestEmployeeCheckin(HRMSTestSuite):
 		self.assertEqual(attendance_count, 1)
 
 	def test_unlink_attendance_on_cancellation(self):
-		employee = make_employee("test_mark_attendance_and_link_log@example.com", company="_Test Company")
+		employee = make_employee("test_mark_attendance_and_link_log@example.com")
 		logs = make_n_checkins(employee, 3)
 
 		frappe.db.delete("Attendance", {"employee": employee})
@@ -189,7 +199,7 @@ class TestEmployeeCheckin(HRMSTestSuite):
 		log = make_checkin(employee, timestamp)
 		self.assertIsNone(log.shift)
 
-	@HRMSTestSuite.change_settings("HR Settings", {"allow_multiple_shift_assignments": 1})
+	@change_settings("HR Settings", {"allow_multiple_shift_assignments": 1})
 	def test_fetch_shift_for_assignment_with_end_date(self):
 		employee = make_employee("test_employee_checkin@example.com", company="_Test Company")
 
@@ -452,7 +462,7 @@ class TestEmployeeCheckin(HRMSTestSuite):
 			self.assertEqual(log.shift_actual_start, start_timestamp)
 			self.assertEqual(log.shift_actual_end, end_timestamp)
 
-	@HRMSTestSuite.change_settings("HR Settings", {"allow_multiple_shift_assignments": 1})
+	@change_settings("HR Settings", {"allow_multiple_shift_assignments": 1})
 	def test_consecutive_shift_assignments_overlapping_within_grace_period(self):
 		# test adjustment for start and end times if they are overlapping
 		# within "begin_check_in_before_shift_start_time" and "allow_check_out_after_shift_end_time" periods
@@ -487,8 +497,8 @@ class TestEmployeeCheckin(HRMSTestSuite):
 		log = make_checkin(employee, timestamp)
 		self.assertEqual(log.shift, shift2.name)
 
-	@HRMSTestSuite.change_settings("HR Settings", {"allow_multiple_shift_assignments": 1})
-	@HRMSTestSuite.change_settings("HR Settings", {"allow_geolocation_tracking": 1})
+	@change_settings("HR Settings", {"allow_multiple_shift_assignments": 1})
+	@change_settings("HR Settings", {"allow_geolocation_tracking": 1})
 	def test_geofencing(self):
 		employee = make_employee("test_shift@example.com", company="_Test Company")
 
@@ -876,7 +886,7 @@ def make_n_checkins(employee, n, hours_to_reverse=1):
 	return logs
 
 
-def make_checkin(employee, time=None, latitude=None, longitude=None, log_type="IN"):
+def make_checkin(employee, time=None, latitude=None, longitude=None):
 	if not time:
 		time = now_datetime()
 
@@ -886,7 +896,7 @@ def make_checkin(employee, time=None, latitude=None, longitude=None, log_type="I
 			"employee": employee,
 			"time": time,
 			"device_id": "device1",
-			"log_type": log_type,
+			"log_type": "IN",
 			"latitude": latitude,
 			"longitude": longitude,
 		}

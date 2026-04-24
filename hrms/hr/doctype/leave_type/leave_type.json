@@ -40,31 +40,34 @@
  ],
  "fields": [
   {
+   "description": "نام نمایشی این نوع مرخصی برای کارمند و مدیر.",
    "fieldname": "leave_type_name",
    "fieldtype": "Data",
    "in_list_view": 1,
-   "label": "Leave Type Name",
+   "label": "نام نوع مرخصی",
    "oldfieldname": "leave_type_name",
    "oldfieldtype": "Data",
    "reqd": 1,
    "unique": 1
   },
   {
+   "description": "سقف تعداد روز قابل تخصیص برای این نوع مرخصی در هر دوره.",
    "fieldname": "max_leaves_allowed",
    "fieldtype": "Float",
-   "label": "Maximum Leave Allocation Allowed per Leave Period"
+   "label": "حداکثر تخصیص در هر دوره مرخصی"
   },
   {
-   "description": "Minimum working days required since Date of Joining to apply for this leave",
+   "description": "حداقل روز کاری از تاریخ شروع همکاری تا امکان ثبت این نوع مرخصی.",
    "fieldname": "applicable_after",
    "fieldtype": "Int",
-   "label": "Allow Leave Application After (Working Days)"
+   "label": "امکان درخواست پس از (روز کاری)"
   },
   {
+   "description": "بیشترین تعداد روزی که کارمند می‌تواند پشت‌سرهم از این مرخصی استفاده کند.",
    "fieldname": "max_continuous_days_allowed",
    "fieldtype": "Int",
    "in_list_view": 1,
-   "label": "Maximum Consecutive Leaves Allowed",
+   "label": "حداکثر روزهای پیوسته مجاز",
    "oldfieldname": "max_days_allowed",
    "oldfieldtype": "Data"
   },
@@ -74,108 +77,119 @@
   },
   {
    "default": "0",
+   "description": "اگر فعال باشد، مانده استفاده‌نشده به دوره بعد منتقل می‌شود.",
    "fieldname": "is_carry_forward",
    "fieldtype": "Check",
    "in_list_view": 1,
-   "label": "Is Carry Forward",
+   "label": "انتقال مانده به دوره بعد",
    "oldfieldname": "is_carry_forward",
    "oldfieldtype": "Check"
   },
   {
    "default": "0",
    "depends_on": "eval:doc.is_ppl == 0",
+   "description": "اگر فعال باشد، این مرخصی بدون حقوق است و از حقوق ماهانه کسر می‌شود.",
    "fieldname": "is_lwp",
    "fieldtype": "Check",
-   "label": "Is Leave Without Pay"
+   "label": "مرخصی بدون حقوق"
   },
   {
    "default": "0",
-   "description": "These leaves are holidays permitted by the company however, availing it is optional for an Employee.",
+   "description": "برای تعطیلات اختیاری؛ کارمند می‌تواند در صورت نیاز از آن استفاده کند.",
    "fieldname": "is_optional_leave",
    "fieldtype": "Check",
-   "label": "Is Optional Leave"
+   "label": "مرخصی اختیاری"
   },
   {
    "default": "0",
+   "description": "اجازه می‌دهد کارمند حتی با مانده ناکافی نیز مرخصی ثبت کند.",
    "fieldname": "allow_negative",
    "fieldtype": "Check",
-   "label": "Allow Negative Balance"
+   "label": "اجازه مانده منفی"
   },
   {
    "default": "0",
+   "description": "اگر فعال باشد، تعطیلات رسمی بین بازه مرخصی نیز به‌عنوان مرخصی محاسبه می‌شود.",
    "fieldname": "include_holiday",
    "fieldtype": "Check",
-   "label": "Include holidays within leaves as leaves"
+   "label": "احتساب تعطیلات در بازه مرخصی"
   },
   {
    "default": "0",
+   "description": "برای مرخصی جبرانی ناشی از اضافه‌کاری یا کار در روز تعطیل.",
    "fieldname": "is_compensatory",
    "fieldtype": "Check",
-   "label": "Is Compensatory"
+   "label": "مرخصی جبرانی"
   },
   {
    "collapsible": 1,
    "depends_on": "eval: doc.is_carry_forward == 1",
    "fieldname": "carry_forward_section",
    "fieldtype": "Section Break",
-   "label": "Carry Forward"
+   "label": "انتقال مانده"
   },
   {
-   "description": "Calculated in days",
+   "description": "تعداد روزهایی که پس از آن مانده انتقالی منقضی می‌شود.",
    "fieldname": "expire_carry_forwarded_leaves_after_days",
    "fieldtype": "Int",
-   "label": "Expire Carry Forwarded Leaves (Days)"
+   "label": "انقضای مانده انتقالی (روز)"
   },
   {
    "collapsible": 1,
    "fieldname": "encashment",
    "fieldtype": "Section Break",
-   "label": "Encashment"
+   "label": "بازخرید مرخصی"
   },
   {
    "default": "0",
+   "description": "اگر فعال باشد، امکان تبدیل بخشی از مانده مرخصی به مبلغ نقدی وجود دارد.",
    "fieldname": "allow_encashment",
    "fieldtype": "Check",
-   "label": "Allow Encashment"
+   "label": "امکان بازخرید"
   },
   {
    "depends_on": "allow_encashment",
+   "description": "مولفه حقوقی که مبلغ بازخرید مرخصی با آن محاسبه می‌شود.",
    "fieldname": "earning_component",
    "fieldtype": "Link",
-   "label": "Earning Component",
+   "label": "مولفه حقوق برای بازخرید",
    "options": "Salary Component"
   },
   {
    "collapsible": 1,
    "fieldname": "earned_leave",
    "fieldtype": "Section Break",
-   "label": "Earned Leave"
+   "label": "مرخصی تجمعی"
   },
   {
    "default": "0",
+   "description": "اگر فعال باشد، مرخصی به‌صورت دوره‌ای (ماهانه/فصلی/...) به کارمند تعلق می‌گیرد.",
    "fieldname": "is_earned_leave",
    "fieldtype": "Check",
-   "label": "Is Earned Leave"
+   "label": "مرخصی تجمعی فعال است"
   },
   {
    "depends_on": "is_earned_leave",
+   "description": "فاصله زمانی تخصیص خودکار مرخصی تجمعی.",
    "fieldname": "earned_leave_frequency",
    "fieldtype": "Select",
-   "label": "Earned Leave Frequency",
+   "label": "تناوب ایجاد مرخصی تجمعی",
    "options": "Monthly\nQuarterly\nHalf-Yearly\nYearly"
   },
   {
    "depends_on": "is_earned_leave",
+   "description": "نحوه گرد کردن مقدار مرخصی محاسبه‌شده.",
    "fieldname": "rounding",
    "fieldtype": "Select",
-   "label": "Rounding",
+   "label": "گرد کردن مرخصی",
    "options": "\n0.25\n0.5\n1.0"
   },
   {
    "depends_on": "is_carry_forward",
+   "description": "حداکثر تعداد روزی که از مانده به دوره بعد منتقل می‌شود.",
    "fieldname": "maximum_carry_forwarded_leaves",
    "fieldtype": "Float",
-   "label": "Maximum Carry Forwarded Leaves"
+   "label": "حداکثر مانده قابل انتقال"
   },
   {
    "fieldname": "column_break_17",
@@ -188,47 +202,49 @@
   {
    "default": "0",
    "depends_on": "eval:doc.is_lwp == 0",
+   "description": "اگر فعال باشد، برای هر روز مرخصی فقط بخشی از حقوق روزانه پرداخت می‌شود.",
    "fieldname": "is_ppl",
    "fieldtype": "Check",
-   "label": "Is Partially Paid Leave"
+   "label": "مرخصی با حقوق جزئی"
   },
   {
    "depends_on": "eval:doc.is_ppl == 1",
-   "description": "For a day of leave taken, if you still pay (say) 50% of the daily salary, then enter 0.50 in this field.",
+   "description": "درصد پرداخت حقوق روزانه برای مرخصی با حقوق جزئی. مثال: 0.50 یعنی 50٪ حقوق روزانه.",
    "fieldname": "fraction_of_daily_salary_per_leave",
    "fieldtype": "Float",
-   "label": "Fraction of Daily Salary per Leave",
+   "label": "ضریب حقوق روزانه در مرخصی",
    "mandatory_depends_on": "eval:doc.is_ppl == 1"
   },
   {
    "default": "0",
-   "description": "Allows allocating more leaves than the number of days in the allocation period.",
+   "description": "امکان تخصیص مرخصی بیشتر از تعداد روزهای همان دوره را می‌دهد.",
    "fieldname": "allow_over_allocation",
    "fieldtype": "Check",
-   "label": "Allow Over Allocation"
+   "label": "اجازه تخصیص بیشتر از ظرفیت دوره"
   },
   {
    "default": "Last Day",
    "depends_on": "eval:doc.is_earned_leave",
-   "description": "The day of the month when leaves should be allocated",
+   "description": "مبنای روز تخصیص مرخصی در هر ماه.",
    "fieldname": "allocate_on_day",
    "fieldtype": "Select",
-   "label": "Allocate on Day",
+   "label": "زمان تخصیص در ماه",
    "options": "First Day\nLast Day\nDate of Joining"
   },
   {
    "depends_on": "allow_encashment",
+   "description": "حداکثر تعداد روزی که در هر دوره می‌توان بازخرید کرد.",
    "fieldname": "max_encashable_leaves",
    "fieldtype": "Int",
-   "label": "Maximum Encashable Leaves",
+   "label": "حداکثر روزهای قابل بازخرید",
    "non_negative": 1
   },
   {
    "depends_on": "allow_encashment",
-   "description": "Indicates the number of leaves that cannot be encashed from the leave balance. E.g. with a leave balance of 10 and 4 Non-Encashable Leaves, you can encash 6, while the remaining 4 can be carried forward or expired",
+   "description": "تعداد روزی از مانده که قابل بازخرید نیست و فقط انتقال/انقضا روی آن اعمال می‌شود.",
    "fieldname": "non_encashable_leaves",
    "fieldtype": "Int",
-   "label": "Non-Encashable Leaves",
+   "label": "روزهای غیرقابل بازخرید",
    "non_negative": 1
   }
  ],

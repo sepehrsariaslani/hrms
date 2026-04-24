@@ -6,7 +6,7 @@ from frappe.desk.page.setup_wizard.install_fixtures import (
 	_,  # NOTE: this is not the real translation function
 )
 from frappe.desk.page.setup_wizard.setup_wizard import make_records
-from frappe.permissions import add_permission, update_permission_property
+from frappe.installer import update_site_config
 
 from hrms.overrides.company import delete_company_fixtures
 
@@ -19,10 +19,9 @@ def after_install():
 	update_hr_defaults()
 	add_non_standard_user_types()
 	set_single_defaults()
-	setup_repost_defaults()
 	create_default_role_profiles()
 	run_post_install_patches()
-	add_default_hr_permissions()
+	sync_hr_workspace_extensions()
 
 
 def before_uninstall():
@@ -59,7 +58,7 @@ def get_custom_fields():
 				"fieldname": "hr_and_payroll_tab",
 				"fieldtype": "Tab Break",
 				"label": _("HR & Payroll"),
-				"insert_after": "purchase_expense_contra_account",
+				"insert_after": "credit_limit",
 			},
 			{
 				"fieldname": "hr_settings_section",
@@ -161,7 +160,7 @@ def get_custom_fields():
 			{
 				"fieldname": "appraisal_template",
 				"fieldtype": "Link",
-				"label": _("Appraisal Template"),
+				"label": _("الگوی ارزیابی"),
 				"options": "Appraisal Template",
 				"insert_after": "description",
 				"allow_in_quick_entry": 1,
@@ -169,15 +168,289 @@ def get_custom_fields():
 			{
 				"fieldname": "required_skills_section",
 				"fieldtype": "Section Break",
-				"label": _("Required Skills"),
+				"label": _("مهارت‌های موردنیاز"),
 				"insert_after": "appraisal_template",
 			},
 			{
 				"fieldname": "skills",
 				"fieldtype": "Table",
-				"label": _("Skills"),
+				"label": _("مهارت‌های تخصصی"),
 				"options": "Designation Skill",
 				"insert_after": "required_skills_section",
+			},
+			{
+				"fieldname": "jd_section",
+				"fieldtype": "Section Break",
+				"label": _("اطلاعات پایه و جایگاه سازمانی"),
+				"insert_after": "skills",
+			},
+			{
+				"fieldname": "jd_department",
+				"fieldtype": "Link",
+				"label": _("دپارتمان / واحد"),
+				"options": "Department",
+				"insert_after": "jd_section",
+			},
+			{
+				"fieldname": "reports_to_designation",
+				"fieldtype": "Link",
+				"label": _("گزارش می‌دهد به (سمت)"),
+				"options": "Designation",
+				"insert_after": "jd_department",
+			},
+			{
+				"fieldname": "reports_to_column_break",
+				"fieldtype": "Column Break",
+				"insert_after": "reports_to_designation",
+			},
+			{
+				"fieldname": "work_location",
+				"fieldtype": "Data",
+				"label": _("محل خدمت"),
+				"insert_after": "reports_to_column_break",
+			},
+			{
+				"fieldname": "direct_reports",
+				"fieldtype": "Table",
+				"label": _("گزارش می‌گیرد از"),
+				"options": "Designation Direct Report",
+				"insert_after": "work_location",
+			},
+			{
+				"fieldname": "job_purpose_section",
+				"fieldtype": "Section Break",
+				"label": _("هدف اصلی شغل"),
+				"insert_after": "direct_reports",
+			},
+			{
+				"fieldname": "job_purpose",
+				"fieldtype": "Small Text",
+				"label": _("هدف اصلی شغل"),
+				"insert_after": "job_purpose_section",
+			},
+			{
+				"fieldname": "key_responsibilities_section",
+				"fieldtype": "Section Break",
+				"label": _("شرح وظایف و مسئولیت‌های اصلی"),
+				"insert_after": "job_purpose",
+			},
+			{
+				"fieldname": "key_responsibilities",
+				"fieldtype": "Table",
+				"label": _("وظایف کلیدی"),
+				"options": "Designation Responsibility",
+				"insert_after": "key_responsibilities_section",
+			},
+			{
+				"fieldname": "qualifications_section",
+				"fieldtype": "Section Break",
+				"label": _("شرایط احراز شغل"),
+				"insert_after": "key_responsibilities",
+			},
+			{
+				"fieldname": "min_education",
+				"fieldtype": "Data",
+				"label": _("حداقل تحصیلات"),
+				"insert_after": "qualifications_section",
+			},
+			{
+				"fieldname": "min_experience_years",
+				"fieldtype": "Float",
+				"label": _("حداقل سابقه (سال)"),
+				"insert_after": "min_education",
+			},
+			{
+				"fieldname": "qualifications_column_break",
+				"fieldtype": "Column Break",
+				"insert_after": "min_experience_years",
+			},
+			{
+				"fieldname": "required_soft_skills",
+				"fieldtype": "Table",
+				"label": _("مهارت‌های نرم"),
+				"options": "Designation Soft Skill",
+				"insert_after": "qualifications_column_break",
+			},
+			{
+				"fieldname": "kpi_section",
+				"fieldtype": "Section Break",
+				"label": _("شاخص‌های کلیدی عملکرد"),
+				"insert_after": "required_soft_skills",
+			},
+			{
+				"fieldname": "kpis",
+				"fieldtype": "Table",
+				"label": _("شاخص‌های عملکرد"),
+				"options": "Designation KPI",
+				"insert_after": "kpi_section",
+			},
+			{
+				"fieldname": "working_conditions_section",
+				"fieldtype": "Section Break",
+				"label": _("شرایط فیزیکی و محیط کار"),
+				"insert_after": "kpis",
+			},
+			{
+				"fieldname": "working_conditions",
+				"fieldtype": "Table",
+				"label": _("شرایط محیط کار"),
+				"options": "Designation Working Condition",
+				"insert_after": "working_conditions_section",
+			},
+			{
+				"default": "1",
+				"fieldname": "other_assigned_duties_clause",
+				"fieldtype": "Check",
+				"label": _("فعال‌سازی بند سایر امور محوله"),
+				"insert_after": "working_conditions",
+			},
+			{
+				"default": _(
+					"انجام سایر امور محوله از سوی مدیر مستقیم در چارچوب اهداف سازمانی."
+				),
+				"fieldname": "other_assigned_duties_text",
+				"fieldtype": "Small Text",
+				"label": _("متن بند سایر امور محوله"),
+				"insert_after": "other_assigned_duties_clause",
+			},
+			{
+				"fieldname": "job_architecture_section",
+				"fieldtype": "Section Break",
+				"label": _("گریدینگ و خانواده مشاغل"),
+				"insert_after": "other_assigned_duties_text",
+			},
+			{
+				"fieldname": "job_family",
+				"fieldtype": "Link",
+				"label": _("خانواده شغلی"),
+				"options": "Job Family",
+				"insert_after": "job_architecture_section",
+			},
+			{
+				"fieldname": "job_grade",
+				"fieldtype": "Link",
+				"label": _("گرید شغلی"),
+				"options": "Job Grade",
+				"insert_after": "job_family",
+			},
+			{
+				"fieldname": "job_architecture_column_break",
+				"fieldtype": "Column Break",
+				"insert_after": "job_grade",
+			},
+			{
+				"fieldname": "grading_model",
+				"fieldtype": "Select",
+				"label": _("مدل ارزیابی شغل"),
+				"options": "\nمرسر\nهی گروپ\nسفارشی",
+				"insert_after": "job_architecture_column_break",
+			},
+			{
+				"fieldname": "career_track",
+				"fieldtype": "Select",
+				"label": _("مسیر شغلی"),
+				"options": "\nتخصصی\nمدیریتی\nعملیاتی\nعمومی",
+				"insert_after": "grading_model",
+			},
+			{
+				"fieldname": "grading_scores_section",
+				"fieldtype": "Section Break",
+				"label": _("امتیازدهی شغل"),
+				"insert_after": "career_track",
+			},
+			{
+				"fieldname": "know_how_score",
+				"fieldtype": "Float",
+				"label": _("امتیاز دانش و مهارت"),
+				"insert_after": "grading_scores_section",
+			},
+			{
+				"fieldname": "problem_solving_score",
+				"fieldtype": "Float",
+				"label": _("امتیاز حل مسئله"),
+				"insert_after": "know_how_score",
+			},
+			{
+				"fieldname": "accountability_score",
+				"fieldtype": "Float",
+				"label": _("امتیاز پاسخگویی"),
+				"insert_after": "problem_solving_score",
+			},
+			{
+				"fieldname": "job_score",
+				"fieldtype": "Float",
+				"label": _("امتیاز کل شغل"),
+				"read_only": 1,
+				"insert_after": "accountability_score",
+			},
+			{
+				"fieldname": "pay_band_section",
+				"fieldtype": "Section Break",
+				"label": _("بازه حقوقی"),
+				"insert_after": "job_score",
+			},
+			{
+				"fieldname": "grade_currency",
+				"fieldtype": "Link",
+				"label": _("ارز"),
+				"options": "Currency",
+				"fetch_from": "job_grade.currency",
+				"read_only": 1,
+				"insert_after": "pay_band_section",
+			},
+			{
+				"fieldname": "pay_band_min",
+				"fieldtype": "Currency",
+				"label": _("حداقل حقوق گرید"),
+				"options": "grade_currency",
+				"fetch_from": "job_grade.min_salary",
+				"read_only": 1,
+				"insert_after": "grade_currency",
+			},
+			{
+				"fieldname": "pay_band_max",
+				"fieldtype": "Currency",
+				"label": _("حداکثر حقوق گرید"),
+				"options": "grade_currency",
+				"fetch_from": "job_grade.max_salary",
+				"read_only": 1,
+				"insert_after": "pay_band_min",
+			},
+			{
+				"fieldname": "pay_band_spread_percent",
+				"fieldtype": "Percent",
+				"label": _("اسپرد حقوقی (%)"),
+				"fetch_from": "job_grade.spread_percent",
+				"read_only": 1,
+				"insert_after": "pay_band_max",
+			},
+			{
+				"fieldname": "competency_model_section",
+				"fieldtype": "Section Break",
+				"label": _("مدل شایستگی"),
+				"insert_after": "pay_band_spread_percent",
+			},
+			{
+				"fieldname": "required_competencies",
+				"fieldtype": "Table",
+				"label": _("شایستگی‌های موردنیاز شغل"),
+				"options": "Competency Requirement",
+				"insert_after": "competency_model_section",
+			},
+		],
+		"HR Settings": [
+			{
+				"fieldname": "competency_model_settings_section",
+				"fieldtype": "Section Break",
+				"label": _("مدل شایستگی سازمانی"),
+				"insert_after": "attendance_settings_section",
+			},
+			{
+				"fieldname": "core_competencies",
+				"fieldtype": "Table",
+				"label": _("شایستگی‌های عمومی سازمان"),
+				"options": "Competency Requirement",
+				"insert_after": "competency_model_settings_section",
 			},
 		],
 		"Employee": [
@@ -188,7 +461,6 @@ def get_custom_fields():
 				"label": _("Employment Type"),
 				"options": "Employment Type",
 				"insert_after": "department",
-				"in_list_view": 1,
 			},
 			{
 				"fieldname": "job_applicant",
@@ -196,6 +468,33 @@ def get_custom_fields():
 				"label": _("Job Applicant"),
 				"options": "Job Applicant",
 				"insert_after": "employment_details",
+			},
+			{
+				"fieldname": "development_planning_section",
+				"fieldtype": "Section Break",
+				"label": _("برنامه توسعه فردی"),
+				"insert_after": "job_applicant",
+			},
+			{
+				"fieldname": "active_idp",
+				"fieldtype": "Link",
+				"label": _("برنامه توسعه فردی فعال"),
+				"options": "Individual Development Plan",
+				"insert_after": "development_planning_section",
+			},
+			{
+				"fieldname": "latest_nine_box_assessment",
+				"fieldtype": "Link",
+				"label": _("آخرین ارزیابی ۹ خانه"),
+				"options": "Nine Box Assessment",
+				"insert_after": "active_idp",
+			},
+			{
+				"fieldname": "target_career_transition",
+				"fieldtype": "Link",
+				"label": _("مسیر شغلی هدف"),
+				"options": "Career Path Transition",
+				"insert_after": "latest_nine_box_assessment",
 			},
 			{
 				"fieldname": "grade",
@@ -244,7 +543,6 @@ def get_custom_fields():
 				"label": _("Expense Approver"),
 				"options": "User",
 				"insert_after": "approvers_section",
-				"ignore_user_permissions": 1,
 			},
 			{
 				"fieldname": "leave_approver",
@@ -252,7 +550,6 @@ def get_custom_fields():
 				"label": _("Leave Approver"),
 				"options": "User",
 				"insert_after": "expense_approver",
-				"ignore_user_permissions": 1,
 			},
 			{
 				"fieldname": "column_break_45",
@@ -265,19 +562,53 @@ def get_custom_fields():
 				"label": _("Shift Request Approver"),
 				"options": "User",
 				"insert_after": "column_break_45",
-				"ignore_user_permissions": 1,
 			},
 			{
-				"fieldname": "employee_advance_account",
-				"fieldtype": "Link",
-				"label": _("Employee Advance Account"),
-				"options": "Account",
-				"insert_after": "salary_mode",
+				"default": "0",
+				"fieldname": "is_shift_allocator",
+				"fieldtype": "Check",
+				"label": _("Shift Allocator"),
+				"insert_after": "shift_request_approver",
+			},
+			{
+				"default": "0",
+				"fieldname": "needs_shift_registration",
+				"fieldtype": "Check",
+				"label": _("Needs Shift Registration"),
+				"insert_after": "is_shift_allocator",
+			},
+			{
+				"default": "0",
+				"fieldname": "has_rotational_shift",
+				"fieldtype": "Check",
+				"label": _("Has Rotational Shift"),
+				"insert_after": "needs_shift_registration",
+			},
+			{
+				"default": "0",
+				"fieldname": "variable_shift",
+				"fieldtype": "Check",
+				"label": _("Variable Shift"),
+				"insert_after": "has_rotational_shift",
+			},
+			{
+				"fieldname": "forbidden_shift_days",
+				"fieldtype": "MultiSelect",
+				"label": _("Forbidden Shift Days"),
+				"options": "Saturday\nSunday\nMonday\nTuesday\nWednesday\nThursday\nFriday",
+				"insert_after": "variable_shift",
+			},
+			{
+				"fieldname": "employee_shift_duty_roles",
+				"fieldtype": "Table",
+				"label": _("Employee Shift Duty Roles"),
+				"options": "Employee Shift Duty Role",
+				"insert_after": "forbidden_shift_days",
 			},
 			{
 				"fieldname": "salary_cb",
 				"fieldtype": "Column Break",
-				"insert_after": "employee_advance_account",
+				"insert_after": "employee_shift_duty_roles",
 			},
 			{
 				"fetch_from": "department.payroll_cost_center",
@@ -287,6 +618,54 @@ def get_custom_fields():
 				"label": _("Payroll Cost Center"),
 				"options": "Cost Center",
 				"insert_after": "salary_cb",
+			},
+		],
+		"Shift Assignment": [
+			{
+				"default": "0",
+				"fieldname": "generated_from_weekly_plan",
+				"fieldtype": "Check",
+				"label": _("Generated from Weekly Shift Plan"),
+				"insert_after": "shift_request",
+				"read_only": 1,
+			},
+			{
+				"fieldname": "weekly_shift_plan",
+				"fieldtype": "Link",
+				"label": _("Weekly Shift Plan"),
+				"options": "Weekly Shift Plan",
+				"insert_after": "generated_from_weekly_plan",
+				"read_only": 1,
+			},
+			{
+				"fieldname": "weekly_shift_plan_slot",
+				"fieldtype": "Data",
+				"label": _("Weekly Shift Plan Slot"),
+				"insert_after": "weekly_shift_plan",
+				"read_only": 1,
+			},
+			{
+				"default": "0",
+				"fieldname": "generated_from_finalization",
+				"fieldtype": "Check",
+				"label": _("Generated from Weekly Shift Finalization"),
+				"insert_after": "weekly_shift_plan_slot",
+				"read_only": 1,
+			},
+			{
+				"fieldname": "weekly_shift_finalization",
+				"fieldtype": "Link",
+				"label": _("Weekly Shift Finalization"),
+				"options": "Weekly Shift Finalization",
+				"insert_after": "generated_from_finalization",
+				"read_only": 1,
+			},
+			{
+				"fieldname": "weekly_shift_finalization_slot",
+				"fieldtype": "Data",
+				"label": _("Weekly Shift Finalization Slot"),
+				"insert_after": "weekly_shift_finalization",
+				"read_only": 1,
 			},
 		],
 		"Project": [
@@ -615,10 +994,22 @@ def remove_lending_docperms_from_ess():
 # ESS USER TYPE SETUP & CLEANUP
 def add_non_standard_user_types():
 	user_types = get_user_types_data()
+	update_user_type_doctype_limit(user_types)
 
 	for user_type, data in user_types.items():
 		create_custom_role(data)
 		create_user_type(user_type, data)
+
+
+def update_user_type_doctype_limit(user_types=None):
+	if not user_types:
+		user_types = get_user_types_data()
+
+	user_type_limit = {}
+	for user_type, __ in user_types.items():
+		user_type_limit.setdefault(frappe.scrub(user_type), 40)
+
+	update_site_config("user_type_doctype_limit", user_type_limit)
 
 
 def get_user_types_data():
@@ -640,7 +1031,6 @@ def get_user_types_data():
 				"Expense Claim Type": ["read"],
 				"Employee Advance": ["read", "write", "create", "delete"],
 				# leave and attendance
-				"Leave Type": ["read"],
 				"Leave Application": ["read", "write", "create", "delete"],
 				"Attendance Request": ["read", "write", "create", "delete"],
 				"Compensatory Leave Request": ["read", "write", "create", "delete"],
@@ -719,17 +1109,26 @@ def append_docperms_to_user_type(docperms, doc):
 
 
 def update_select_perm_after_install():
-	if not frappe.flags.update_select_perm_after_migrate:
-		return
+	if frappe.flags.update_select_perm_after_migrate:
+		frappe.flags.ignore_select_perm = False
+		for row in frappe.get_all("User Type", filters={"is_standard": 0}):
+			print("Updating user type :- ", row.name)
+			doc = frappe.get_doc("User Type", row.name)
+			doc.flags.ignore_links = True
+			doc.save()
 
-	frappe.flags.ignore_select_perm = False
-	for row in frappe.get_all("User Type", filters={"is_standard": 0}):
-		print("Updating user type :- ", row.name)
-		doc = frappe.get_doc("User Type", row.name)
-		doc.flags.ignore_links = True
-		doc.save()
+		frappe.flags.update_select_perm_after_migrate = False
 
-	frappe.flags.update_select_perm_after_migrate = False
+	sync_hr_workspace_extensions()
+
+
+def sync_hr_workspace_extensions():
+	try:
+		from hrms.workspace_sync import sync_hr_workspace_setup
+
+		sync_hr_workspace_setup()
+	except Exception:
+		frappe.log_error(frappe.get_traceback(), "HR Workspace Sync Failed")
 
 
 def delete_custom_fields(custom_fields: dict):
@@ -853,37 +1252,3 @@ def get_salary_slip_loan_fields():
 			},
 		],
 	}
-
-
-# Add default permission for hr roles
-def add_default_hr_permissions():
-	role_permissions = {
-		"HR User": {
-			"Role": {"read": 1},
-			"Currency": {"read": 1},
-		},
-		"HR Manager": {
-			"Role": {"read": 1},
-			"Currency": {"read": 1},
-			"Email Account": {"read": 1},
-		},
-	}
-
-	for role, permissions in role_permissions.items():
-		for doctype, ptypes in permissions.items():
-			add_permission(doctype, role)
-
-			for ptype, value in ptypes.items():
-				update_permission_property(doctype, role, permlevel=0, ptype=ptype, value=value)
-
-
-def make_people_workspace_standard():
-	if frappe.db.exists("Workspace Sidebar", "People"):
-		frappe.db.set_value("Workspace Sidebar", "People", "standard", 1)
-
-
-def setup_repost_defaults():
-	accounts_settings = frappe.get_doc("Accounts Settings")
-	for x in frappe.get_hooks("repost_allowed_doctypes"):
-		accounts_settings.append("repost_allowed_types", {"document_type": x})
-	accounts_settings.save()

@@ -37,6 +37,21 @@ const routes = [
 		component: () => import("@/views/attendance/ShiftAssignmentList.vue"),
 	},
 	{
+		name: "WeeklyShiftPlannerView",
+		path: "/weekly-shift-planner",
+		component: () => import("@/views/attendance/WeeklyShiftPlanner.vue"),
+	},
+	{
+		name: "TeamWeeklyShiftBoardView",
+		path: "/team-weekly-shifts",
+		component: () => import("@/views/attendance/TeamWeeklyShiftBoard.vue"),
+	},
+	{
+		name: "ShiftAllocatorSchedulerView",
+		path: "/shift-allocator-scheduler",
+		component: () => import("@/views/attendance/ShiftAllocatorScheduler.vue"),
+	},
+	{
 		name: "ShiftAssignmentFormView",
 		path: "/shift-assignments/new",
 		component: () => import("@/views/attendance/ShiftAssignmentForm.vue"),

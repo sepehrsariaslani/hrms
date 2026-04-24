@@ -16,12 +16,18 @@
   "company",
   "department",
   "section_break_5",
+  "leave_duration_mode",
+  "hourly_date",
+  "hourly_from_time",
+  "hourly_to_time",
   "from_date",
   "to_date",
   "half_day",
   "half_day_date",
   "total_leave_days",
+  "total_leave_hours",
   "column_break1",
+  "leave_substitute",
   "description",
   "leave_balance",
   "section_break_7",
@@ -102,6 +108,31 @@
    "label": "Dates & Reason"
   },
   {
+   "default": "روزانه",
+   "fieldname": "leave_duration_mode",
+   "fieldtype": "Select",
+   "label": "نوع مرخصی",
+   "options": "روزانه\nساعتی"
+  },
+  {
+   "depends_on": "eval:doc.leave_duration_mode=='ساعتی'",
+   "fieldname": "hourly_date",
+   "fieldtype": "Date",
+   "label": "تاریخ مرخصی ساعتی"
+  },
+  {
+   "depends_on": "eval:doc.leave_duration_mode=='ساعتی'",
+   "fieldname": "hourly_from_time",
+   "fieldtype": "Time",
+   "label": "از ساعت"
+  },
+  {
+   "depends_on": "eval:doc.leave_duration_mode=='ساعتی'",
+   "fieldname": "hourly_to_time",
+   "fieldtype": "Time",
+   "label": "تا ساعت"
+  },
+  {
    "fieldname": "from_date",
    "fieldtype": "Date",
    "in_list_view": 1,
@@ -132,9 +163,15 @@
    "fieldname": "total_leave_days",
    "fieldtype": "Float",
    "in_list_view": 1,
-   "label": "Total Leave Days",
+   "label": "کل روزهای مرخصی",
    "no_copy": 1,
    "precision": "1",
+   "read_only": 1
+  },
+  {
+   "fieldname": "total_leave_hours",
+   "fieldtype": "Float",
+   "label": "کل ساعات مرخصی",
    "read_only": 1
   },
   {
@@ -147,6 +184,11 @@
    "fieldname": "description",
    "fieldtype": "Small Text",
    "label": "Reason"
+  },
+  {
+   "fieldname": "leave_substitute",
+   "fieldtype": "Data",
+   "label": "جانشین (اختیاری)"
   },
   {
    "fieldname": "section_break_7",

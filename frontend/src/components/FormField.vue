@@ -1,5 +1,9 @@
 <template>
-	<div v-if="showField" class="flex flex-col gap-1.5">
+	<div
+		v-if="showField"
+		class="flex flex-col gap-1.5"
+		:data-tour="props.fieldname ? `field-${props.fieldname}` : null"
+	>
 		<!-- Label -->
 		<span
 			v-if="!['Check', 'Section Break', 'Column Break'].includes(props.fieldtype)"
@@ -10,6 +14,15 @@
 			]"
 		>
 			{{ props.label }}
+		</span>
+		<span
+			v-if="
+				props.description &&
+				!['Check', 'Section Break', 'Column Break'].includes(props.fieldtype)
+			"
+			class="text-xs leading-5 text-gray-500 -mt-1"
+		>
+			{{ props.description }}
 		</span>
 
 		<!-- Select or Link field with predefined options -->
@@ -34,19 +47,9 @@
 			@update:modelValue="(v) => emit('update:modelValue', v)"
 		/>
 
-		<TextEditor
-			v-else-if="props.fieldtype === 'Text Editor'"
-			:content="modelValue"
-			:placeholder="__('Enter {0}', [props.label])"
-			@change="(v) => emit('update:modelValue', v)"
-			:fixedMenu="true"
-			:editable="!isReadOnly"
-			editor-class="prose-sm border-b border-x border-gray-200 rounded-b-sm p-1 min-h-[4rem]"
-		/>
-
 		<!-- Text -->
 		<Input
-			v-else-if="['Small Text', 'Text', 'Long Text'].includes(props.fieldtype)"
+			v-else-if="['Text Editor', 'Small Text', 'Text', 'Long Text'].includes(props.fieldtype)"
 			type="textarea"
 			:value="modelValue"
 			:placeholder="__('Enter {0}', [props.label])"
@@ -92,6 +95,14 @@
 			:disabled="isReadOnly"
 		/>
 
+		<!-- Editable currency field -->
+		<PersianNumberInput
+			v-else-if="props.fieldtype === 'Currency'"
+			:modelValue="modelValue"
+			@update:modelValue="(v) => emit('update:modelValue', v)"
+			@change="(v) => emit('change', v)"
+		/>
+
 		<!-- Float/Int field -->
 		<Input
 			v-else-if="isNumberType"
@@ -118,42 +129,67 @@
 		</div>
 
 		<!-- Date -->
-		<!-- FIXME: default datepicker has poor UI -->
-		<Input
+		<JalaliDatePicker
 			v-else-if="props.fieldtype === 'Date'"
-			type="date"
-			:value="modelValue"
+			:modelValue="modelValue"
 			:placeholder="__('Select {0}', [props.label])"
-			:formatValue="(val) => dayjs(val).format('DD-MM-YYYY')"
-			@input="(v) => emit('update:modelValue', v)"
+			@update:modelValue="(v) => emit('update:modelValue', v)"
 			@change="(v) => emit('change', v)"
-			v-bind="$attrs"
 			:disabled="isReadOnly"
-			:min="props.minDate"
-			:max="props.maxDate"
+			:minDate="props.minDate"
+			:maxDate="props.maxDate"
 		/>
 
 		<!-- Time -->
-		<!-- Datetime -->
-		<DateTimePicker
-			v-else-if="props.fieldtype === 'Datetime'"
-			:value="modelValue"
-			:placeholder="`Select ${props.label}`"
-			:formatter="(val) => dayjs(val).format('DD-MM-YYYY HH:mm:ss')"
-			@update:modelValue="(v) => emit('update:modelValue', v)"
+		<input
+			v-else-if="props.fieldtype === 'Time'"
+			type="time"
+			:value="modelValue || ''"
+			@input="(event) => emit('update:modelValue', event.target.value)"
+			@change="(event) => emit('change', event.target.value)"
 			v-bind="$attrs"
 			:disabled="isReadOnly"
+			class="w-full rounded border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:border-gray-500 focus:outline-none focus:ring-0 disabled:bg-gray-100 disabled:text-gray-500"
 		/>
+
+		<!-- Datetime -->
+		<div
+			v-else-if="props.fieldtype === 'Datetime'"
+			class="flex flex-col gap-2"
+		>
+			<JalaliDatePicker
+				:modelValue="getDatetimeDatePart(modelValue)"
+				:placeholder="__('Select {0}', [props.label])"
+				:disabled="isReadOnly"
+				@update:modelValue="updateDatetimeDate"
+				@change="(v) => emit('change', v)"
+			/>
+			<input
+				type="time"
+				:value="getDatetimeTimePart(modelValue)"
+				@input="(event) => updateDatetimeTime(event.target.value)"
+				@change="(event) => emit('change', event.target.value)"
+				v-bind="$attrs"
+				:disabled="isReadOnly"
+				class="w-full rounded border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:border-gray-500 focus:outline-none focus:ring-0 disabled:bg-gray-100 disabled:text-gray-500"
+			/>
+			<div v-if="modelValue" class="text-xs text-gray-500">
+				{{ formatDateTimeField(modelValue) }}
+			</div>
+		</div>
 
 		<ErrorMessage :message="props.errorMessage" />
 	</div>
 </template>
 
 <script setup>
-import { Autocomplete, DateTimePicker, ErrorMessage, Input, TextEditor } from "frappe-ui"
+import { Autocomplete, ErrorMessage, Input } from "frappe-ui"
 import { computed, onMounted, inject } from "vue"
 
 import Link from "@/components/Link.vue"
+import JalaliDatePicker from "@/components/JalaliDatePicker.vue"
+import PersianNumberInput from "@/components/PersianNumberInput.vue"
+import { formatJalaliDateTime } from "@/utils/jalali"
 
 const __ = inject("$translate")
 
@@ -163,6 +199,7 @@ const props = defineProps({
 	modelValue: [String, Number, Boolean, Array, Object],
 	default: [String, Number, Boolean, Array, Object],
 	label: String,
+	description: String,
 	options: [String, Array],
 	linkFilters: Object,
 	documentList: Array,
@@ -191,7 +228,7 @@ const showField = computed(() => {
 })
 
 const isNumberType = computed(() => {
-	return ["Int", "Float", "Currency"].includes(props.fieldtype)
+	return ["Int", "Float"].includes(props.fieldtype)
 })
 
 const isLayoutField = computed(() => {
@@ -201,6 +238,41 @@ const isLayoutField = computed(() => {
 const isReadOnly = computed(() => {
 	return Boolean(props.readOnly)
 })
+
+const formatDateTimeField = (value) => formatJalaliDateTime(value)
+
+function getDatetimeDatePart(value) {
+	if (!value) return ""
+	return String(value).split(/[T ]/)[0]
+}
+
+function getDatetimeTimePart(value) {
+	if (!value) return ""
+	const [, time = ""] = String(value).split(/[T ]/)
+	return time.slice(0, 5)
+}
+
+function buildDatetimeValue(datePart, timePart) {
+	if (!datePart) return ""
+	const normalizedTime = timePart ? `${timePart.slice(0, 5)}:00` : "00:00:00"
+	return `${datePart} ${normalizedTime}`
+}
+
+function updateDatetimeDate(datePart) {
+	const datetimeValue = buildDatetimeValue(
+		datePart,
+		getDatetimeTimePart(props.modelValue)
+	)
+	emit("update:modelValue", datetimeValue)
+	emit("change", datetimeValue)
+}
+
+function updateDatetimeTime(timePart) {
+	const datePart = getDatetimeDatePart(props.modelValue) || dayjs().format("YYYY-MM-DD")
+	const datetimeValue = buildDatetimeValue(datePart, timePart)
+	emit("update:modelValue", datetimeValue)
+	emit("change", datetimeValue)
+}
 
 const selectionList = computed(() => {
 	if (props.fieldtype === "Link" && props.documentList) {

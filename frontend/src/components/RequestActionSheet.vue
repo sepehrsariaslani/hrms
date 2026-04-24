@@ -73,15 +73,52 @@
 		</div>
 
 		<!-- Actions -->
+		<div
+			v-if="canReviewCheckinRequest"
+			class="flex w-full flex-row items-center justify-between gap-2 sticky bottom-0 border-t z-[100] p-4"
+		>
+			<Button
+				@click="reviewCheckinRequest({ action: 'reject' })"
+				class="w-full py-5"
+				variant="subtle"
+				theme="red"
+				:loading="isReviewing"
+			>
+				{{ __("رد") }}
+			</Button>
+			<Button
+				@click="editAndApproveCheckinRequest"
+				class="w-full py-5"
+				variant="outline"
+				:loading="isReviewing"
+			>
+				{{ __("ویرایش و تایید") }}
+			</Button>
+			<Button
+				@click="reviewCheckinRequest({ action: 'approve' })"
+				class="w-full py-5"
+				variant="solid"
+				theme="green"
+				:loading="isReviewing"
+			>
+				{{ __("تایید") }}
+			</Button>
+		</div>
+
 		<WorkflowActionSheet
-			v-if="workflow?.hasWorkflow"
+			v-else-if="workflow?.hasWorkflow"
 			:doc="document.doc"
 			:workflow="workflow"
 			view="actionSheet"
 		/>
 
 		<div
-			v-else-if="['Open', 'Draft'].includes(document?.doc?.[approvalField]) && hasPermission('approval')"
+			v-else-if="
+				!isCheckinAttendanceRequest &&
+				approvalDoctypes.includes(document?.doc?.doctype) &&
+				['Open', 'Draft'].includes(document?.doc?.[approvalField]) &&
+				hasPermission('approval')
+			"
 			class="flex w-full flex-row items-center justify-between gap-3 sticky bottom-0 border-t z-[100] p-4"
 		>
 			<Button
@@ -112,7 +149,7 @@
 		<div
 			v-else-if="
 				document?.doc?.docstatus === 0 &&
-				(document?.doc?.doctype === 'Attendance Request' ||
+				((document?.doc?.doctype === 'Attendance Request' && !isCheckinAttendanceRequest) ||
 					['Approved', 'Rejected'].includes(document?.doc?.[approvalField])) &&
 				hasPermission('submit')
 			"
@@ -144,6 +181,55 @@
 			</Button>
 		</div>
 
+		<Dialog v-model="showEditApproveDialog">
+			<template #body-title>
+				<h2 class="text-lg font-bold">{{ __("ویرایش و تایید درخواست") }}</h2>
+			</template>
+			<template #body-content>
+				<div class="flex flex-col gap-3 text-sm">
+					<label class="flex flex-col gap-1">
+						<span class="text-gray-700">{{ __("نوع ورود/خروج") }}</span>
+						<select
+							v-model="editApproveForm.logType"
+							class="w-full rounded border border-gray-300 px-3 py-2"
+						>
+							<option value="IN">{{ __("ورود") }}</option>
+							<option value="OUT">{{ __("خروج") }}</option>
+						</select>
+					</label>
+					<label class="flex flex-col gap-1">
+						<span class="text-gray-700">{{ __("ساعت") }}</span>
+						<input
+							v-model="editApproveForm.time"
+							type="time"
+							step="1"
+							class="w-full rounded border border-gray-300 px-3 py-2"
+						/>
+					</label>
+				</div>
+			</template>
+			<template #actions>
+				<div class="flex flex-row gap-3">
+					<Button
+						class="w-full py-5"
+						variant="outline"
+						@click="showEditApproveDialog = false"
+					>
+						{{ __("انصراف") }}
+					</Button>
+					<Button
+						class="w-full py-5"
+						variant="solid"
+						theme="green"
+						:loading="isReviewing"
+						@click="confirmEditAndApprove"
+					>
+						{{ __("تایید") }}
+					</Button>
+				</div>
+			</template>
+		</Dialog>
+
 		<!-- File Preview Modal -->
 		<ion-modal
 			ref="modal"
@@ -164,6 +250,7 @@ import {
 	createDocumentResource,
 	createResource,
 	FeatherIcon,
+	Dialog,
 } from "frappe-ui"
 
 import FormattedField from "@/components/FormattedField.vue"
@@ -173,10 +260,12 @@ import WorkflowActionSheet from "@/components/WorkflowActionSheet.vue"
 import { getCompanyCurrency } from "@/data/currencies"
 import { settings } from "@/data/settings"
 import { formatCurrency } from "@/utils/formatters"
+import { localizeLeaveType } from "@/utils/leaveTypeLabels"
 
 import useWorkflow from "@/composables/workflow"
 
 const __ = inject("$translate")
+const employee = inject("$employee")
 
 const props = defineProps({
 	fields: {
@@ -197,6 +286,12 @@ const router = useRouter()
 let showPreviewModal = ref(false)
 let selectedFile = ref({})
 let workflow = ref(null)
+const isReviewing = ref(false)
+const showEditApproveDialog = ref(false)
+const editApproveForm = ref({
+	logType: "IN",
+	time: "",
+})
 
 function showFilePreview(fileObj) {
 	selectedFile.value = fileObj
@@ -254,6 +349,43 @@ const currency = computed(() => {
 	return docCurrency
 })
 
+const LOG_TYPE_LABEL_MAP = {
+	IN: "ورود",
+	OUT: "خروج",
+}
+
+const REVIEW_STATUS_LABEL_MAP = {
+	Pending: "در انتظار بررسی",
+	Approved: "تایید شده",
+	Rejected: "رد شده",
+}
+
+const REQUEST_MODE_LABEL_MAP = {
+	"Legacy Attendance": "درخواست حضور (قدیمی)",
+	"Checkin Request": "درخواست ورود/خروج",
+}
+
+function localizeFieldValue(fieldname, value) {
+	if (value === null || value === undefined) return value
+
+	if (props.modelValue.doctype === "Leave Application" && fieldname === "leave_type") {
+		return localizeLeaveType(value)
+	}
+
+	if (props.modelValue.doctype !== "Attendance Request") return value
+
+	if (["requested_log_type", "reviewed_log_type"].includes(fieldname)) {
+		return LOG_TYPE_LABEL_MAP[value] || value
+	}
+	if (fieldname === "review_status") {
+		return REVIEW_STATUS_LABEL_MAP[value] || value
+	}
+	if (fieldname === "request_mode") {
+		return REQUEST_MODE_LABEL_MAP[value] || value
+	}
+	return value
+}
+
 const fieldsWithValues = computed(() => {
 	return props.fields.filter((field) => {
 		if (field.fieldtype === "Currency") {
@@ -269,9 +401,10 @@ const fieldsWithValues = computed(() => {
 					import(`../components/${field.componentName}.vue`)
 				)
 			}
-			field.value =
-				document?.doc?.[field.fieldname] || props.modelValue[field.fieldname]
-		}
+				const value =
+					document?.doc?.[field.fieldname] || props.modelValue[field.fieldname]
+				field.value = localizeFieldValue(field.fieldname, value)
+			}
 
 		return field.value
 	})
@@ -281,6 +414,21 @@ const approvalField = computed(() => {
 	return props.modelValue.doctype === "Expense Claim"
 		? "approval_status"
 		: "status"
+})
+const approvalDoctypes = ["Leave Application", "Expense Claim", "Shift Request"]
+
+const isCheckinAttendanceRequest = computed(() => {
+	return (
+		props.modelValue.doctype === "Attendance Request" &&
+		document?.doc?.request_mode === "Checkin Request"
+	)
+})
+
+const canReviewCheckinRequest = computed(() => {
+	if (!isCheckinAttendanceRequest.value) return false
+	if (document?.doc?.docstatus !== 0) return false
+	if ((document?.doc?.review_status || "Pending") !== "Pending") return false
+	return document?.doc?.shift_request_approver === employee?.data?.user_id
 })
 
 const getSuccessMessage = ({ status = "", docstatus = 0 }) => {
@@ -332,6 +480,85 @@ const updateDocumentStatus = ({ status = "", docstatus = 0 }) => {
 			},
 		}
 	)
+}
+
+const reviewCheckinRequest = ({ action, reviewed_time = null, reviewed_log_type = null }) => {
+	if (!document?.doc?.name) return
+
+	isReviewing.value = true
+	createResource({
+		url: "hrms.api.review_attendance_checkin_request",
+		onSuccess() {
+			isReviewing.value = false
+			document.reload()
+			toast({
+				title: __("Success"),
+				text: __("Request {0} successfully!", [action === "approve" ? __("approved") : __("rejected")]),
+				icon: "check-circle",
+				position: "bottom-center",
+				iconClasses: "text-green-500",
+			})
+			modalController.dismiss()
+		},
+		onError(error) {
+			isReviewing.value = false
+			toast({
+				title: __("Error"),
+				text: error?.messages?.[0] || error?.message || __("امکان بررسی درخواست وجود ندارد"),
+				icon: "alert-circle",
+				position: "bottom-center",
+				iconClasses: "text-red-500",
+			})
+		},
+	}).submit({
+		name: document.doc.name,
+		action,
+		reviewed_time,
+		reviewed_log_type,
+	})
+}
+
+const editAndApproveCheckinRequest = () => {
+	const currentLogType = (document?.doc?.reviewed_log_type || document?.doc?.requested_log_type || "IN").toUpperCase()
+	const currentTime = document?.doc?.reviewed_time || document?.doc?.requested_time || ""
+	editApproveForm.value = {
+		logType: ["IN", "OUT"].includes(currentLogType) ? currentLogType : "IN",
+		time: String(currentTime).slice(0, 8),
+	}
+	showEditApproveDialog.value = true
+}
+
+const confirmEditAndApprove = () => {
+	const normalizedLogType = (editApproveForm.value.logType || "").toUpperCase()
+	if (!["IN", "OUT"].includes(normalizedLogType)) {
+		toast({
+			title: __("Error"),
+			text: __("نوع ورود/خروج باید ورود یا خروج باشد"),
+			icon: "alert-circle",
+			position: "bottom-center",
+			iconClasses: "text-red-500",
+		})
+		return
+	}
+
+	const reviewedTime = (editApproveForm.value.time || "").trim()
+	if (!reviewedTime) {
+		toast({
+			title: __("Error"),
+			text: __("ساعت را وارد کنید"),
+			icon: "alert-circle",
+			position: "bottom-center",
+			iconClasses: "text-red-500",
+		})
+		return
+	}
+
+	showEditApproveDialog.value = false
+	reviewCheckinRequest({
+		action: "approve",
+		reviewed_log_type: normalizedLogType,
+		reviewed_time: reviewedTime,
+	})
 }
 
 const openFormView = () => {

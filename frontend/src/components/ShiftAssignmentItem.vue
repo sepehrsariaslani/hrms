@@ -17,20 +17,21 @@
 			<span v-if="props.doc.shift_timing" class="text-gray-700 font-normal rounded text-base">
 				{{ props.doc.shift_timing }}
 			</span>
-			<Badge v-else variant="outline" :theme="colorMap[status]" :label="status" size="md" />
+			<Badge v-else variant="outline" :theme="colorMap[status]" :label="__(status)" size="md" />
 			<FeatherIcon name="chevron-right" class="h-5 w-5 text-gray-500" />
 		</template>
 	</ListItem>
 </template>
 
 <script setup>
-import { computed } from "vue"
+import { computed, inject } from "vue"
 import { Badge, FeatherIcon } from "frappe-ui"
 
 import ListItem from "@/components/ListItem.vue"
 import ShiftIcon from "@/components/icons/ShiftIcon.vue"
 import { getShiftDates, getTotalShiftDays } from "@/data/attendance"
 
+const __ = inject("$translate")
 const props = defineProps({
 	doc: {
 		type: Object,

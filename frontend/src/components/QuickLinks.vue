@@ -15,7 +15,15 @@
 						{{ link.title }}
 					</div>
 				</div>
-				<FeatherIcon name="chevron-right" class="h-5 w-5 text-gray-500" />
+				<div class="flex items-center gap-2">
+					<span
+						v-if="Number(link.badge) > 0"
+						class="inline-flex min-w-6 h-6 items-center justify-center rounded-full bg-rose-100 px-2 text-xs font-semibold text-rose-700"
+					>
+						{{ toPersianDigits(link.badge) }}
+					</span>
+					<FeatherIcon name="chevron-right" class="h-5 w-5 text-gray-500" />
+				</div>
 			</router-link>
 		</div>
 	</div>
@@ -23,6 +31,7 @@
 
 <script setup>
 import { FeatherIcon } from "frappe-ui"
+import { toPersianDigits } from "@/utils/jalali"
 
 const props = defineProps({
 	title: {

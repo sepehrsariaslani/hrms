@@ -20,6 +20,10 @@ const props = defineProps({
 		type: String,
 		required: true,
 	},
+	query: {
+		type: String,
+		default: "",
+	},
 	modelValue: {
 		type: String,
 		required: false,
@@ -43,11 +47,8 @@ const searchText = ref("")
 const value = computed({
 	get: () => props.modelValue,
 	set: (val) => {
-		if (typeof val === "string") {
-			emit("update:modelValue", val)
-		} else {
-			emit("update:modelValue", val?.value || "")
-		}
+		const newVal = (val && typeof val === "object" && val.value !== undefined) ? val.value : val
+		emit("update:modelValue", newVal || "")
 	},
 })
 
@@ -55,6 +56,7 @@ const options = createResource({
 	url: "frappe.desk.search.search_link",
 	params: {
 		doctype: props.doctype,
+		query: props.query || undefined,
 		txt: searchText.value,
 		filters: props.filters,
 	},
@@ -75,6 +77,7 @@ const reloadOptions = (searchTextVal) => {
 		params: {
 			txt: searchTextVal,
 			doctype: props.doctype,
+			query: props.query || undefined,
 			filters: props.filters,
 		},
 	})
@@ -82,10 +85,13 @@ const reloadOptions = (searchTextVal) => {
 }
 
 const handleQueryUpdate = debounce((newQuery) => {
-	const val = newQuery || ""
-	if (searchText.value === val) return
-	searchText.value = val
-	reloadOptions(val)
+    const val = newQuery || ""
+
+    if (val === "" && props.modelValue) return
+
+    if (searchText.value === val) return
+    searchText.value = val
+    reloadOptions(val)
 }, 300)
 
 watch(
@@ -98,7 +104,9 @@ watch(
 )
 
 watch(
-	() => props.filters,
-	() => reloadOptions(''),
+	() => props.query,
+	() => {
+		reloadOptions(searchText.value || "")
+	}
 )
 </script>

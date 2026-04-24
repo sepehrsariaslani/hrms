@@ -1,16 +1,21 @@
 <template>
-	<ion-page>
-		<ListView
-			doctype="Employee Checkin"
-			:pageTitle="__('Employee Checkin History')"
-			:fields="EMPLOYEE_CHECKIN_FIELDS"
-			:filterConfig="FILTER_CONFIG"
-		/>
-	</ion-page>
+	<BaseLayout :pageTitle="__('تاریخچه تردد')">
+		<template #body>
+			<div class="w-full max-w-7xl mx-auto mt-7 mb-7 px-4">
+				<ListView
+					doctype="Employee Checkin"
+					:pageTitle="__('تاریخچه تردد')"
+					:fields="EMPLOYEE_CHECKIN_FIELDS"
+					:filterConfig="FILTER_CONFIG"
+					:embedded="true"
+				/>
+			</div>
+		</template>
+	</BaseLayout>
 </template>
 
 <script setup>
-import { IonPage } from "@ionic/vue"
+import BaseLayout from "@/components/BaseLayout.vue"
 import ListView from "@/components/ListView.vue"
 import { inject } from "vue"
 
@@ -22,13 +27,13 @@ const FILTER_CONFIG = [
 	{
 		fieldname: "log_type",
 		fieldtype: "Select",
-		label: __("Log Type"),
+		label: __("نوع ثبت"),
 		options: "IN\nOUT",
 	},
 	{
 		fieldname: "shift",
 		fieldtype: "Link",
-		label: __("Shift"),
+		label: __("شیفت"),
 		options: "Shift Type",
 	},
 ]

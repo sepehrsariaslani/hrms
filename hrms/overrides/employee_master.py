@@ -5,11 +5,118 @@ import frappe
 from frappe import _
 from frappe.model.naming import set_name_by_naming_series
 from frappe.utils import add_years, cint, get_link_to_form, getdate
+import re
 
 from erpnext.setup.doctype.employee.employee import Employee
+from hrms.utils.attendance_device_mapping import DEVICE_MAPPING_TABLE_FIELD, normalize_code, normalize_text
+
+NATIONAL_ID_FIELDS = (
+	"custom_national_id_code",
+	"national_identity_number",
+	"national_id",
+	"national_id_no",
+	"national_code",
+	"custom_national_code",
+	"custom_national_id",
+)
+CHILD_ROW_META_FIELDS = {
+	"name",
+	"owner",
+	"creation",
+	"modified",
+	"modified_by",
+	"parent",
+	"parentfield",
+	"parenttype",
+	"idx",
+	"doctype",
+	"docstatus",
+}
 
 
 class EmployeeMaster(Employee):
+	def set_employee_name(self):
+		# Force employee_name to be First Name + Last Name and ignore middle_name.
+		self.employee_name = " ".join(filter(lambda x: x, [self.first_name, self.last_name]))
+
+	def validate(self):
+		super().validate()
+		self.normalize_national_ids()
+
+	def normalize_national_ids(self):
+		for fieldname in NATIONAL_ID_FIELDS:
+			if not self.meta.has_field(fieldname):
+				continue
+			normalized = normalize_national_id(self.get(fieldname))
+			if normalized and self.get(fieldname) != normalized:
+				self.set(fieldname, normalized)
+
+	def before_rename(self, old, new, merge=False):
+		# Handle merge conflicts for Employee Skill Map (employee field is unique).
+		if not merge:
+			return
+		self.resolve_employee_skill_map_conflict(old, new)
+		self.resolve_attendance_device_mapping_conflict(old, new)
+
+	def resolve_employee_skill_map_conflict(self, old, new):
+		old_map_exists = frappe.db.exists("Employee Skill Map", old)
+		new_map_exists = frappe.db.exists("Employee Skill Map", new)
+		if not (old_map_exists and new_map_exists):
+			return
+
+		old_map = frappe.get_doc("Employee Skill Map", old)
+		new_map = frappe.get_doc("Employee Skill Map", new)
+		updated = False
+
+		for table_field in ("employee_skills", "trainings"):
+			existing = {child_row_signature(row) for row in (new_map.get(table_field) or [])}
+			for row in old_map.get(table_field) or []:
+				signature = child_row_signature(row)
+				if signature in existing:
+					continue
+				new_map.append(table_field, child_row_payload(row))
+				existing.add(signature)
+				updated = True
+
+		if updated:
+			new_map.save(ignore_permissions=True)
+
+		# Remove old map so global link update in merge doesn't hit unique constraint.
+		frappe.delete_doc("Employee Skill Map", old, ignore_permissions=True)
+
+	def resolve_attendance_device_mapping_conflict(self, old, new):
+		if not frappe.db.exists("DocType", "Employee Attendance Device Mapping"):
+			return
+		if not self.meta.has_field(DEVICE_MAPPING_TABLE_FIELD):
+			return
+		if not (frappe.db.exists("Employee", old) and frappe.db.exists("Employee", new)):
+			return
+
+		old_doc = frappe.get_doc("Employee", old)
+		new_doc = frappe.get_doc("Employee", new)
+		updated = False
+
+		existing = {
+			(normalize_code(row.get("attendance_device_id")), normalize_text(row.get("device_id")))
+			for row in (new_doc.get(DEVICE_MAPPING_TABLE_FIELD) or [])
+		}
+		for row in old_doc.get(DEVICE_MAPPING_TABLE_FIELD) or []:
+			key = (normalize_code(row.get("attendance_device_id")), normalize_text(row.get("device_id")))
+			if not key[0] or key in existing:
+				continue
+			new_doc.append(
+				DEVICE_MAPPING_TABLE_FIELD,
+				{
+					"attendance_device_id": key[0],
+					"device_id": key[1],
+				},
+			)
+			existing.add(key)
+			updated = True
+
+		if updated:
+			new_doc.save(ignore_permissions=True)
+
 	def autoname(self):
 		naming_method = frappe.db.get_single_value("HR Settings", "emp_created_by")
 		if not naming_method:
@@ -24,6 +131,88 @@ class EmployeeMaster(Employee):
 				self.name = self.employee_name
 
 		self.employee = self.name
+
+
+def normalize_national_id(value):
+	digits = re.sub(r"\D", "", str(value or ""))
+	if not digits:
+		return ""
+	if len(digits) < 10:
+		return digits.zfill(10)
+	if len(digits) > 10:
+		return digits[-10:]
+	return digits
+
+
+def child_row_payload(row):
+	return {key: value for key, value in row.as_dict().items() if key not in CHILD_ROW_META_FIELDS}
+
+
+def child_row_signature(row):
+	payload = child_row_payload(row)
+	return tuple((key, str(payload.get(key) or "")) for key in sorted(payload))
+
+
+@frappe.whitelist()
+def normalize_existing_employee_national_ids():
+	updated = 0
+	samples = []
+	employee_meta = frappe.get_meta("Employee")
+	existing_fields = [field for field in NATIONAL_ID_FIELDS if employee_meta.has_field(field)]
+	if not existing_fields:
+		return {"updated": 0, "fields": [], "sample": []}
+
+	fields = ["name"] + existing_fields
+	employees = frappe.get_all("Employee", fields=fields, limit_page_length=0)
+	for row in employees:
+		changes = {}
+		for fieldname in existing_fields:
+			normalized = normalize_national_id(row.get(fieldname))
+			if normalized and row.get(fieldname) != normalized:
+				changes[fieldname] = normalized
+
+		if not changes:
+			continue
+
+		frappe.db.set_value("Employee", row["name"], changes, update_modified=False)
+		updated += 1
+		if len(samples) < 20:
+			samples.append({"employee": row["name"], "changes": changes})
+
+	if updated:
+		frappe.db.commit()
+
+	return {"updated": updated, "fields": existing_fields, "sample": samples}
+
+
+@frappe.whitelist()
+def normalize_existing_employee_names():
+	updated = 0
+	samples = []
+	employees = frappe.get_all(
+		"Employee",
+		fields=["name", "first_name", "last_name", "employee_name"],
+		limit_page_length=0,
+	)
+	for row in employees:
+		expected = " ".join(filter(None, [row.get("first_name"), row.get("last_name")]))
+		if (row.get("employee_name") or "") == expected:
+			continue
+
+		frappe.db.set_value(
+			"Employee",
+			row["name"],
+			{"employee_name": expected},
+			update_modified=False,
+		)
+		updated += 1
+		if len(samples) < 20:
+			samples.append({"employee": row["name"], "employee_name": expected})
+
+	if updated:
+		frappe.db.commit()
+
+	return {"updated": updated, "sample": samples}
 
 
 def validate_onboarding_process(doc, method=None):

@@ -1,0 +1,530 @@
+<style>
+    @font-face {
+        font-family: 'Peyda';
+        src: url('/assets/den_theme/css/Fonts/Peyda-Regular.ttf') format('truetype');
+        font-weight: normal;
+    }
+    @font-face {
+        font-family: 'Peyda';
+        src: url('/assets/den_theme/css/Fonts/Peyda-Bold.ttf') format('truetype');
+        font-weight: bold;
+    }
+
+    @media print {
+        @page { 
+            size: A5; 
+            margin: 2mm;
+        }
+        body {
+            margin: 0 !important;
+            padding: 0 !important;
+        }
+        .print-format { 
+            page-break-after: always !important;
+            page-break-inside: avoid !important;
+            margin: 0 !important;
+            padding: 10mm !important;
+        }
+        .print-format:last-child { 
+            page-break-after: auto !important; 
+        }
+        * { 
+            -webkit-print-color-adjust: exact !important; 
+            print-color-adjust: exact !important;
+            color-adjust: exact !important;
+        }
+        .no-print {
+            display: none !important;
+        }
+    }
+
+    * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+    }
+
+    .print-format {
+        font-family: 'Peyda', 'Tahoma', sans-serif;
+        direction: rtl;
+        font-size: 11px;
+        color: #2c2c2c;
+        max-width: 100%;
+        background: #fff;
+        padding: 0;
+    }
+
+    /* Header */
+    .slip-header {
+        display: table;
+        width: 100%;
+        margin-bottom: 10px;
+        border-collapse: collapse;
+    }
+    .slip-header .left-side,
+    .slip-header .right-side {
+        display: table-cell;
+        vertical-align: middle;
+        width: 50%;
+        padding: 5px;
+    }
+    .slip-header .left-side {
+        text-align: left;
+        direction: ltr;
+    }
+    .slip-header .right-side {
+        text-align: right;
+    }
+    .company-name {
+        font-size: 16px;
+        font-weight: bold;
+        margin-bottom: 3px;
+        color: #1a1a1a;
+    }
+    .slip-title {
+        font-size: 15px;
+        font-weight: bold;
+        margin-bottom: 3px;
+        color: #8B0000;
+    }
+    .dates {
+        font-size: 9px;
+        line-height: 1.5;
+        color: #666;
+    }
+
+    /* Section Bar */
+    .section-bar {
+        background-color: #8B0000;
+        color: #fff;
+        text-align: center;
+        padding: 6px;
+        font-weight: bold;
+        font-size: 12px;
+        margin: 10px 0;
+        border-radius: 0;
+    }
+
+    /* Info Grid */
+    .info-grid {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 5px;
+        border: 1px solid #999;
+    }
+    .info-row {
+        display: table-row;
+    }
+    .info-cell {
+        border: 1px solid #ccc;
+        padding: 6px 10px;
+        vertical-align: middle;
+        width: 25%;
+        background-color: #FFF8DC;
+    }
+    .info-cell .label {
+        color: #8B0000;
+        font-size: 9px;
+        font-weight: bold;
+        margin-bottom: 2px;
+    }
+    .info-cell .value {
+        font-weight: normal;
+        font-size: 10px;
+        color: #2c2c2c;
+    }
+
+    /* Two Column Section */
+    .two-col {
+        display: table;
+        width: 100%;
+        margin-top: 10px;
+        border-collapse: separate;
+        border-spacing: 10px 0;
+    }
+    .col-left,
+    .col-right {
+        display: table-cell;
+        width: 50%;
+        vertical-align: top;
+    }
+
+    /* Table Header */
+    .table-header {
+        background-color: #8B0000;
+        color: #fff;
+        padding: 6px 10px;
+        font-weight: bold;
+        font-size: 11px;
+        text-align: center;
+        border: 1px solid #8B0000;
+    }
+
+    /* Items Table */
+    .items-table {
+        width: 100%;
+        border-collapse: collapse;
+        border: 1px solid #999;
+        border-top: none;
+    }
+    .items-table tr {
+        border-bottom: 1px solid #ddd;
+        background-color: #FFF8DC;
+    }
+    .items-table tr:nth-child(even) {
+        background-color: #FAEBD7;
+    }
+    .items-table td {
+        padding: 5px 10px;
+        font-size: 10px;
+        border-right: 1px solid #ddd;
+    }
+    .items-table .td-label {
+        text-align: right;
+        width: 60%;
+        color: #2c2c2c;
+    }
+    .items-table .td-value {
+        text-align: left;
+        direction: ltr;
+        width: 40%;
+        font-weight: bold;
+        color: #1a1a1a;
+    }
+
+    /* Summary Box */
+    .summary-box {
+        border: 1px solid #999;
+        margin-top: 10px;
+        background: #fff;
+        border-collapse: collapse;
+        width: 100%;
+    }
+    .summary-row {
+        display: table-row;
+        border-bottom: 1px solid #ddd;
+    }
+    .summary-row:last-child {
+        border-bottom: none;
+    }
+    .summary-row .s-label,
+    .summary-row .s-value {
+        display: table-cell;
+        padding: 6px 10px;
+        font-size: 11px;
+    }
+    .summary-row .s-label {
+        text-align: right;
+        width: 60%;
+        background-color: #FFF8DC;
+        color: #8B0000;
+        font-weight: bold;
+    }
+    .summary-row .s-value {
+        text-align: left;
+        direction: ltr;
+        width: 40%;
+        background-color: #FAEBD7;
+        font-weight: bold;
+        color: #1a1a1a;
+        border-right: 1px solid #ddd;
+    }
+    .summary-row.net .s-label,
+    .summary-row.net .s-value {
+        background-color: #8B0000;
+        color: #fff;
+        font-weight: bold;
+        font-size: 12px;
+    }
+
+    /* Balance Box */
+    .balance-box {
+        background-color: #8B0000;
+        color: #fff;
+        padding: 10px;
+        margin-top: 10px;
+        border: 1px solid #8B0000;
+    }
+    .balance-row {
+        display: table;
+        width: 100%;
+        padding: 4px 0;
+    }
+    .balance-row .b-label,
+    .balance-row .b-value {
+        display: table-cell;
+        font-size: 11px;
+    }
+    .balance-row .b-label {
+        text-align: right;
+        width: 60%;
+        font-weight: bold;
+    }
+    .balance-row .b-value {
+        text-align: left;
+        direction: ltr;
+        width: 40%;
+        font-weight: bold;
+    }
+
+    /* Signatures */
+    .signatures {
+        display: table;
+        width: 100%;
+        margin-top: 40px;
+        page-break-inside: avoid;
+    }
+    .sig-cell {
+        display: table-cell;
+        width: 50%;
+        text-align: center;
+        vertical-align: bottom;
+        padding: 0 20px;
+    }
+    .sig-line {
+        border-top: 2px solid #8B0000;
+        margin: 30px 20px 8px 20px;
+    }
+    .sig-label {
+        font-size: 11px;
+        color: #8B0000;
+        font-weight: bold;
+    }
+</style>
+
+<div class="print-format">
+
+    <!-- Header -->
+    <div class="slip-header">
+        <div class="right-side">
+            <div class="company-name">{{ doc.company }}</div>
+        </div>
+        <div class="left-side">
+            <div class="slip-title">فیش حقوقی</div>
+            <div class="dates">
+                {{ frappe.utils.formatdate(doc.start_date, "yyyy/MM/dd") }} - {{ frappe.utils.formatdate(doc.end_date, "yyyy/MM/dd") }}
+            </div>
+        </div>
+    </div>
+
+    <!-- Month Bar -->
+    <div class="section-bar">
+        {{ doc.custom_ماه or frappe.utils.formatdate(doc.start_date, "MMMM yyyy") }}
+    </div>
+
+    <!-- Employee Info Grid -->
+    <table class="info-grid">
+        <tr class="info-row">
+            <td class="info-cell">
+                <div class="label">کد کارمندی</div>
+                <div class="value">{{ doc.employee }}</div>
+            </td>
+            <td class="info-cell">
+                <div class="label">نام و نام خانوادگی</div>
+                <div class="value">{{ doc.employee_name }}</div>
+            </td>
+            <td class="info-cell">
+                <div class="label">کد ملی</div>
+                <div class="value">{{ frappe.db.get_value("Employee", doc.employee, "custom_national_id_code") or "-" }}</div>
+            </td>
+            <td class="info-cell">
+                <div class="label">وضعیت تاهل</div>
+                <div class="value">{{ frappe.db.get_value("Employee", doc.employee, "marital_status") or "-" }}</div>
+            </td>
+        </tr>
+        <tr class="info-row">
+            <td class="info-cell">
+                <div class="label">بخش کاری</div>
+                <div class="value">{{ doc.branch or "-" }}</div>
+            </td>
+            <td class="info-cell">
+                <div class="label">دپارتمان</div>
+                <div class="value">{{ doc.department or "-" }}</div>
+            </td>
+            <td class="info-cell">
+                <div class="label">موقعیت کاری</div>
+                <div class="value">{{ doc.designation or "-" }}</div>
+            </td>
+            <td class="info-cell">
+                <div class="label">تعداد فرزندان</div>
+                <div class="value">{{ frappe.db.get_value("Employee", doc.employee, "children_count") or "0" }}</div>
+            </td>
+        </tr>
+        <tr class="info-row">
+            <td class="info-cell">
+                <div class="label">حقوق روزانه</div>
+                <div class="value">{{ "{:,.0f}".format(frappe.db.get_value("Employee", doc.employee, "daily_pay") or 0) }}</div>
+            </td>
+            <td class="info-cell">
+                <div class="label">حق فنی ماهیانه</div>
+                <div class="value">{{ "{:,.0f}".format(frappe.db.get_value("Employee", doc.employee, "monthly_technical_bonus") or 0) }}</div>
+            </td>
+            <td class="info-cell">
+                <div class="label">نرخ اضافه کاری</div>
+                <div class="value">{{ "{:,.0f}".format(frappe.db.get_value("Employee", doc.employee, "overtime_rate") or 0) }}</div>
+            </td>
+            <td class="info-cell">
+                <div class="label">سال‌های خدمت</div>
+                <div class="value">
+                    {% set join_date = frappe.db.get_value("Employee", doc.employee, "date_of_joining") %}
+                    {% if join_date %}
+                        {{ ((frappe.utils.nowdate() | string | replace('-', '') | int) - (join_date | string | replace('-', '') | int)) // 10000 }}
+                    {% else %}
+                        -
+                    {% endif %}
+                </div>
+            </td>
+        </tr>
+        <tr class="info-row">
+            <td class="info-cell">
+                <div class="label">روزهای کاری</div>
+                <div class="value">{{ doc.total_working_days or "0" }}</div>
+            </td>
+            <td class="info-cell">
+                <div class="label">ساعات موظفی</div>
+                <div class="value">{{ doc.required_working_hours_iran or doc.total_working_hours or "0" }}</div>
+            </td>
+            <td class="info-cell">
+                <div class="label">ساعات کارکرد</div>
+                <div class="value">{{ doc.worked_hours_iran or doc.employee_working_hours or "0" }}</div>
+            </td>
+            <td class="info-cell">
+                <div class="label">ساعات اضافه‌کاری</div>
+                <div class="value">{{ doc.overtime_hours_iran or doc.overtime or "0" }}</div>
+            </td>
+        </tr>
+        <tr class="info-row">
+            <td class="info-cell">
+                <div class="label">ساعات کسری کار</div>
+                <div class="value">{{ doc.shortage_hours_iran or doc.absence or "0" }}</div>
+            </td>
+            <td class="info-cell">
+                <div class="label"></div>
+                <div class="value"></div>
+            </td>
+            <td class="info-cell">
+                <div class="label"></div>
+                <div class="value"></div>
+            </td>
+            <td class="info-cell">
+                <div class="label"></div>
+                <div class="value"></div>
+            </td>
+        </tr>
+        <tr class="info-row">
+            <td class="info-cell">
+                <div class="label">مرخصی استحقاقی</div>
+                <div class="value">{{ doc.paid_leave or "0" }}</div>
+            </td>
+            <td class="info-cell">
+                <div class="label">مرخصی قانونی</div>
+                <div class="value">{{ doc.legal_leave or "0" }}</div>
+            </td>
+            <td class="info-cell">
+                <div class="label">مرخصی استفاده نشده</div>
+                <div class="value">{{ doc.unused_leave or "0" }}</div>
+            </td>
+            <td class="info-cell">
+                <div class="label"></div>
+                <div class="value"></div>
+            </td>
+        </tr>
+    </table>
+
+    {% set component_labels = {
+        "Housing Allowance (Iran)": "حق مسکن",
+        "Grocery Allowance (Iran)": "بن خواربار",
+        "Marriage Allowance (Iran)": "حق تاهل",
+        "Child Allowance (Iran)": "حق اولاد",
+        "Seniority Allowance (Iran)": "پایه سنوات",
+        "Technical Allowance (Iran)": "حق فنی",
+        "Supervision Allowance (Iran)": "حق سرپرستی",
+        "Severance Reserve (Iran)": "حق سنوات (ذخیره)",
+        "Eidi Reserve (Iran)": "عیدی (ذخیره)",
+        "Employee Social Insurance (Iran)": "بیمه سهم کارگر",
+        "Employer Social Insurance (Iran)": "بیمه سهم کارفرما",
+        "Income Tax (Iran)": "مالیات حقوق"
+    } %}
+
+    <!-- Earnings & Deductions -->
+    <div class="two-col">
+        <!-- Earnings -->
+        <div class="col-right">
+            <div class="table-header">مزایا</div>
+            <table class="items-table">
+                {% for row in doc.earnings %}
+                <tr>
+                    <td class="td-label">{{ component_labels.get(row.salary_component, row.salary_component) }}</td>
+                    <td class="td-value">{{ "{:,.0f}".format(row.amount) }}</td>
+                </tr>
+                {% endfor %}
+            </table>
+        </div>
+
+        <!-- Deductions -->
+        <div class="col-left">
+            <div class="table-header">کسورات</div>
+            <table class="items-table">
+                {% for row in doc.deductions %}
+                <tr>
+                    <td class="td-label">{{ component_labels.get(row.salary_component, row.salary_component) }}</td>
+                    <td class="td-value">{{ "{:,.0f}".format(row.amount) }}</td>
+                </tr>
+                {% endfor %}
+            </table>
+        </div>
+    </div>
+
+    <!-- Summary -->
+    <table class="summary-box">
+        <tr class="summary-row">
+            <td class="s-label">جمع مزایا:</td>
+            <td class="s-value">{{ "{:,.0f}".format(doc.gross_pay) }}</td>
+        </tr>
+        <tr class="summary-row">
+            <td class="s-label">جمع کسورات:</td>
+            <td class="s-value">{{ "{:,.0f}".format(doc.total_deduction) }}</td>
+        </tr>
+        <tr class="summary-row net">
+            <td class="s-label">خالص دریافتی:</td>
+            <td class="s-value">{{ "{:,.0f}".format(doc.net_pay) }}</td>
+        </tr>
+    </table>
+
+    <!-- Balance -->
+    {% if doc.real_advance or doc.real_debt or doc.total_balance %}
+    <div class="balance-box">
+        {% if doc.real_advance %}
+        <div class="balance-row">
+            <div class="b-label">مساعده:</div>
+            <div class="b-value">{{ "{:,.0f}".format(doc.real_advance) }}</div>
+        </div>
+        {% endif %}
+        {% if doc.real_debt %}
+        <div class="balance-row">
+            <div class="b-label">مانده:</div>
+            <div class="b-value">{{ "{:,.0f}".format(doc.real_debt) }}</div>
+        </div>
+        {% endif %}
+        {% if doc.total_balance %}
+        <div class="balance-row">
+            <div class="b-label">مانده کل:</div>
+            <div class="b-value">{{ "{:,.0f}".format(doc.total_balance) }}</div>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- Signatures -->
+    <div class="signatures">
+        <div class="sig-cell">
+            <div class="sig-line"></div>
+            <div class="sig-label">امضاء کارمند</div>
+        </div>
+        <div class="sig-cell">
+            <div class="sig-line"></div>
+            <div class="sig-label">امضاء مسئول مالی</div>
+        </div>
+    </div>
+
+</div>

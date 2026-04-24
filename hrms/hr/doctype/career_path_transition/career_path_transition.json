@@ -1,0 +1,239 @@
+{
+ "actions": [],
+ "allow_import": 1,
+ "autoname": "naming_series:",
+ "creation": "2026-04-14 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "naming_series",
+  "transition_title",
+  "career_path_map",
+  "is_active",
+  "transition_section",
+  "from_designation",
+  "to_designation",
+  "column_break_route",
+  "transition_type",
+  "notes",
+  "context_section",
+  "from_job_family",
+  "to_job_family",
+  "from_grade",
+  "to_grade",
+  "column_break_context",
+  "from_grade_level",
+  "to_grade_level",
+  "gate_section",
+  "min_tenure_months",
+  "min_last_two_appraisal_avg",
+  "column_break_gate",
+  "required_competencies",
+  "certification_section",
+  "required_certifications",
+  "additional_conditions"
+ ],
+ "fields": [
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "سری نام‌گذاری",
+   "options": "CAR-PATH-TR-.YYYY.-.####",
+   "reqd": 1
+  },
+  {
+   "fieldname": "transition_title",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "عنوان مسیر",
+   "read_only": 1
+  },
+  {
+   "fieldname": "career_path_map",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "نقشه مسیر شغلی",
+   "options": "Career Path Map"
+  },
+  {
+   "default": "1",
+   "fieldname": "is_active",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "فعال"
+  },
+  {
+   "fieldname": "transition_section",
+   "fieldtype": "Section Break",
+   "label": "خط حرکت"
+  },
+  {
+   "fieldname": "from_designation",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "شغل مبدا",
+   "options": "Designation",
+   "reqd": 1
+  },
+  {
+   "fieldname": "to_designation",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "شغل مقصد",
+   "options": "Designation",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_route",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "transition_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "نوع مسیر",
+   "options": "عمودی\nافقی\nدوگانه (تخصصی/مدیریتی)",
+   "reqd": 1
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Small Text",
+   "label": "توضیحات مسیر"
+  },
+  {
+   "fieldname": "context_section",
+   "fieldtype": "Section Break",
+   "label": "اطلاعات ماتریس"
+  },
+  {
+   "fetch_from": "from_designation.job_family",
+   "fieldname": "from_job_family",
+   "fieldtype": "Link",
+   "label": "خانواده مبدا",
+   "options": "Job Family",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "to_designation.job_family",
+   "fieldname": "to_job_family",
+   "fieldtype": "Link",
+   "label": "خانواده مقصد",
+   "options": "Job Family",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "from_designation.job_grade",
+   "fieldname": "from_grade",
+   "fieldtype": "Link",
+   "label": "گرید مبدا",
+   "options": "Job Grade",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "to_designation.job_grade",
+   "fieldname": "to_grade",
+   "fieldtype": "Link",
+   "label": "گرید مقصد",
+   "options": "Job Grade",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_context",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "from_grade_level",
+   "fieldtype": "Int",
+   "label": "سطح گرید مبدا",
+   "read_only": 1
+  },
+  {
+   "fieldname": "to_grade_level",
+   "fieldtype": "Int",
+   "label": "سطح گرید مقصد",
+   "read_only": 1
+  },
+  {
+   "fieldname": "gate_section",
+   "fieldtype": "Section Break",
+   "label": "شروط عبور"
+  },
+  {
+   "default": "0",
+   "fieldname": "min_tenure_months",
+   "fieldtype": "Int",
+   "label": "حداقل سابقه توقف در نقش فعلی (ماه)"
+  },
+  {
+   "default": "0",
+   "description": "میانگین حداقل Final Score در دو دوره اخیر ارزیابی",
+   "fieldname": "min_last_two_appraisal_avg",
+   "fieldtype": "Float",
+   "label": "حداقل میانگین ارزیابی عملکرد"
+  },
+  {
+   "fieldname": "column_break_gate",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "required_competencies",
+   "fieldtype": "Table",
+   "label": "شایستگی‌های لازم",
+   "options": "Competency Requirement"
+  },
+  {
+   "fieldname": "certification_section",
+   "fieldtype": "Section Break",
+   "label": "مدارک / گواهینامه‌ها"
+  },
+  {
+   "fieldname": "required_certifications",
+   "fieldtype": "Table",
+   "label": "گواهینامه‌های لازم",
+   "options": "Career Path Certification Requirement"
+  },
+  {
+   "fieldname": "additional_conditions",
+   "fieldtype": "Text",
+   "label": "سایر شروط عبور"
+  }
+ ],
+ "icon": "fa fa-random",
+ "modified": "2026-04-14 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "HR",
+ "name": "Career Path Transition",
+ "naming_rule": "By \"Naming Series\" field",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "HR User",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "import": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "HR Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "quick_entry": 1,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "title_field": "transition_title",
+ "translated_doctype": 1
+}

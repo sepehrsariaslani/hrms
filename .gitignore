@@ -9,6 +9,7 @@ hrms/docs/current
 node_modules/
 dist/
 __pycache__/
+hrms/api/employee_checkin_vpn.local.json
 
 # build/
 .vscode

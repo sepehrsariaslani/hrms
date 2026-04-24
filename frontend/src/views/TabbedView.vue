@@ -1,7 +1,7 @@
 <template>
 	<ion-page>
 		<ion-tabs>
-			<ion-router-outlet></ion-router-outlet>
+			<ion-router-outlet :animated="false"></ion-router-outlet>
 			<BottomTabs />
 		</ion-tabs>
 	</ion-page>

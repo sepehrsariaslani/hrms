@@ -55,7 +55,7 @@
    "hidden": 0,
    "is_query_report": 0,
    "label": "Key Reports",
-   "link_count": 7,
+   "link_count": 8,
    "onboard": 0,
    "type": "Card Break"
   },
@@ -66,6 +66,17 @@
    "label": "Monthly Attendance Sheet",
    "link_count": 0,
    "link_to": "Monthly Attendance Sheet",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "Attendance",
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "گزارش حضور و غیاب هوشمند",
+   "link_count": 0,
+   "link_to": "Smart Attendance Report",
    "link_type": "Report",
    "onboard": 0,
    "type": "Link"

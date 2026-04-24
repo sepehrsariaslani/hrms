@@ -5,7 +5,7 @@ http://ionicframework.com/docs/theming/ */
 
 :root {
 	--ion-background-color: #f4f5f6;
-	--ion-font-family: "InterVar", sans-serif;
+	--ion-font-family: "Peyda", sans-serif;
 	--ion-tab-bar-color-selected: #525252;
 	--ion-tab-bar-background-focused: #e2e2e2;
 
@@ -80,4 +80,55 @@ http://ionicframework.com/docs/theming/ */
 	--ion-color-light-contrast-rgb: 0, 0, 0;
 	--ion-color-light-shade: #d7d8da;
 	--ion-color-light-tint: #f5f6f9;
+}
+
+html, body {
+	font-family: "Peyda" !important;
+}
+
+
+@font-face {
+	font-family: "Peyda";
+	src: url("/fonts/Peyda-Thin.ttf") format("truetype");
+	font-weight: 100;
+}
+@font-face {
+	font-family: "Peyda";
+	src: url("/fonts/peyda-extralight.ttf") format("truetype");
+	font-weight: 200;
+}
+@font-face {
+	font-family: "Peyda";
+	src: url("/fonts/peyda-light.ttf") format("truetype");
+	font-weight: 300;
+}
+@font-face {
+	font-family: "Peyda";
+	src: url("/fonts/Pevda-Reqular.ttf") format("truetype");
+	font-weight: 400;
+}
+@font-face {
+	font-family: "Peyda";
+	src: url("/fonts/Peyda-Medium.ttf") format("truetype");
+	font-weight: 500;
+}
+@font-face {
+	font-family: "Peyda";
+	src: url("/fonts/Peyda-SemiBold.ttf") format("truetype");
+	font-weight: 600;
+}
+@font-face {
+	font-family: "Peyda";
+	src: url("/fonts/Peyda-Bold.ttf") format("truetype");
+	font-weight: 700;
+}
+@font-face {
+	font-family: "Peyda";
+	src: url("/fonts/Peyda-ExtraBold.ttf") format("truetype");
+	font-weight: 800;
+}
+@font-face {
+	font-family: "Peyda";
+	src: url("/fonts/Peyda-Black.ttf") format("truetype");
+	font-weight: 900;
 }

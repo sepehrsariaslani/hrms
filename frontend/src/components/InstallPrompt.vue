@@ -5,12 +5,26 @@
 			<h2 class="text-lg font-bold">{{ __("Install Frappe HR") }} </h2>
 		</template>
 		<template #body-content>
-			<p>{{ __("Get the app on your device for easy access & a better experience!") }} </p>
+			<p v-if="canUseInstallPrompt">
+				{{ __("Install this app on your phone for faster access and full-screen experience.") }}
+			</p>
+			<p v-else-if="showSecureContextHelp">
+				{{ __("To install the app, open this page with HTTPS (or localhost) and try again.") }}
+			</p>
+			<p v-else>
+				{{ __("You can install this app from your browser menu.") }}
+			</p>
 		</template>
 		<template #actions>
-			<Button variant="solid" @click="() => install()" class="py-5 w-full">
+			<Button v-if="canUseInstallPrompt" variant="outline" @click="dismiss" class="py-5 w-full">
+				{{ __("Later") }}
+			</Button>
+			<Button v-if="canUseInstallPrompt" variant="solid" @click="install" class="py-5 w-full">
 				<template #prefix><FeatherIcon name="download" class="w-4" /></template>
 				{{ __("Install") }}
+			</Button>
+			<Button v-else variant="solid" @click="dismiss" class="py-5 w-full">
+				{{ __("OK") }}
 			</Button>
 		</template>
 	</Dialog>
@@ -53,7 +67,7 @@
 </template>
 
 <script setup>
-import { ref } from "vue"
+import { computed, onBeforeUnmount, onMounted, ref } from "vue"
 
 import { Dialog, Popover, FeatherIcon } from "frappe-ui"
 
@@ -61,6 +75,10 @@ import { Dialog, Popover, FeatherIcon } from "frappe-ui"
 const deferredPrompt = ref(null)
 const showDialog = ref(false)
 const iosInstallMessage = ref(false)
+const INSTALL_HELP_DISMISSED_KEY = "hrms:install-help-dismissed"
+
+const canUseInstallPrompt = computed(() => Boolean(deferredPrompt.value))
+const showSecureContextHelp = computed(() => !window.isSecureContext)
 
 const isIos = () => {
 	// Detects if device is on iOS
@@ -68,36 +86,70 @@ const isIos = () => {
 	return /iphone|ipad|ipod/.test(userAgent)
 }
 
-// Detects if device is in standalone mode
-const isInStandaloneMode = () =>
-	"standalone" in window.navigator && window.navigator.standalone
-
-// Checks if should display install popup notification:
-if (isIos() && !isInStandaloneMode()) {
-	iosInstallMessage.value = true
+const isMobileDevice = () => {
+	const userAgent = window.navigator.userAgent.toLowerCase()
+	return /android|iphone|ipad|ipod|mobile/.test(userAgent)
 }
 
-window.addEventListener("beforeinstallprompt", (e) => {
+// Detects if device is in standalone mode
+const isInStandaloneMode = () =>
+	window.matchMedia?.("(display-mode: standalone)")?.matches
+	|| ("standalone" in window.navigator && window.navigator.standalone)
+
+function dismiss() {
+	showDialog.value = false
+	if (showSecureContextHelp.value) {
+		sessionStorage.setItem(INSTALL_HELP_DISMISSED_KEY, "1")
+	}
+}
+
+async function install() {
+	if (!deferredPrompt.value) return
+	deferredPrompt.value.prompt()
+	try {
+		await deferredPrompt.value.userChoice
+	} catch (_error) {
+		// Ignore prompt cancellation.
+	}
+	showDialog.value = false
+	deferredPrompt.value = null
+}
+
+const beforeInstallPromptHandler = (e) => {
+	if (!isMobileDevice() || isInStandaloneMode()) return
 	// Prevent the mini-infobar from appearing on mobile
 	e.preventDefault()
 	// Stash the event so it can be triggered later.
 	deferredPrompt.value = e
-	if (isIos() && !isInStandaloneMode()) {
-		iosInstallMessage.value = true
-	} else {
-		showDialog.value = true
-	}
+	showDialog.value = true
 	// Optionally, send analytics event that PWA install promo was shown.
 	console.log(`'beforeinstallprompt' event was fired.`)
-})
-
-window.addEventListener("appinstalled", () => {
-	showDialog.value = false
-	deferredPrompt.value = null
-})
-
-async function install() {
-	deferredPrompt.value.prompt()
-	showDialog.value = false
 }
+
+const appInstalledHandler = () => {
+	showDialog.value = false
+	iosInstallMessage.value = false
+	deferredPrompt.value = null
+}
+
+onMounted(() => {
+	if (!isMobileDevice() || isInStandaloneMode()) return
+
+	if (isIos()) {
+		iosInstallMessage.value = true
+		return
+	}
+
+	if (showSecureContextHelp.value && !sessionStorage.getItem(INSTALL_HELP_DISMISSED_KEY)) {
+		showDialog.value = true
+	}
+
+	window.addEventListener("beforeinstallprompt", beforeInstallPromptHandler)
+	window.addEventListener("appinstalled", appInstalledHandler)
+})
+
+onBeforeUnmount(() => {
+	window.removeEventListener("beforeinstallprompt", beforeInstallPromptHandler)
+	window.removeEventListener("appinstalled", appInstalledHandler)
+})
 </script>

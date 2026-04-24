@@ -29,6 +29,19 @@ export const session = reactive({
 		handleLogin(response)
 		return response
 	},
+	sendMobileOtp: async (mobile) => {
+		return call("frappe.mobile_login.send_mobile_login_otp", { mobile })
+	},
+	mobileOtpLogin: async (mobile, otp, challenge_id) => {
+		const response = await call("frappe.mobile_login.login_via_mobile_otp", { mobile, otp, challenge_id })
+		if (response?.message?.logged_in) {
+			userResource.reload()
+			employeeResource.reload()
+			session.user = sessionUser()
+			router.replace({ path: "/" })
+		}
+		return response
+	},
 	otp: async (tmp_id, otp) => {
 		const response = await call("login", { tmp_id, otp })
 		handleLogin(response)

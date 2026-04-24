@@ -34,8 +34,8 @@ import ListItem from "@/components/ListItem.vue"
 import ExpenseIcon from "@/components/icons/ExpenseIcon.vue"
 
 import { formatCurrency } from "@/utils/formatters"
+import { formatJalaliDateShort } from "@/utils/jalali"
 
-const dayjs = inject("$dayjs")
 const __ = inject("$translate")
 const props = defineProps({
 	doc: {
@@ -87,13 +87,13 @@ const claimTitle = computed(() => {
 
 const claimDates = computed(() => {
 	if (!props.doc.from_date && !props.doc.to_date)
-		return dayjs(props.doc.posting_date).format("D MMM")
+		return formatJalaliDateShort(props.doc.posting_date)
 
 	if (props.doc.from_date === props.doc.to_date) {
-		return dayjs(props.doc.from_date).format("D MMM")
+		return formatJalaliDateShort(props.doc.from_date)
 	} else {
-		return `${dayjs(props.doc.from_date).format("D MMM")} - ${dayjs(props.doc.to_date).format(
-			"D MMM"
+		return `${formatJalaliDateShort(props.doc.from_date)} - ${formatJalaliDateShort(
+			props.doc.to_date
 		)}`
 	}
 })
