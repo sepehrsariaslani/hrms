@@ -1,5 +1,6 @@
 import json
 import re
+from datetime import timedelta
 
 import frappe
 from frappe import _
@@ -9,7 +10,7 @@ from frappe.utils import cint, flt, getdate, nowdate
 from frappe.utils.file_manager import save_file
 
 ALLOWED_PARTY_TYPES = {"Supplier", "Employee"}
-SUPPORTED_PAYMENT_TYPES = {"Pay", "Internal Transfer"}
+SUPPORTED_PAYMENT_TYPES = {"Pay", "Receive", "Internal Transfer"}
 SUPPORTED_ENTRY_DOCTYPES = {"Payment Entry", "Journal Entry"}
 
 
@@ -69,7 +70,7 @@ def get_imprest_dashboard_stats(
         from_date=from_date,
         to_date=to_date,
         account_filters=account_filters,
-        limit=200,
+        limit=2500,
     )
 
     account_balances = get_account_balances(allowed_account_names)
@@ -82,16 +83,55 @@ def get_imprest_dashboard_stats(
     total_incoming = 0
     total_outgoing = 0
     total_transfer = 0
+    account_expense_totals: dict[str, float] = {}
+    expense_category_totals: dict[str, float] = {}
     for row in rows:
         transaction_type = classify_transaction(row.payment_type, row.paid_from, row.paid_to, allowed_set)
+        amount = get_row_amount(row, transaction_type)
         if transaction_type == "incoming":
-            total_incoming += get_row_amount(row, transaction_type)
+            total_incoming += amount
         elif transaction_type == "outgoing":
-            total_outgoing += get_row_amount(row, transaction_type)
+            total_outgoing += amount
+            expense_account = row.paid_from if row.paid_from in allowed_set else row.paid_to
+            if expense_account:
+                account_expense_totals[expense_account] = flt(account_expense_totals.get(expense_account, 0)) + amount
+
+            expense_label = row.party_name or row.party or get_account_name(row.paid_to) or _("Other")
+            expense_category_totals[expense_label] = flt(expense_category_totals.get(expense_label, 0)) + amount
         else:
-            total_transfer += get_row_amount(row, transaction_type)
+            total_transfer += amount
 
     recent_transactions = [serialize_row(row, allowed_set, employee.name) for row in rows[:30]]
+    previous_outgoing_total = get_previous_period_outgoing_total(
+        employee=employee.name,
+        allowed_accounts=allowed_account_names,
+        account_filters=account_filters,
+        from_date=from_date,
+        to_date=to_date,
+    )
+
+    account_expense_breakdown = []
+    for account_name, amount in sorted(
+        account_expense_totals.items(),
+        key=lambda item: item[1],
+        reverse=True,
+    ):
+        account_expense_breakdown.append(
+            {
+                "account": account_name,
+                "account_name": get_account_name(account_name),
+                "amount": flt(amount),
+            }
+        )
+
+    expense_category_breakdown = []
+    for label, amount in sorted(expense_category_totals.items(), key=lambda item: item[1], reverse=True):
+        expense_category_breakdown.append(
+            {
+                "label": label,
+                "amount": flt(amount),
+            }
+        )
 
     return {
         "current_balance": current_balance,
@@ -101,6 +141,9 @@ def get_imprest_dashboard_stats(
         "period_net": total_incoming - total_outgoing,
         "transaction_count": len(rows),
         "recent_transactions": recent_transactions,
+        "previous_outgoing_total": previous_outgoing_total,
+        "account_expense_totals": account_expense_breakdown,
+        "expense_category_totals": expense_category_breakdown,
     }
 
 
@@ -185,6 +228,65 @@ def get_company_accounts(search_text: str | None = None, limit: int | None = 200
     ensure_imprest_setup()
     employee = get_current_employee()
     return get_company_accounts_for_employee(employee.company, search_text=search_text, limit=limit)
+
+
+@frappe.whitelist()
+def get_imprest_party_options(
+    party_type: str,
+    search_text: str | None = None,
+    limit: int | None = 200,
+) -> list[dict]:
+    ensure_imprest_setup()
+    employee = get_current_employee()
+    limit = min(max(cint(limit) or 200, 1), 500)
+    search_value = (search_text or "").strip()
+    like_value = f"%{search_value}%"
+
+    if party_type == "Employee":
+        return frappe.db.sql(
+            """
+            select
+                name as value,
+                concat(ifnull(employee_name, name), ' : ', name) as label
+            from `tabEmployee`
+            where status = 'Active'
+              and company = %s
+              and (%s = '' or name like %s or employee_name like %s)
+            order by employee_name asc, name asc
+            limit %s
+            """,
+            (
+                employee.company,
+                search_value,
+                like_value,
+                like_value,
+                limit,
+            ),
+            as_dict=True,
+        )
+
+    if party_type == "Supplier":
+        return frappe.db.sql(
+            """
+            select
+                name as value,
+                concat(ifnull(supplier_name, name), ' : ', name) as label
+            from `tabSupplier`
+            where ifnull(disabled, 0) = 0
+              and (%s = '' or name like %s or supplier_name like %s)
+            order by supplier_name asc, name asc
+            limit %s
+            """,
+            (
+                search_value,
+                like_value,
+                like_value,
+                limit,
+            ),
+            as_dict=True,
+        )
+
+    return []
 
 
 @frappe.whitelist()
@@ -531,6 +633,42 @@ def normalize_requested_accounts(
     return deduped or None
 
 
+def get_previous_period_outgoing_total(
+    employee: str,
+    allowed_accounts: list[str],
+    account_filters: list[str] | None,
+    from_date: str | None,
+    to_date: str | None,
+) -> float:
+    if not from_date or not to_date:
+        return 0
+
+    start = getdate(from_date)
+    end = getdate(to_date)
+    if start > end:
+        start, end = end, start
+
+    period_days = (end - start).days + 1
+    previous_to = start - timedelta(days=1)
+    previous_from = previous_to - timedelta(days=max(period_days - 1, 0))
+
+    rows = get_imprest_rows(
+        employee=employee,
+        allowed_accounts=allowed_accounts,
+        from_date=str(previous_from),
+        to_date=str(previous_to),
+        account_filters=account_filters,
+        limit=2500,
+    )
+    allowed_set = set(allowed_accounts)
+    total_outgoing = 0
+    for row in rows:
+        transaction_type = classify_transaction(row.payment_type, row.paid_from, row.paid_to, allowed_set)
+        if transaction_type == "outgoing":
+            total_outgoing += get_row_amount(row, transaction_type)
+    return flt(total_outgoing)
+
+
 def get_company_accounts_for_employee(
     company: str,
     search_text: str | None = None,
@@ -872,16 +1010,16 @@ def build_payment_entry_doc(data: dict, employee: frappe._dict, allowed_accounts
     allowed_set = set(allowed_accounts)
     payment_type = data.get("payment_type")
     if payment_type not in SUPPORTED_PAYMENT_TYPES:
-        frappe.throw(_("Only Pay and Internal Transfer are allowed in imprest quick entry."))
+        frappe.throw(_("Only Pay, Receive, and Internal Transfer are allowed in imprest quick entry."))
 
     amount = flt(data.get("amount"))
     if amount <= 0:
         frappe.throw(_("Amount must be greater than zero."))
 
-    paid_from = data.get("paid_from")
-    if not paid_from or paid_from not in allowed_set:
-        frappe.throw(_("Selected source account is not allowed."), frappe.PermissionError)
-    validate_account_company(paid_from, employee.company)
+    imprest_account = data.get("paid_from")
+    if not imprest_account or imprest_account not in allowed_set:
+        frappe.throw(_("Selected imprest account is not allowed."), frappe.PermissionError)
+    validate_account_company(imprest_account, employee.company)
 
     posting_date = getdate(data.get("posting_date") or nowdate())
 
@@ -889,9 +1027,6 @@ def build_payment_entry_doc(data: dict, employee: frappe._dict, allowed_accounts
     doc.payment_type = payment_type
     doc.company = employee.company
     doc.posting_date = posting_date
-    doc.paid_from = paid_from
-    doc.paid_from_account_currency = frappe.db.get_value("Account", paid_from, "account_currency")
-    doc.paid_amount = amount
     doc.imprest_employee = employee.name
     doc.mode_of_payment = data.get("mode_of_payment") or None
     doc.reference_no = data.get("reference_no") or None
@@ -899,12 +1034,17 @@ def build_payment_entry_doc(data: dict, employee: frappe._dict, allowed_accounts
     doc.remarks = data.get("remarks") or _("Imprest quick entry")
 
     if payment_type == "Internal Transfer":
+        doc.paid_from = imprest_account
+        doc.paid_from_account_currency = frappe.db.get_value(
+            "Account", imprest_account, "account_currency"
+        )
+        doc.paid_amount = amount
         paid_to = data.get("paid_to")
         if not paid_to:
             frappe.throw(_("Destination account is required for transfer."))
         if not frappe.db.exists("Account", paid_to):
             frappe.throw(_("Selected destination account does not exist."))
-        if paid_to == paid_from:
+        if paid_to == imprest_account:
             frappe.throw(_("Source and destination accounts cannot be the same."))
         validate_account_company(paid_to, employee.company)
         validate_cash_bank_account(paid_to)
@@ -924,8 +1064,23 @@ def build_payment_entry_doc(data: dict, employee: frappe._dict, allowed_accounts
 
         doc.party_type = party_type
         doc.party = party
-        doc.received_amount = amount
+        if payment_type == "Pay":
+            doc.paid_from = imprest_account
+            doc.paid_from_account_currency = frappe.db.get_value(
+                "Account", imprest_account, "account_currency"
+            )
+            doc.paid_amount = amount
+        else:
+            doc.paid_to = imprest_account
+            doc.paid_to_account_currency = frappe.db.get_value(
+                "Account", imprest_account, "account_currency"
+            )
+            doc.received_amount = amount
         doc.setup_party_account_field()
+        if payment_type == "Pay":
+            doc.received_amount = amount
+        else:
+            doc.paid_amount = amount
 
     doc.set_missing_values()
     doc.set_amounts()

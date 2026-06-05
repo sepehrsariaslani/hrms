@@ -1,0 +1,388 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-05-02 18:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "general_section",
+  "enabled",
+  "target_site",
+  "connection_mode",
+  "preview_section",
+  "source_date_from",
+  "source_date_to",
+  "max_source_rows",
+  "preview_limit",
+  "import_section",
+  "dedupe_on",
+  "skip_missing_employees",
+  "auto_create_missing_employees",
+  "preserve_manual_changes",
+  "default_employee_company",
+  "batch_size",
+  "vpn_section",
+  "vpn_gateway_host",
+  "vpn_gateway_port",
+  "column_break_vpn_1",
+  "vpn_username",
+  "vpn_password",
+  "vpn_command",
+  "vpn_realm",
+  "column_break_vpn_2",
+  "vpn_trusted_cert",
+  "vpn_insecure_ssl",
+  "vpn_disable_default_route",
+  "vpn_targets",
+  "vpn_connect_timeout_seconds",
+  "vpn_ready_wait_seconds",
+  "vpn_poll_seconds",
+  "ssh_section",
+  "ssh_gateway_host",
+  "ssh_gateway_port",
+  "column_break_ssh_1",
+  "ssh_gateway_user",
+  "ssh_gateway_password",
+  "ssh_remote_sql_host",
+  "ssh_remote_sql_port",
+  "column_break_ssh_2",
+  "ssh_local_bind_host",
+  "ssh_local_bind_port",
+  "ssh_connect_timeout_seconds",
+  "ssh_poll_seconds",
+  "sql_section",
+  "sql_host",
+  "sql_port",
+  "sql_database",
+  "column_break_sql_1",
+  "sql_user",
+  "sql_password"
+ ],
+ "fields": [
+  {
+   "fieldname": "general_section",
+   "fieldtype": "Section Break",
+   "label": "General"
+  },
+  {
+   "default": "1",
+   "fieldname": "enabled",
+   "fieldtype": "Check",
+   "label": "Enable Interpolation"
+  },
+  {
+   "default": "dehati.ir",
+   "fieldname": "target_site",
+   "fieldtype": "Data",
+   "label": "Target Site",
+   "reqd": 1
+  },
+  {
+   "default": "vpn_direct_sql",
+   "fieldname": "connection_mode",
+   "fieldtype": "Select",
+   "label": "Connection Mode",
+   "options": "vpn_direct_sql\nssh_tunnel\ndirect_sql",
+   "reqd": 1
+  },
+  {
+   "fieldname": "preview_section",
+   "fieldtype": "Section Break",
+   "label": "Preview Defaults"
+  },
+  {
+   "fieldname": "source_date_from",
+   "fieldtype": "Data",
+   "label": "Source Date From (Jalali)"
+  },
+  {
+   "fieldname": "source_date_to",
+   "fieldtype": "Data",
+   "label": "Source Date To (Jalali)"
+  },
+  {
+   "default": "2000",
+   "fieldname": "max_source_rows",
+   "fieldtype": "Int",
+   "label": "Max Source Rows"
+  },
+  {
+   "default": "30",
+   "fieldname": "preview_limit",
+   "fieldtype": "Int",
+   "label": "Preview Rows"
+  },
+  {
+   "fieldname": "import_section",
+   "fieldtype": "Section Break",
+   "label": "Import Behavior"
+  },
+  {
+   "default": "employee+time+log_type",
+   "fieldname": "dedupe_on",
+   "fieldtype": "Select",
+   "label": "Duplicate Key",
+   "options": "employee+time+log_type\nemployee+time",
+   "reqd": 1
+  },
+  {
+   "default": "1",
+   "fieldname": "skip_missing_employees",
+   "fieldtype": "Check",
+   "label": "Skip Missing Employees"
+  },
+  {
+   "default": "1",
+   "fieldname": "auto_create_missing_employees",
+   "fieldtype": "Check",
+   "label": "Auto Create Missing Employees"
+  },
+  {
+   "default": "1",
+   "fieldname": "preserve_manual_changes",
+   "fieldtype": "Check",
+   "label": "Preserve Manual Attendance Changes"
+  },
+  {
+   "fieldname": "default_employee_company",
+   "fieldtype": "Link",
+   "label": "Default Company For New Employees",
+   "options": "Company"
+  },
+  {
+   "default": "1000",
+   "fieldname": "batch_size",
+   "fieldtype": "Int",
+   "label": "Commit Batch Size"
+  },
+  {
+   "fieldname": "vpn_section",
+   "fieldtype": "Section Break",
+   "label": "VPN (OpenFortiVPN)",
+   "depends_on": "eval:doc.connection_mode==='vpn_direct_sql'"
+  },
+  {
+   "default": "46.100.60.60",
+   "fieldname": "vpn_gateway_host",
+   "fieldtype": "Data",
+   "label": "VPN Gateway Host"
+  },
+  {
+   "default": "1600",
+   "fieldname": "vpn_gateway_port",
+   "fieldtype": "Int",
+   "label": "VPN Gateway Port"
+  },
+  {
+   "fieldname": "column_break_vpn_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "sepehr@220",
+   "fieldname": "vpn_username",
+   "fieldtype": "Data",
+   "label": "VPN Username"
+  },
+  {
+   "fieldname": "vpn_password",
+   "fieldtype": "Password",
+   "label": "VPN Password"
+  },
+  {
+   "default": "openfortivpn",
+   "fieldname": "vpn_command",
+   "fieldtype": "Data",
+   "label": "VPN Command"
+  },
+  {
+   "fieldname": "vpn_realm",
+   "fieldtype": "Data",
+   "label": "VPN Realm"
+  },
+  {
+   "fieldname": "column_break_vpn_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "vpn_trusted_cert",
+   "fieldtype": "Data",
+   "label": "Trusted Cert (Optional)"
+  },
+  {
+   "default": "0",
+   "fieldname": "vpn_insecure_ssl",
+   "fieldtype": "Check",
+   "label": "Insecure SSL"
+  },
+  {
+   "default": "1",
+   "fieldname": "vpn_disable_default_route",
+   "fieldtype": "Check",
+   "label": "Disable Default VPN Routes"
+  },
+  {
+   "fieldname": "vpn_targets",
+   "fieldtype": "Small Text",
+   "label": "VPN Targets",
+   "default": "192.168.150.26:1433"
+  },
+  {
+   "default": "40",
+   "fieldname": "vpn_connect_timeout_seconds",
+   "fieldtype": "Int",
+   "label": "VPN Connect Timeout (s)"
+  },
+  {
+   "default": "90",
+   "fieldname": "vpn_ready_wait_seconds",
+   "fieldtype": "Int",
+   "label": "VPN Ready Wait (s)"
+  },
+  {
+   "default": "2",
+   "fieldname": "vpn_poll_seconds",
+   "fieldtype": "Int",
+   "label": "VPN Poll Interval (s)"
+  },
+  {
+   "fieldname": "ssh_section",
+   "fieldtype": "Section Break",
+   "label": "SSH Tunnel",
+   "depends_on": "eval:doc.connection_mode==='ssh_tunnel'"
+  },
+  {
+   "fieldname": "ssh_gateway_host",
+   "fieldtype": "Data",
+   "label": "SSH Gateway Host"
+  },
+  {
+   "default": "1600",
+   "fieldname": "ssh_gateway_port",
+   "fieldtype": "Int",
+   "label": "SSH Gateway Port"
+  },
+  {
+   "fieldname": "column_break_ssh_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "ssh_gateway_user",
+   "fieldtype": "Data",
+   "label": "SSH Username"
+  },
+  {
+   "fieldname": "ssh_gateway_password",
+   "fieldtype": "Password",
+   "label": "SSH Password"
+  },
+  {
+   "default": "192.168.150.26",
+   "fieldname": "ssh_remote_sql_host",
+   "fieldtype": "Data",
+   "label": "Remote SQL Host"
+  },
+  {
+   "default": "1433",
+   "fieldname": "ssh_remote_sql_port",
+   "fieldtype": "Int",
+   "label": "Remote SQL Port"
+  },
+  {
+   "fieldname": "column_break_ssh_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "127.0.0.1",
+   "fieldname": "ssh_local_bind_host",
+   "fieldtype": "Data",
+   "label": "Local Bind Host"
+  },
+  {
+   "default": "11433",
+   "fieldname": "ssh_local_bind_port",
+   "fieldtype": "Int",
+   "label": "Local Bind Port"
+  },
+  {
+   "default": "30",
+   "fieldname": "ssh_connect_timeout_seconds",
+   "fieldtype": "Int",
+   "label": "SSH Connect Timeout (s)"
+  },
+  {
+   "default": "1",
+   "fieldname": "ssh_poll_seconds",
+   "fieldtype": "Int",
+   "label": "SSH Poll Interval (s)"
+  },
+  {
+   "fieldname": "sql_section",
+   "fieldtype": "Section Break",
+   "label": "SQL Source"
+  },
+  {
+   "default": "192.168.150.26",
+   "fieldname": "sql_host",
+   "fieldtype": "Data",
+   "label": "SQL Host",
+   "reqd": 1
+  },
+  {
+   "default": "1433",
+   "fieldname": "sql_port",
+   "fieldtype": "Int",
+   "label": "SQL Port",
+   "reqd": 1
+  },
+  {
+   "default": "EOS",
+   "fieldname": "sql_database",
+   "fieldtype": "Data",
+   "label": "SQL Database",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_sql_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "sql_user",
+   "fieldtype": "Data",
+   "label": "SQL Username",
+   "reqd": 1
+  },
+  {
+   "fieldname": "sql_password",
+   "fieldtype": "Password",
+   "label": "SQL Password"
+  }
+ ],
+ "hide_toolbar": 1,
+ "issingle": 1,
+ "links": [],
+ "modified": "2026-05-02 18:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "HR",
+ "name": "Attendance Interpolation Settings",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "HR Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC"
+}

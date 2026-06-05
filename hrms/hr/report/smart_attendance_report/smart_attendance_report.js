@@ -26,11 +26,38 @@ frappe.query_reports["Smart Attendance Report"] = {
 
     "filters": [
         {
+            "fieldname": "company",
+            "label": __("شرکت"),
+            "fieldtype": "Link",
+            "options": "Company",
+            "width": 180,
+            "on_change": function () {
+                const company = frappe.query_report.get_filter_value("company");
+
+                // اگر کارمندی انتخاب شده ولی متعلق به شرکت دیگری است، خالی شود
+                frappe.query_report.set_filter_value("employee", "");
+                frappe.query_report.set_filter_value("employees", "");
+                frappe.query_report.refresh();
+            }
+        },
+        {
             "fieldname": "employee",
             "label": __("کارمند"),
             "fieldtype": "Link",
             "options": "Employee",
-            "width": 180
+            "width": 180,
+            "get_query": function () {
+                const company = frappe.query_report.get_filter_value("company");
+                let filters = {};
+
+                if (company) {
+                    filters.company = company;
+                }
+
+                return {
+                    filters: filters
+                };
+            }
         },
         {
             "fieldname": "employees",
@@ -64,6 +91,10 @@ frappe.query_reports["Smart Attendance Report"] = {
     "formatter": function (value, row, column, data, default_formatter) {
         value = default_formatter(value, row, column, data);
 
+        if (!data) {
+            return value;
+        }
+
         // Color coding for issue flag
         if (column.fieldname === "issue_flag") {
             if (data.issue_flag === "🔴") {
@@ -94,29 +125,40 @@ frappe.query_reports["Smart Attendance Report"] = {
             }
         }
 
-        // Make all_logs interactive with edit icons
-        if (column.fieldname === "all_logs" && data.all_logs_json && data.all_logs_json.length > 0) {
+        // Make all_logs interactive with edit icons + add icon
+        if (column.fieldname === "all_logs") {
             let logParts = [];
-            for (let log of data.all_logs_json) {
-                let icon = log.log_type === "IN" ? "⬇️" : "⬆️";
-                let editIcon = `<span onclick="smart_attendance_edit_checkin('${log.name}')" 
-                                      style="cursor:pointer;color:#666;font-size:12px" 
-                                      title="ویرایش">✏️</span>`;
-                logParts.push(`${editIcon}${icon}${log.time}`);
+
+            // دکمه افزودن لاگ جدید برای همان روز
+            let addIcon = `<span onclick="smart_attendance_add_checkin('${data.employee}', '${data.work_date}', '')"
+                                style="cursor:pointer;color:#28a745;font-size:14px;margin-left:6px"
+                                title="افزودن لاگ جدید">➕</span>`;
+
+            if (data.all_logs_json && data.all_logs_json.length > 0) {
+                for (let log of data.all_logs_json) {
+                    let icon = log.log_type === "IN" ? "⬇️" : "⬆️";
+                    let editIcon = `<span onclick="smart_attendance_edit_checkin('${log.name}')"
+                                          style="cursor:pointer;color:#666;font-size:12px"
+                                          title="ویرایش">✏️</span>`;
+                    logParts.push(`${editIcon}${icon}${log.time}`);
+                }
             }
+
             let fixIcon = "";
-            if (data.all_logs_json.length >= 2) {
+            if (data.all_logs_json && data.all_logs_json.length >= 2) {
                 fixIcon = `<span onclick="smart_attendance_repair_day('${data.employee}', '${data.work_date}')"
                                  style="cursor:pointer;color:#0d6efd;font-size:12px;margin-left:6px"
                                  title="بازسازی ترتیب ورود/خروج">🛠️</span>`;
             }
+
             let cleanupIcon = "";
-            if (data.all_logs_json.length >= 2) {
+            if (data.all_logs_json && data.all_logs_json.length >= 2) {
                 cleanupIcon = `<span onclick="smart_attendance_cleanup_day('${data.employee}', '${data.work_date}')"
                                      style="cursor:pointer;color:#dc3545;font-size:12px;margin-left:6px"
                                      title="حذف لاگ‌های نویزی">🧹</span>`;
             }
-            value = cleanupIcon + fixIcon + logParts.join(" | ");
+
+            value = addIcon + cleanupIcon + fixIcon + (logParts.length ? logParts.join(" | ") : "<span style='color:#999'>بدون لاگ</span>");
         }
 
         // Make actual_start (ورود) clickable with edit icon
@@ -126,19 +168,18 @@ frappe.query_reports["Smart Attendance Report"] = {
             let edit_html = "";
 
             if (data.actual_start && data.first_in_name) {
-                link_html = `<a href="/app/employee-checkin/${data.first_in_name}" 
-                               style="color:#007bff;">
+                link_html = `<a href="/app/employee-checkin/${data.first_in_name}" style="color:#007bff;">
                                ${data.actual_start}
                             </a>`;
-                edit_html = `<span class="edit-checkin-btn" 
+                edit_html = `<span class="edit-checkin-btn"
                                onclick="smart_attendance_edit_checkin('${data.first_in_name}')"
-                               style="cursor:pointer;margin-right:5px;color:#666;" 
+                               style="cursor:pointer;margin-right:5px;color:#666;"
                                title="ویرایش">✏️</span>`;
             } else {
                 link_html = `<span style="color:#999;">${time_display}</span>`;
-                edit_html = `<span class="add-checkin-btn" 
+                edit_html = `<span class="add-checkin-btn"
                                onclick="smart_attendance_add_checkin('${data.employee}', '${data.work_date}', 'IN')"
-                               style="cursor:pointer;margin-right:5px;color:#28a745;" 
+                               style="cursor:pointer;margin-right:5px;color:#28a745;"
                                title="افزودن ورود">➕</span>`;
             }
 
@@ -152,19 +193,18 @@ frappe.query_reports["Smart Attendance Report"] = {
             let edit_html = "";
 
             if (data.actual_end && data.last_out_name) {
-                link_html = `<a href="/app/employee-checkin/${data.last_out_name}" 
-                               style="color:#007bff;">
+                link_html = `<a href="/app/employee-checkin/${data.last_out_name}" style="color:#007bff;">
                                ${data.actual_end}
                             </a>`;
-                edit_html = `<span class="edit-checkin-btn" 
+                edit_html = `<span class="edit-checkin-btn"
                                onclick="smart_attendance_edit_checkin('${data.last_out_name}')"
-                               style="cursor:pointer;margin-right:5px;color:#666;" 
+                               style="cursor:pointer;margin-right:5px;color:#666;"
                                title="ویرایش">✏️</span>`;
             } else {
                 link_html = `<span style="color:#999;">${time_display}</span>`;
-                edit_html = `<span class="add-checkin-btn" 
+                edit_html = `<span class="add-checkin-btn"
                                onclick="smart_attendance_add_checkin('${data.employee}', '${data.work_date}', 'OUT')"
-                               style="cursor:pointer;margin-right:5px;color:#dc3545;" 
+                               style="cursor:pointer;margin-right:5px;color:#dc3545;"
                                title="افزودن خروج">➕</span>`;
             }
 
@@ -192,7 +232,8 @@ function call_normalize_midnight(report, filters) {
             from_date: filters.from_date,
             to_date: filters.to_date,
             employee: filters.employee,
-            employees: filters.employees
+            employees: filters.employees,
+            company: filters.company
         },
         callback: function (r) {
             if (r.exc && String(r.exc).includes("has no attribute 'normalize_midnight_checkout_logs'")) {
@@ -218,7 +259,8 @@ function call_bulk_cleanup(report, filters) {
             from_date: filters.from_date,
             to_date: filters.to_date,
             employee: filters.employee,
-            employees: filters.employees
+            employees: filters.employees,
+            company: filters.company
         },
         callback: function (r) {
             if (r.exc && String(r.exc).includes("has no attribute 'cleanup_noisy_logs_bulk'")) {
@@ -243,11 +285,16 @@ function call_bulk_cleanup(report, filters) {
 
 // Global function for adding checkin
 window.smart_attendance_add_checkin = function (employee, date, log_type) {
-    let title = log_type === "IN" ? "ثبت ورود" : "ثبت خروج";
-    let default_time = log_type === "IN" ? "08:00:00" : "17:00:00";
+    let title = __("ثبت لاگ");
+    let default_time = "08:00:00";
+    let default_log_type = log_type || "IN";
+
+    if (log_type === "OUT") {
+        default_time = "17:00:00";
+    }
 
     let dialog = new frappe.ui.Dialog({
-        title: __(title),
+        title: title,
         fields: [
             {
                 fieldname: "info",
@@ -263,6 +310,14 @@ window.smart_attendance_add_checkin = function (employee, date, log_type) {
                 fieldtype: "Time",
                 reqd: 1,
                 default: default_time
+            },
+            {
+                fieldname: "log_type",
+                label: __("نوع"),
+                fieldtype: "Select",
+                options: "IN\nOUT",
+                reqd: 1,
+                default: default_log_type
             }
         ],
         primary_action_label: __("ذخیره"),
@@ -273,13 +328,13 @@ window.smart_attendance_add_checkin = function (employee, date, log_type) {
                 method: "hrms.hr.report.smart_attendance_report.smart_attendance_report.add_manual_checkin",
                 args: {
                     employee: employee,
-                    log_type: log_type,
+                    log_type: values.log_type,
                     time: datetime
                 },
                 callback: function (r) {
                     if (r.message && r.message.success) {
                         frappe.show_alert({
-                            message: log_type === "IN" ? __("ورود ثبت شد") : __("خروج ثبت شد"),
+                            message: __("لاگ با موفقیت ثبت شد"),
                             indicator: "green"
                         });
                         dialog.hide();
@@ -304,7 +359,11 @@ window.smart_attendance_edit_checkin = function (checkin_name) {
         callback: function (r) {
             if (r.message) {
                 let checkin = r.message;
-                let current_time = checkin.time.split(" ")[1] || "08:00:00";
+
+                // جلوگیری از مشکل timezone / day-shift
+                let raw_datetime = checkin.time || "";
+                let date_part = raw_datetime.split(" ")[0] || "";
+                let time_part = raw_datetime.split(" ")[1] || "08:00:00";
 
                 let dialog = new frappe.ui.Dialog({
                     title: __("ویرایش ورود/خروج"),
@@ -322,14 +381,14 @@ window.smart_attendance_edit_checkin = function (checkin_name) {
                             label: __("تاریخ"),
                             fieldtype: "Date",
                             reqd: 1,
-                            default: checkin.time.split(" ")[0]
+                            default: date_part
                         },
                         {
                             fieldname: "time",
                             label: __("ساعت"),
                             fieldtype: "Time",
                             reqd: 1,
-                            default: current_time
+                            default: time_part
                         },
                         {
                             fieldname: "log_type",
@@ -342,7 +401,7 @@ window.smart_attendance_edit_checkin = function (checkin_name) {
                     ],
                     primary_action_label: __("ذخیره"),
                     primary_action: function (values) {
-                        let datetime = values.date + " " + values.time;
+                        let datetime = `${values.date} ${values.time}`;
 
                         frappe.call({
                             method: "frappe.client.set_value",
@@ -377,7 +436,7 @@ window.smart_attendance_edit_checkin = function (checkin_name) {
                                         doctype: "Employee Checkin",
                                         name: checkin_name
                                     },
-                                    callback: function (r) {
+                                    callback: function () {
                                         frappe.show_alert({
                                             message: __("رکورد حذف شد"),
                                             indicator: "orange"
@@ -434,7 +493,9 @@ window.smart_attendance_cleanup_day = function (employee, work_date) {
                 callback: function (r) {
                     if (r.message && r.message.success) {
                         frappe.show_alert({
-                            message: __("پاکسازی انجام شد ({0} حذف، {1} اصلاح نوع)").replace("{0}", r.message.deleted_count || 0).replace("{1}", r.message.repaired_count || 0),
+                            message: __("پاکسازی انجام شد ({0} حذف، {1} اصلاح نوع)")
+                                .replace("{0}", r.message.deleted_count || 0)
+                                .replace("{1}", r.message.repaired_count || 0),
                             indicator: "green"
                         });
                         frappe.query_report.refresh();

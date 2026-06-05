@@ -1,0 +1,26 @@
+{
+ "content": null,
+ "creation": "2026-05-02 21:40:00.000000",
+ "docstatus": 0,
+ "doctype": "Page",
+ "idx": 0,
+ "modified": "2026-05-02 21:40:00.000000",
+ "modified_by": "Administrator",
+ "module": "HR",
+ "name": "attendance-device-database",
+ "owner": "Administrator",
+ "page_name": "attendance-device-database",
+ "roles": [
+  {
+   "role": "HR Manager"
+  },
+  {
+   "role": "System Manager"
+  }
+ ],
+ "script": null,
+ "standard": "Yes",
+ "style": null,
+ "system_page": 0,
+ "title": "پایگاه داده سیستم های حضور و غیاب"
+}

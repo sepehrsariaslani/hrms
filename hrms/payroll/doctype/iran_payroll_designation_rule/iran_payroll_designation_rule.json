@@ -1,0 +1,43 @@
+{
+ "actions": [],
+ "creation": "2026-05-04 10:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "company",
+  "designation",
+  "base_daily_pay"
+ ],
+ "fields": [
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "شرکت",
+   "options": "Company",
+   "reqd": 1
+  },
+  {
+   "fieldname": "designation",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "سمت سازمانی",
+   "options": "Designation",
+   "reqd": 1
+  },
+  {
+   "fieldname": "base_daily_pay",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "حقوق پایه روزانه"
+  }
+ ],
+ "istable": 1,
+ "module": "Payroll",
+ "name": "Iran Payroll Designation Rule",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "ASC"
+}

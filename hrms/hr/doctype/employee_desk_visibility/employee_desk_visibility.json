@@ -1,0 +1,290 @@
+{
+ "actions": [],
+ "allow_import": 1,
+ "allow_rename": 1,
+ "autoname": "EDV-.#####",
+ "creation": "2026-04-25 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "title",
+  "company",
+  "column_break_scope",
+  "is_default",
+  "is_active",
+  "section_break_home",
+  "enable_home_check_in_panel",
+  "enable_home_kpi_section",
+  "enable_home_activity_section",
+  "enable_home_expense_section",
+  "enable_home_leave_balance_section",
+  "enable_home_quick_links_section",
+  "enable_home_recent_requests_section",
+  "section_break_kpi",
+  "enable_kpi_pending_requests",
+  "enable_kpi_approved_requests",
+  "enable_kpi_leave_balance",
+  "enable_kpi_active_missions",
+  "enable_kpi_latest_appraisal",
+  "section_break_modules",
+  "enable_requests_center",
+  "enable_attendance",
+  "enable_leaves",
+  "enable_missions",
+  "enable_expense_claims",
+  "enable_employee_advances",
+  "enable_salary_slips",
+  "enable_complaints",
+  "enable_meals",
+  "enable_appraisals",
+  "enable_newsletters",
+  "enable_events",
+  "enable_imprest"
+ ],
+ "fields": [
+  {
+   "fieldname": "title",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Profile Name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Company",
+   "options": "Company"
+  },
+  {
+   "fieldname": "column_break_scope",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "is_default",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Default Profile"
+  },
+  {
+   "default": "1",
+   "fieldname": "is_active",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Active"
+  },
+  {
+   "fieldname": "section_break_home",
+   "fieldtype": "Section Break",
+   "label": "Home Page Sections"
+  },
+  {
+   "default": "1",
+   "fieldname": "enable_home_check_in_panel",
+   "fieldtype": "Check",
+   "label": "Show Check-In Panel"
+  },
+  {
+   "default": "1",
+   "fieldname": "enable_home_kpi_section",
+   "fieldtype": "Check",
+   "label": "Show KPI Cards Section"
+  },
+  {
+   "default": "1",
+   "fieldname": "enable_home_activity_section",
+   "fieldtype": "Check",
+   "label": "Show Activity Trend Card"
+  },
+  {
+   "default": "1",
+   "fieldname": "enable_home_expense_section",
+   "fieldtype": "Check",
+   "label": "Show Expense Status Card"
+  },
+  {
+   "default": "1",
+   "fieldname": "enable_home_leave_balance_section",
+   "fieldtype": "Check",
+   "label": "Show Leave Balance Card"
+  },
+  {
+   "default": "1",
+   "fieldname": "enable_home_quick_links_section",
+   "fieldtype": "Check",
+   "label": "Show Quick Links Card"
+  },
+  {
+   "default": "1",
+   "fieldname": "enable_home_recent_requests_section",
+   "fieldtype": "Check",
+   "label": "Show Recent Requests Section"
+  },
+  {
+   "fieldname": "section_break_kpi",
+   "fieldtype": "Section Break",
+   "label": "KPI Cards"
+  },
+  {
+   "default": "1",
+   "fieldname": "enable_kpi_pending_requests",
+   "fieldtype": "Check",
+   "label": "Show Pending Requests KPI"
+  },
+  {
+   "default": "1",
+   "fieldname": "enable_kpi_approved_requests",
+   "fieldtype": "Check",
+   "label": "Show Approved Requests KPI"
+  },
+  {
+   "default": "1",
+   "fieldname": "enable_kpi_leave_balance",
+   "fieldtype": "Check",
+   "label": "Show Leave Balance KPI"
+  },
+  {
+   "default": "1",
+   "fieldname": "enable_kpi_active_missions",
+   "fieldtype": "Check",
+   "label": "Show Active Missions KPI"
+  },
+  {
+   "default": "1",
+   "fieldname": "enable_kpi_latest_appraisal",
+   "fieldtype": "Check",
+   "label": "Show Latest Appraisal KPI"
+  },
+  {
+   "fieldname": "section_break_modules",
+   "fieldtype": "Section Break",
+   "label": "Modules and Navigation"
+  },
+  {
+   "default": "1",
+   "fieldname": "enable_requests_center",
+   "fieldtype": "Check",
+   "label": "Enable Requests Center"
+  },
+  {
+   "default": "1",
+   "fieldname": "enable_attendance",
+   "fieldtype": "Check",
+   "label": "Enable Attendance"
+  },
+  {
+   "default": "1",
+   "fieldname": "enable_leaves",
+   "fieldtype": "Check",
+   "label": "Enable Leaves"
+  },
+  {
+   "default": "1",
+   "fieldname": "enable_missions",
+   "fieldtype": "Check",
+   "label": "Enable Missions"
+  },
+  {
+   "default": "1",
+   "fieldname": "enable_expense_claims",
+   "fieldtype": "Check",
+   "label": "Enable Expense Claims"
+  },
+  {
+   "default": "1",
+   "fieldname": "enable_employee_advances",
+   "fieldtype": "Check",
+   "label": "Enable Employee Advances"
+  },
+  {
+   "default": "1",
+   "fieldname": "enable_salary_slips",
+   "fieldtype": "Check",
+   "label": "Enable Salary Slips"
+  },
+  {
+   "default": "1",
+   "fieldname": "enable_complaints",
+   "fieldtype": "Check",
+   "label": "Enable Complaints"
+  },
+  {
+   "default": "1",
+   "fieldname": "enable_meals",
+   "fieldtype": "Check",
+   "label": "Enable Meals"
+  },
+  {
+   "default": "1",
+   "fieldname": "enable_appraisals",
+   "fieldtype": "Check",
+   "label": "Enable Appraisals"
+  },
+  {
+   "default": "1",
+   "fieldname": "enable_newsletters",
+   "fieldtype": "Check",
+   "label": "Enable Newsletters"
+  },
+  {
+   "default": "1",
+   "fieldname": "enable_events",
+   "fieldtype": "Check",
+   "label": "Enable Events"
+  },
+  {
+   "default": "1",
+   "fieldname": "enable_imprest",
+   "fieldtype": "Check",
+   "label": "Enable Imprest"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-04-25 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "HR",
+ "name": "Employee Desk Visibility",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "HR Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "HR User",
+   "share": 1
+  }
+ ],
+ "search_fields": "title,company",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "track_changes": 1
+}

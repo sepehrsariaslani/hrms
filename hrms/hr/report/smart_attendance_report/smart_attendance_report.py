@@ -247,30 +247,31 @@ def get_data(filters):
 
     if not filters.get("from_date"):
         filters["from_date"] = add_days(nowdate(), -30)
-    
+
     if not filters.get("to_date"):
         filters["to_date"] = nowdate()
-    
-    # Extend date range by 1 day back to catch overnight shifts
+
     extended_from = add_days(filters.get("from_date"), -1)
-    
-    # Build employee filter for multiple employees
+
+    employees_to_include = get_employees_to_include(filters)
+
+    if filters.get("employee") and not employees_to_include:
+        return []
+
     employee_filter = ""
-    employee_list = []
     employee_params = {}
-    if filters.get("employee"):
-        employee_filter = "AND employee = %(employee)s"
-    elif filters.get("employees"):
-        employee_list = [e.strip() for e in filters.get("employees").split(",") if e.strip()]
-        if employee_list:
-            placeholders = []
-            for idx, emp in enumerate(employee_list):
-                key = f"employee_{idx}"
-                placeholders.append(f"%({key})s")
-                employee_params[key] = emp
-            employee_filter = f"AND employee IN ({', '.join(placeholders)})"
-    
-    # Get raw checkin data ordered by employee and time
+
+    if employees_to_include:
+        placeholders = []
+        for idx, emp in enumerate(employees_to_include):
+            key = f"employee_{idx}"
+            employee_params[key] = emp
+            placeholders.append(f"%({key})s")
+        employee_filter = f"AND employee IN ({', '.join(placeholders)})"
+    elif filters.get("company"):
+        # اگر company انتخاب شده ولی کارمندی پیدا نشده
+        return []
+
     checkin_query = """
         SELECT 
             name,
@@ -284,28 +285,23 @@ def get_data(filters):
           AND DATE(time) <= %(to_date)s
           {employee_filter}
         ORDER BY employee, time
-    """
-    
-    checkin_query = checkin_query.format(employee_filter=employee_filter)
-    
+    """.format(employee_filter=employee_filter)
+
     params = {
         "extended_from": extended_from,
         "from_date": filters.get("from_date"),
         "to_date": filters.get("to_date"),
-        "employee": filters.get("employee"),
         **employee_params,
     }
-    
+
     raw_checkins = frappe.db.sql(checkin_query, params, as_dict=True)
-    
-    # Group checkins by employee first
+
     employee_checkins_raw = {}
     for c in raw_checkins:
         if c.employee not in employee_checkins_raw:
             employee_checkins_raw[c.employee] = []
         employee_checkins_raw[c.employee].append(c)
 
-    # Normalize obvious duplicate/noise logs before pairing and display.
     employee_checkins = {}
     all_logs_lookup = {}
     for employee, checkins in employee_checkins_raw.items():
@@ -321,22 +317,19 @@ def get_data(filters):
                 "log_type": c.log_type,
                 "log_time": c.log_time
             })
-    
-    # Track logs that are used in overnight sessions (to avoid duplication)
+
     used_overnight_logs = set()
-    
-    # Process each employee's checkins to pair IN/OUT across days
     work_sessions = {}
-    
+
     for employee, checkins in employee_checkins.items():
         i = 0
         while i < len(checkins):
             log = checkins[i]
-            
+
             if log.log_type == "IN":
                 in_log = log
                 out_log = None
-                
+
                 j = i + 1
                 while j < len(checkins):
                     if checkins[j].log_type == "OUT":
@@ -345,10 +338,10 @@ def get_data(filters):
                     elif checkins[j].log_type == "IN":
                         break
                     j += 1
-                
+
                 work_date = in_log.work_date
                 key = (employee, work_date)
-                
+
                 if key not in work_sessions:
                     work_sessions[key] = {
                         "pairs": [],
@@ -359,18 +352,18 @@ def get_data(filters):
                         "last_out": None,
                         "last_out_name": None
                     }
-                
+
                 if out_log:
                     in_datetime = in_log.full_time
                     out_datetime = out_log.full_time
-                    
+
                     if isinstance(in_datetime, str):
                         in_datetime = datetime.strptime(in_datetime, "%Y-%m-%d %H:%M:%S")
                     if isinstance(out_datetime, str):
                         out_datetime = datetime.strptime(out_datetime, "%Y-%m-%d %H:%M:%S")
-                    
+
                     duration_seconds = (out_datetime - in_datetime).total_seconds()
-                    
+
                     work_sessions[key]["pairs"].append({
                         "in_time": in_log.log_time,
                         "in_name": in_log.name,
@@ -381,14 +374,14 @@ def get_data(filters):
                         "out_date": out_log.work_date,
                         "duration_seconds": max(0, duration_seconds)
                     })
-                    
+
                     if not work_sessions[key]["first_in"]:
                         work_sessions[key]["first_in"] = in_log.log_time
                         work_sessions[key]["first_in_name"] = in_log.name
                     work_sessions[key]["last_out"] = out_log.log_time
                     work_sessions[key]["last_out_name"] = out_log.name
                     work_sessions[key]["last_out_date"] = out_log.work_date
-                    
+
                     i = j + 1
                 else:
                     work_sessions[key]["unpaired_ins"].append({
@@ -399,30 +392,30 @@ def get_data(filters):
                         work_sessions[key]["first_in"] = in_log.log_time
                         work_sessions[key]["first_in_name"] = in_log.name
                     i += 1
-            
+
             elif log.log_type == "OUT":
                 work_date = log.work_date
                 key = (employee, work_date)
-                
+
                 out_hour = time_to_seconds(log.log_time) // 3600
-                
+
                 if out_hour < 8:
                     prev_date = add_days(work_date, -1)
                     prev_key = (employee, prev_date)
-                    
+
                     if prev_key in work_sessions and work_sessions[prev_key]["unpaired_ins"]:
                         unpaired_in = work_sessions[prev_key]["unpaired_ins"].pop(0)
-                        
+
                         in_datetime = datetime.combine(prev_date, datetime.min.time())
                         in_seconds = time_to_seconds(unpaired_in["time"])
                         in_datetime = in_datetime + timedelta(seconds=in_seconds)
-                        
+
                         out_datetime = datetime.combine(work_date, datetime.min.time())
                         out_seconds = time_to_seconds(log.log_time)
                         out_datetime = out_datetime + timedelta(seconds=out_seconds)
-                        
+
                         duration_seconds = (out_datetime - in_datetime).total_seconds()
-                        
+
                         work_sessions[prev_key]["pairs"].append({
                             "in_time": unpaired_in["time"],
                             "in_name": unpaired_in["name"],
@@ -433,17 +426,16 @@ def get_data(filters):
                             "out_date": work_date,
                             "duration_seconds": max(0, duration_seconds)
                         })
-                        
-                        # Mark this OUT log as used for overnight
+
                         used_overnight_logs.add(log.name)
-                        
+
                         work_sessions[prev_key]["last_out"] = log.log_time
                         work_sessions[prev_key]["last_out_name"] = log.name
                         work_sessions[prev_key]["last_out_date"] = work_date
-                        
+
                         i += 1
                         continue
-                
+
                 if key not in work_sessions:
                     work_sessions[key] = {
                         "pairs": [],
@@ -461,75 +453,48 @@ def get_data(filters):
                 i += 1
             else:
                 i += 1
-    
-    # Get employee names and break settings
+
     employee_names = {}
-    employee_break_settings = {}
     employees_in_checkins = list(set([c.employee for c in raw_checkins]))
-    
-    for emp in employees_in_checkins:
-        emp_data = frappe.db.get_value("Employee", emp, 
-            ["employee_name", 
-             "deduct_morning_break", "morning_break_start", "morning_break_end",
-             "deduct_lunch_break", "lunch_break_start", "lunch_break_end",
-             "deduct_afternoon_break", "afternoon_break_start", "afternoon_break_end",
-             "deduct_evening_break", "evening_break_start", "evening_break_end"
-            ], as_dict=True)
-        
-        if emp_data:
-            employee_names[emp] = emp_data.get("employee_name") or emp
-            # Handle None values - default to 1 (enabled) if not set
-            employee_break_settings[emp] = {
-                "morning": {
-                    "enabled": 1 if emp_data.get("deduct_morning_break") in [1, None] else 0,
-                    "start": time_to_seconds(emp_data.get("morning_break_start")) or (9 * 3600 + 40 * 60),
-                    "end": time_to_seconds(emp_data.get("morning_break_end")) or (10 * 3600)
-                },
-                "lunch": {
-                    "enabled": 1 if emp_data.get("deduct_lunch_break") in [1, None] else 0,
-                    "start": time_to_seconds(emp_data.get("lunch_break_start")) or (13 * 3600),
-                    "end": time_to_seconds(emp_data.get("lunch_break_end")) or (14 * 3600)
-                },
-                "afternoon": {
-                    "enabled": 1 if emp_data.get("deduct_afternoon_break") in [1, None] else 0,
-                    "start": time_to_seconds(emp_data.get("afternoon_break_start")) or (17 * 3600 + 15 * 60),
-                    "end": time_to_seconds(emp_data.get("afternoon_break_end")) or (17 * 3600 + 35 * 60)
-                },
-                "evening": {
-                    "enabled": 1 if emp_data.get("deduct_evening_break") in [1, None] else 0,
-                    "start": time_to_seconds(emp_data.get("evening_break_start")) or (20 * 3600 + 40 * 60),
-                    "end": time_to_seconds(emp_data.get("evening_break_end")) or (21 * 3600)
-                }
-            }
-        else:
-            employee_names[emp] = emp
-            employee_break_settings[emp] = get_default_break_settings()
-    
-    # Get shift assignments
+
+    source_employees = list(set((employees_to_include or []) + employees_in_checkins))
+    if source_employees:
+        employee_rows = frappe.get_all(
+            "Employee",
+            filters={"name": ["in", source_employees]},
+            fields=["name", "employee_name"],
+        )
+        employee_names = {row.name: row.employee_name or row.name for row in employee_rows}
+
+    employee_break_assignments = get_employee_break_assignments(filters)
     shifts = get_employee_shifts(filters)
-    
-    # Get holidays
     holidays = get_holidays(filters)
-    
-    # Existing attendance (used to classify no-log days as absence/leave, not log issues)
     attendance_lookup = get_attendance_map(filters)
-    
-    # Build report data
+
     data = []
     from_date = getdate(filters.get("from_date"))
     to_date = getdate(filters.get("to_date"))
-    
-    # Get list of employees to report on
-    employees_to_report = []
+
     if filters.get("employee"):
         employees_to_report = [filters.get("employee")]
+    elif employees_to_include:
+        employees_to_report = list(employees_to_include)
     else:
         employees_to_report = list(set(employees_in_checkins))
         for emp in shifts.keys():
             if emp not in employees_to_report:
                 employees_to_report.append(emp)
-    
-    # Generate rows for each employee and date
+
+    missing_names = [emp for emp in employees_to_report if emp not in employee_names]
+    if missing_names:
+        extra_rows = frappe.get_all(
+            "Employee",
+            filters={"name": ["in", missing_names]},
+            fields=["name", "employee_name"],
+        )
+        for row in extra_rows:
+            employee_names[row.name] = row.employee_name or row.name
+
     for employee in sorted(employees_to_report):
         current_date = from_date
         while current_date <= to_date:
@@ -537,33 +502,36 @@ def get_data(filters):
             session = work_sessions.get(key)
             all_logs = all_logs_lookup.get(key, [])
             shift = shifts.get(employee, {})
+            break_windows_for_day = get_break_windows_for_date(employee_break_assignments, employee, current_date)
             is_holiday = (employee, current_date) in holidays
             weekday = current_date.weekday()
             is_friday = weekday == 4
             is_thursday = weekday == 3
-            
-            # Calculate standard hours
+
             if is_holiday or is_friday:
                 standard_hours = 0
             elif is_thursday:
                 standard_hours = 4
-            elif shift.get("standard_hours"):
-                standard_hours = flt(shift.get("standard_hours"))
+            elif shift.get("shift_duration"):
+                shift_start_seconds = time_to_seconds(shift.get("start_time"))
+                shift_end_seconds = time_to_seconds(shift.get("end_time"))
+                shift_break_hours = calculate_break_hours(
+                    shift_start_seconds, shift_end_seconds, break_windows_for_day
+                )
+                standard_hours = max(0, flt(shift.get("shift_duration")) - shift_break_hours)
             else:
                 standard_hours = 7.67
-            
-            # Format all logs for display with edit capability
+
             all_logs_str = ""
-            all_logs_json = []  # For JS to parse
+            all_logs_json = []
             log_issues = []
-            
+
             if all_logs:
                 log_parts = []
                 in_count = 0
                 out_count = 0
-                
+
                 for log in all_logs:
-                    # Skip logs that were used in overnight pairing to previous day
                     if log["name"] in used_overnight_logs:
                         continue
 
@@ -580,19 +548,17 @@ def get_data(filters):
                         "log_type": log["log_type"],
                         "time": time_text
                     })
-                    
+
                     if log["log_type"] == "IN":
                         in_count += 1
                     else:
                         out_count += 1
-                
-                # Format as display string (JS will enhance with edit icons)
+
                 all_logs_str = " | ".join([p["display"] for p in log_parts])
-                
-                # Detect issues
+
                 if in_count != out_count:
                     log_issues.append(f"{in_count} ورود، {out_count} خروج")
-            
+
             row = {
                 "employee": employee,
                 "employee_name": employee_names.get(employee, employee),
@@ -602,7 +568,7 @@ def get_data(filters):
                 "shift_type": shift.get("shift_type", ""),
                 "standard_hours": standard_hours,
                 "all_logs": all_logs_str,
-                "all_logs_json": all_logs_json,  # For JS to parse and add edit icons
+                "all_logs_json": all_logs_json,
                 "log_status": "",
                 "actual_start": None,
                 "actual_end": None,
@@ -613,26 +579,25 @@ def get_data(filters):
                 "working_hours": 0,
                 "time_off": 0 if (is_holiday or is_friday) else standard_hours,
                 "overtime": 0,
+                "holiday_work": 0,
                 "issue_flag": "",
-                "has_issue": False,  # For filtering
+                "has_issue": False,
                 "can_mark_attendance": False,
                 "attendance_status": None,
                 "attendance_name": None,
             }
-            
+
             if session:
                 pairs = session["pairs"]
                 unpaired_ins = session["unpaired_ins"]
                 unpaired_outs = session["unpaired_outs"]
-                
-                # Calculate total presence from pairs
+
                 total_presence_seconds = sum(p["duration_seconds"] for p in pairs)
-                
-                # Format times for display
+
                 if session["first_in"]:
                     row["actual_start"] = format_time(session["first_in"])
                     row["first_in_name"] = session["first_in_name"]
-                
+
                 if session["last_out"]:
                     last_out_date = session.get("last_out_date")
                     last_out_text = safe_time_text(session["last_out"])
@@ -641,13 +606,11 @@ def get_data(filters):
                     else:
                         row["actual_end"] = last_out_text
                     row["last_out_name"] = session["last_out_name"]
-                
-                # Determine log status with detailed issue description
+
                 if pairs and not unpaired_ins and not unpaired_outs:
                     row["log_status"] = "✅ کامل"
                     row["issue_flag"] = "✅"
                 elif unpaired_ins and not unpaired_outs:
-                    # Show which logs are unpaired
                     unpaired_times = ", ".join([safe_time_text(u.get("time")) for u in unpaired_ins])
                     row["log_status"] = f"🟡 خروج ندارد ({unpaired_times})"
                     row["issue_flag"] = "🟡"
@@ -665,30 +628,29 @@ def get_data(filters):
                     row["log_status"] = "🟡 ناقص"
                     row["issue_flag"] = "🟡"
                     row["has_issue"] = True
-                
-                # Calculate hours
+
                 presence_hours = total_presence_seconds / 3600
-                
-                # Calculate breaks (using per-employee settings with correct time values)
+
                 break_hours = 0
                 if pairs:
                     first_in_seconds = time_to_seconds(session["first_in"])
                     last_out_seconds = time_to_seconds(session["last_out"])
                     if session.get("last_out_date") and session["last_out_date"] != current_date:
                         last_out_seconds += 24 * 3600
-                    break_settings = employee_break_settings.get(employee, get_default_break_settings())
-                    break_hours = calculate_break_hours(first_in_seconds, last_out_seconds, break_settings)
-                
+                    break_hours = calculate_break_hours(
+                        first_in_seconds, last_out_seconds, break_windows_for_day
+                    )
+
                 working_hours = max(0, presence_hours - break_hours)
-                
+
                 row["presence_hours"] = flt(presence_hours, 2)
                 row["break_hours"] = flt(break_hours, 2)
                 row["working_hours"] = flt(working_hours, 2)
-                
-                # Calculate time off and overtime
+
                 if is_holiday or is_friday:
                     row["time_off"] = 0
                     row["overtime"] = flt(working_hours, 2)
+                    row["holiday_work"] = flt(working_hours, 2)
                 else:
                     if working_hours >= standard_hours:
                         row["time_off"] = 0
@@ -696,17 +658,14 @@ def get_data(filters):
                     else:
                         row["time_off"] = flt(standard_hours - working_hours, 2)
                         row["overtime"] = 0
-                        
+
             elif all_logs and len(all_logs) == 1:
-                # Single log - detect if it's likely IN or OUT
                 single_log = all_logs[0]
                 log_hour = time_to_seconds(single_log["log_time"]) // 3600
                 log_time_text = safe_time_text(single_log.get("log_time"))
-                
+
                 if single_log["log_type"] == "IN":
-                    # System says it's IN
                     if log_hour >= 15:
-                        # After 3 PM, probably meant to be OUT
                         row["log_status"] = f"🟠 احتمالاً خروج ({log_time_text})"
                         row["actual_end"] = log_time_text
                         row["last_out_name"] = single_log["name"]
@@ -715,9 +674,7 @@ def get_data(filters):
                         row["actual_start"] = log_time_text
                         row["first_in_name"] = single_log["name"]
                 else:
-                    # System says it's OUT
                     if log_hour < 12:
-                        # Before noon, probably meant to be IN
                         row["log_status"] = f"🟠 احتمالاً ورود ({log_time_text})"
                         row["actual_start"] = log_time_text
                         row["first_in_name"] = single_log["name"]
@@ -725,12 +682,11 @@ def get_data(filters):
                         row["log_status"] = f"🟡 ورود ندارد ({log_time_text})"
                         row["actual_end"] = log_time_text
                         row["last_out_name"] = single_log["name"]
-                
+
                 row["issue_flag"] = "🟡"
                 row["has_issue"] = True
-                
+
             else:
-                # No session for this day
                 if not is_holiday and not is_friday:
                     row["can_mark_attendance"] = True
                     existing_attendance = attendance_lookup.get((employee, current_date))
@@ -747,55 +703,185 @@ def get_data(filters):
                     else:
                         row["log_status"] = "🔴 غیبت / بدون لاگ"
 
-                    # No-log days are not counted as log quality issues.
                     row["issue_flag"] = ""
                     row["has_issue"] = False
                 else:
                     row["log_status"] = "تعطیل"
                     row["issue_flag"] = ""
-            
-            # Apply issue filter
+
             if filters.get("only_issues"):
                 if row["has_issue"]:
                     data.append(row)
             else:
                 data.append(row)
-                
+
             current_date = add_days(current_date, 1)
-    
+
     return data
 
+def get_employee_condition(filters, table_alias=None, fieldname="employee"):
+    """
+    Build reusable employee/company SQL condition.
+    If table_alias is provided, field becomes `alias.fieldname`.
+    Company filter is applied through tabEmployee join-compatible condition.
+    """
+    conditions = []
+    params = {}
 
-def get_default_break_settings():
-    """Return default break settings in seconds"""
-    return {
-        "morning": {"enabled": 1, "start": 9 * 3600 + 40 * 60, "end": 10 * 3600},
-        "lunch": {"enabled": 1, "start": 13 * 3600, "end": 14 * 3600},
-        "afternoon": {"enabled": 1, "start": 17 * 3600 + 15 * 60, "end": 17 * 3600 + 35 * 60},
-        "evening": {"enabled": 1, "start": 20 * 3600 + 40 * 60, "end": 21 * 3600}
+    field_ref = f"{table_alias}.{fieldname}" if table_alias else fieldname
+
+    if filters.get("employee"):
+        conditions.append(f"{field_ref} = %(employee)s")
+        params["employee"] = filters.get("employee")
+
+    elif filters.get("employees"):
+        employee_list = [e.strip() for e in (filters.get("employees") or "").split(",") if e.strip()]
+        if employee_list:
+            placeholders = []
+            for idx, emp in enumerate(employee_list):
+                key = f"employee_{idx}"
+                params[key] = emp
+                placeholders.append(f"%({key})s")
+            conditions.append(f"{field_ref} IN ({', '.join(placeholders)})")
+
+    return conditions, params
+
+def get_employees_to_include(filters):
+
+    employee_filters = {
+        "status": "Active"
     }
 
+    if filters.get("employee"):
+        employee_filters["name"] = filters.get("employee")
 
-def calculate_break_hours(start_seconds, end_seconds, break_settings=None):
-    """Calculate break hours based on employee-specific settings"""
-    if start_seconds is None or end_seconds is None:
+    if filters.get("company"):
+        employee_filters["company"] = filters.get("company")
+
+    frappe.errprint(employee_filters)
+
+    employees = frappe.get_all(
+        "Employee",
+        filters=employee_filters,
+        pluck="name"
+    )
+
+    frappe.errprint(employees)
+
+    return employees
+
+def get_employee_break_assignments(filters):
+    """Get active break assignments for selected employee scope."""
+    assignment_map = {}
+    employees_to_include = get_employees_to_include(filters)
+
+    if filters.get("company") and not employees_to_include:
+        return assignment_map
+
+    employee_filter = ""
+    params = {
+        "from_date": filters.get("from_date"),
+        "to_date": filters.get("to_date"),
+    }
+
+    if employees_to_include:
+        placeholders = []
+        for idx, emp in enumerate(employees_to_include):
+            key = f"employee_{idx}"
+            params[key] = emp
+            placeholders.append(f"%({key})s")
+        employee_filter = f"AND ba.employee IN ({', '.join(placeholders)})"
+
+    rows = frappe.db.sql(
+        """
+        SELECT
+            ba.employee,
+            ba.from_date,
+            ba.to_date,
+            bh.break_start,
+            bh.break_end,
+            bh.deduction_hours
+        FROM `tabBreak Assignment` ba
+        JOIN `tabBreak Hours` bh ON bh.name = ba.break_hours
+        WHERE ba.docstatus = 1
+          AND ba.status = 'Active'
+          AND bh.is_active = 1
+          AND ba.from_date <= %(to_date)s
+          AND (ba.to_date IS NULL OR ba.to_date >= %(from_date)s)
+          {employee_filter}
+        ORDER BY ba.employee, ba.from_date
+        """.format(employee_filter=employee_filter),
+        params,
+        as_dict=True,
+    )
+
+    for row in rows:
+        assignment_map.setdefault(row.employee, []).append(
+            {
+                "from_date": getdate(row.from_date),
+                "to_date": getdate(row.to_date) if row.to_date else None,
+                "start": time_to_seconds(row.break_start),
+                "end": time_to_seconds(row.break_end),
+                "deduction_seconds": int(flt(row.deduction_hours) * 3600),
+            }
+        )
+
+    return assignment_map
+
+def get_break_windows_for_date(assignment_map, employee, work_date):
+    """Return break windows that are active for employee on a specific date."""
+    windows = []
+    for row in assignment_map.get(employee, []):
+        if row["from_date"] <= work_date and (row["to_date"] is None or row["to_date"] >= work_date):
+            windows.append(
+                {
+                    "start": row["start"],
+                    "end": row["end"],
+                    "deduction_seconds": row["deduction_seconds"],
+                }
+            )
+    return windows
+
+
+def calculate_break_hours(start_seconds, end_seconds, break_windows=None):
+    """
+    Calculate deducted break hours using partial overlap.
+
+    Deduction for each break = min(overlap_with_work_span, configured_deduction_seconds).
+    """
+    if start_seconds is None or end_seconds is None or not break_windows:
         return 0
-    
-    if break_settings is None:
-        break_settings = get_default_break_settings()
-    
+
+    if end_seconds <= start_seconds:
+        end_seconds += 24 * 3600
+
     break_seconds = 0
-    
-    for break_type in ["morning", "lunch", "afternoon", "evening"]:
-        settings = break_settings.get(break_type, {})
-        if settings.get("enabled", 1):
-            break_start = settings.get("start", 0)
-            break_end = settings.get("end", 0)
-            
-            # Check if the work span covers this break
-            if break_start and break_end and start_seconds < break_start and end_seconds > break_end:
-                break_seconds += (break_end - break_start)
-    
+    span_seconds = max(0, end_seconds - start_seconds)
+
+    for window in break_windows:
+        break_start = window.get("start")
+        break_end = window.get("end")
+        deduction_seconds = max(0, int(window.get("deduction_seconds") or 0))
+
+        if break_start is None or break_end is None:
+            continue
+
+        if break_end <= break_start:
+            break_end += 24 * 3600
+
+        # Evaluate base day window and, when needed, its next-day projection.
+        for offset in (0, 24 * 3600):
+            shifted_start = break_start + offset
+            shifted_end = break_end + offset
+            overlap = max(0, min(end_seconds, shifted_end) - max(start_seconds, shifted_start))
+            if overlap <= 0:
+                continue
+
+            effective_deduction = min(overlap, deduction_seconds or overlap)
+            break_seconds += effective_deduction
+            break
+
+    break_seconds = min(break_seconds, span_seconds)
     return break_seconds / 3600
 
 
@@ -906,57 +992,80 @@ def get_summary(data):
 def get_employee_shifts(filters):
     """Get shift assignments for employees"""
     shifts = {}
-    
+    employees_to_include = get_employees_to_include(filters)
+
+    if filters.get("company") and not employees_to_include:
+        return shifts
+
+    employee_filter = ""
+    params = {
+        "from_date": filters.get("from_date"),
+        "to_date": filters.get("to_date"),
+    }
+
+    if employees_to_include:
+        placeholders = []
+        for idx, emp in enumerate(employees_to_include):
+            key = f"employee_{idx}"
+            params[key] = emp
+            placeholders.append(f"%({key})s")
+        employee_filter = f"AND sa.employee IN ({', '.join(placeholders)})"
+
     shift_query = """
         SELECT 
             sa.employee,
             st.name AS shift_type,
             st.start_time,
             st.end_time,
-            TIME_TO_SEC(TIMEDIFF(st.end_time, st.start_time)) / 3600 AS shift_duration,
-            (TIME_TO_SEC(TIMEDIFF(st.end_time, st.start_time)) / 3600) - 
             (
-                CASE WHEN TIME(st.start_time) < '09:40:00' AND TIME(st.end_time) > '10:00:00' THEN 20/60 ELSE 0 END +
-                CASE WHEN TIME(st.start_time) < '13:00:00' AND TIME(st.end_time) > '14:00:00' THEN 1.0 ELSE 0 END +
-                CASE WHEN TIME(st.start_time) < '17:15:00' AND TIME(st.end_time) > '17:35:00' THEN 20/60 ELSE 0 END +
-                CASE WHEN TIME(st.start_time) < '20:40:00' AND TIME(st.end_time) > '21:00:00' THEN 20/60 ELSE 0 END
-            ) AS standard_hours
+                CASE
+                    WHEN TIME(st.end_time) > TIME(st.start_time)
+                        THEN TIME_TO_SEC(TIMEDIFF(st.end_time, st.start_time))
+                    ELSE (86400 - TIME_TO_SEC(st.start_time) + TIME_TO_SEC(st.end_time))
+                END
+            ) / 3600 AS shift_duration
         FROM `tabShift Assignment` sa
         JOIN `tabShift Type` st ON sa.shift_type = st.name
         WHERE sa.docstatus = 1
-            AND sa.start_date <= %(to_date)s
-            AND (sa.end_date IS NULL OR sa.end_date >= %(from_date)s)
-            {employee_filter}
-    """
-    
-    employee_filter = ""
-    if filters.get("employee"):
-        employee_filter = "AND sa.employee = %(employee)s"
-    
-    shift_query = shift_query.format(employee_filter=employee_filter)
-    
-    shift_data = frappe.db.sql(shift_query, {
-        "from_date": filters.get("from_date"),
-        "to_date": filters.get("to_date"),
-        "employee": filters.get("employee")
-    }, as_dict=True)
-    
+          AND sa.start_date <= %(to_date)s
+          AND (sa.end_date IS NULL OR sa.end_date >= %(from_date)s)
+          {employee_filter}
+    """.format(employee_filter=employee_filter)
+
+    shift_data = frappe.db.sql(shift_query, params, as_dict=True)
+
     for s in shift_data:
         shifts[s.employee] = {
             "shift_type": s.shift_type,
             "start_time": s.start_time,
             "end_time": s.end_time,
             "shift_duration": s.shift_duration,
-            "standard_hours": s.standard_hours
         }
-    
-    return shifts
 
+    return shifts
 
 def get_holidays(filters):
     """Get holidays for employees"""
     holidays = set()
-    
+    employees_to_include = get_employees_to_include(filters)
+
+    if filters.get("company") and not employees_to_include:
+        return holidays
+
+    employee_filter = ""
+    params = {
+        "from_date": filters.get("from_date"),
+        "to_date": filters.get("to_date"),
+    }
+
+    if employees_to_include:
+        placeholders = []
+        for idx, emp in enumerate(employees_to_include):
+            key = f"employee_{idx}"
+            params[key] = emp
+            placeholders.append(f"%({key})s")
+        employee_filter = f"AND e.name IN ({', '.join(placeholders)})"
+
     holiday_query = """
         SELECT
             h.holiday_date,
@@ -967,29 +1076,36 @@ def get_holidays(filters):
         WHERE h.holiday_date >= %(from_date)s
           AND h.holiday_date <= %(to_date)s
           {employee_filter}
-    """
-    
-    employee_filter = ""
-    if filters.get("employee"):
-        employee_filter = "AND e.name = %(employee)s"
-    
-    holiday_query = holiday_query.format(employee_filter=employee_filter)
-    
-    holiday_data = frappe.db.sql(holiday_query, {
-        "from_date": filters.get("from_date"),
-        "to_date": filters.get("to_date"),
-        "employee": filters.get("employee")
-    }, as_dict=True)
-    
+    """.format(employee_filter=employee_filter)
+
+    holiday_data = frappe.db.sql(holiday_query, params, as_dict=True)
+
     for h in holiday_data:
         holidays.add((h.employee, h.holiday_date))
-    
-    return holidays
 
+    return holidays
 
 def get_attendance_map(filters):
     """Get existing attendance records for the selected period."""
     attendance_map = {}
+    employees_to_include = get_employees_to_include(filters)
+
+    if filters.get("company") and not employees_to_include:
+        return attendance_map
+
+    employee_filter = ""
+    params = {
+        "from_date": filters.get("from_date"),
+        "to_date": filters.get("to_date"),
+    }
+
+    if employees_to_include:
+        placeholders = []
+        for idx, emp in enumerate(employees_to_include):
+            key = f"employee_{idx}"
+            params[key] = emp
+            placeholders.append(f"%({key})s")
+        employee_filter = f"AND employee IN ({', '.join(placeholders)})"
 
     attendance_query = """
         SELECT
@@ -1003,28 +1119,8 @@ def get_attendance_map(filters):
           AND docstatus < 2
           {employee_filter}
         ORDER BY employee, attendance_date, modified DESC
-    """
+    """.format(employee_filter=employee_filter)
 
-    employee_filter = ""
-    params = {
-        "from_date": filters.get("from_date"),
-        "to_date": filters.get("to_date"),
-        "employee": filters.get("employee"),
-    }
-
-    if filters.get("employee"):
-        employee_filter = "AND employee = %(employee)s"
-    elif filters.get("employees"):
-        employee_list = [e.strip() for e in (filters.get("employees") or "").split(",") if e.strip()]
-        if employee_list:
-            placeholders = []
-            for idx, emp in enumerate(employee_list):
-                key = f"employee_{idx}"
-                placeholders.append(f"%({key})s")
-                params[key] = emp
-            employee_filter = f"AND employee IN ({', '.join(placeholders)})"
-
-    attendance_query = attendance_query.format(employee_filter=employee_filter)
     rows = frappe.db.sql(attendance_query, params, as_dict=True)
 
     for row in rows:
@@ -1035,15 +1131,61 @@ def get_attendance_map(filters):
 
     return attendance_map
 
-
 def set_checkin_time(checkin_name, timestamp):
     frappe.db.set_value("Employee Checkin", checkin_name, "time", timestamp, update_modified=False)
 
 
 @frappe.whitelist()
-def normalize_midnight_checkout_logs(from_date, to_date, employee=None, employees=None):
+def update_checkin_log(checkin_name, work_date, log_time, log_type):
+    """Safely update checkin datetime and type without unintended date shifts."""
+    frappe.has_permission("Employee Checkin", "write", throw=True)
+
+    if not checkin_name:
+        frappe.throw(_("نام لاگ اجباری است"))
+
+    if not work_date or not log_time:
+        frappe.throw(_("تاریخ و ساعت اجباری است"))
+
+    if log_type not in ("IN", "OUT"):
+        frappe.throw(_("نوع لاگ نامعتبر است"))
+
+    dt_string = f"{work_date} {log_time}"
+
+    doc = frappe.get_doc("Employee Checkin", checkin_name)
+    doc.time = dt_string
+    doc.log_type = log_type
+    doc.save(ignore_permissions=True)
+
+    return {
+        "success": True,
+        "name": doc.name,
+        "time": doc.time,
+        "log_type": doc.log_type,
+        "message": _("لاگ با موفقیت ویرایش شد")
+    }
+
+
+@frappe.whitelist()
+def normalize_midnight_checkout_logs(from_date, to_date, employee=None, employees=None, company=None):
     """Shift exactly 00:00:00 checkout logs to 00:00:01 to avoid midnight ambiguity."""
     frappe.has_permission("Employee Checkin", "write", throw=True)
+
+    filters = {
+        "from_date": from_date,
+        "to_date": to_date,
+        "employee": employee,
+        "employees": employees,
+        "company": company,
+    }
+
+    employees_to_include = get_employees_to_include(filters)
+
+    if company and not employees_to_include:
+        return {
+            "success": True,
+            "updated_count": 0,
+            "message": _("برای این شرکت کارمندی پیدا نشد"),
+        }
 
     employee_filter = ""
     params = {
@@ -1051,18 +1193,13 @@ def normalize_midnight_checkout_logs(from_date, to_date, employee=None, employee
         "to_date": getdate(to_date),
     }
 
-    if employee:
-        employee_filter = "AND employee = %(employee)s"
-        params["employee"] = employee
-    elif employees:
-        employee_list = [e.strip() for e in employees.split(",") if e.strip()]
-        if employee_list:
-            placeholders = []
-            for idx, emp in enumerate(employee_list):
-                key = f"employee_{idx}"
-                params[key] = emp
-                placeholders.append(f"%({key})s")
-            employee_filter = f"AND employee IN ({', '.join(placeholders)})"
+    if employees_to_include:
+        placeholders = []
+        for idx, emp in enumerate(employees_to_include):
+            key = f"employee_{idx}"
+            params[key] = emp
+            placeholders.append(f"%({key})s")
+        employee_filter = f"AND employee IN ({', '.join(placeholders)})"
 
     query = """
         SELECT name, time
@@ -1086,7 +1223,6 @@ def normalize_midnight_checkout_logs(from_date, to_date, employee=None, employee
         "updated_count": updated,
         "message": _("تعداد {0} لاگ نیمه‌شب اصلاح شد").format(updated),
     }
-
 
 def _cleanup_noisy_day_logs(employee, work_date):
     target_date = getdate(work_date)
@@ -1143,9 +1279,30 @@ def cleanup_noisy_day_logs(employee, work_date):
 
 
 @frappe.whitelist()
-def cleanup_noisy_logs_bulk(from_date, to_date, employee=None, employees=None):
+def cleanup_noisy_logs_bulk(from_date, to_date, employee=None, employees=None, company=None):
     """Bulk cleanup duplicate/noisy logs for selected date range and employees."""
     frappe.has_permission("Employee Checkin", "write", throw=True)
+
+    filters = {
+        "from_date": from_date,
+        "to_date": to_date,
+        "employee": employee,
+        "employees": employees,
+        "company": company,
+    }
+
+    employees_to_include = get_employees_to_include(filters)
+
+    if company and not employees_to_include:
+        return {
+            "success": True,
+            "processed_days": 0,
+            "affected_days": 0,
+            "deleted_count": 0,
+            "repaired_count": 0,
+            "message": _("برای این شرکت کارمندی پیدا نشد"),
+            "details": [],
+        }
 
     employee_filter = ""
     params = {
@@ -1153,18 +1310,13 @@ def cleanup_noisy_logs_bulk(from_date, to_date, employee=None, employees=None):
         "to_date": getdate(to_date),
     }
 
-    if employee:
-        employee_filter = "AND employee = %(employee)s"
-        params["employee"] = employee
-    elif employees:
-        employee_list = [e.strip() for e in (employees or "").split(",") if e.strip()]
-        if employee_list:
-            placeholders = []
-            for idx, emp in enumerate(employee_list):
-                key = f"employee_{idx}"
-                params[key] = emp
-                placeholders.append(f"%({key})s")
-            employee_filter = f"AND employee IN ({', '.join(placeholders)})"
+    if employees_to_include:
+        placeholders = []
+        for idx, emp in enumerate(employees_to_include):
+            key = f"employee_{idx}"
+            params[key] = emp
+            placeholders.append(f"%({key})s")
+        employee_filter = f"AND employee IN ({', '.join(placeholders)})"
 
     candidate_rows = frappe.db.sql(
         """
@@ -1339,20 +1491,31 @@ def ensure_single_day_leave_application(employee, company, leave_type, leave_dat
     except Exception:
         return None, frappe.get_traceback()
 
-
 @frappe.whitelist()
 def add_manual_checkin(employee, log_type, time):
-    """Add a manual employee checkin entry"""
+    """Create a manual Employee Checkin record."""
     frappe.has_permission("Employee Checkin", "create", throw=True)
-    
-    checkin = frappe.new_doc("Employee Checkin")
-    checkin.employee = employee
-    checkin.log_type = log_type
-    checkin.time = time
-    checkin.insert()
-    
+
+    if not employee:
+        frappe.throw(_("کارمند اجباری است"))
+
+    if not time:
+        frappe.throw(_("زمان اجباری است"))
+
+    if log_type not in ("IN", "OUT"):
+        frappe.throw(_("نوع لاگ نامعتبر است"))
+
+    doc = frappe.get_doc({
+        "doctype": "Employee Checkin",
+        "employee": employee,
+        "time": time,
+        "log_type": log_type,
+        "skip_auto_attendance": 1
+    })
+    doc.insert(ignore_permissions=True)
+
     return {
         "success": True,
-        "name": checkin.name,
-        "message": _("ثبت لاگ با موفقیت انجام شد")
+        "name": doc.name,
+        "message": _("لاگ با موفقیت ثبت شد")
     }

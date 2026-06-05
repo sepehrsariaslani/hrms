@@ -1,6 +1,7 @@
 {
  "app": "hrms",
- "creation": "2025-11-17 20:33:43.190559",
+ "bg_color": "blue",
+ "creation": "2026-04-24 19:46:18.786709",
  "docstatus": 0,
  "doctype": "Desktop Icon",
  "hidden": 0,
@@ -11,7 +12,7 @@
  "link_to": "Tax & Benefits",
  "link_type": "Workspace Sidebar",
  "logo_url": "/assets/hrms/icons/desktop_icons/tax-benefits.svg",
- "modified": "2026-01-01 20:07:01.316510",
+ "modified": "2026-05-18 09:04:12.342943",
  "modified_by": "Administrator",
  "name": "Tax & Benefits",
  "owner": "Administrator",

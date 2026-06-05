@@ -13,14 +13,14 @@
    "fieldname": "shift_duty_role",
    "fieldtype": "Link",
    "in_list_view": 1,
-   "label": "Shift Duty Role",
+   "label": "نقش شیفت",
    "options": "Shift Duty Role",
    "reqd": 1
   },
   {
    "fieldname": "proficiency_level",
    "fieldtype": "Select",
-   "label": "Proficiency Level",
+   "label": "سطح مهارت",
    "options": "\nBasic\nIntermediate\nExpert"
   }
  ],

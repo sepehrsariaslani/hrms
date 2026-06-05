@@ -1,0 +1,40 @@
+{
+ "actions": [],
+ "creation": "2026-05-04 10:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "min_years",
+  "daily_amount",
+  "description"
+ ],
+ "fields": [
+  {
+   "fieldname": "min_years",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "حداقل سابقه (سال)",
+   "reqd": 1
+  },
+  {
+   "fieldname": "daily_amount",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "مبلغ پایه سنوات روزانه",
+   "reqd": 1
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Data",
+   "label": "توضیحات"
+  }
+ ],
+ "istable": 1,
+ "module": "Payroll",
+ "name": "Iran Seniority Rule",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "ASC"
+}

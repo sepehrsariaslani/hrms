@@ -13,6 +13,7 @@ from frappe.utils import (
 	cint,
 	create_batch,
 	cstr,
+	flt,
 	format_date,
 	get_datetime,
 	get_link_to_form,
@@ -53,6 +54,7 @@ class Attendance(Document):
 		self.validate_overlapping_shift_attendance()
 		self.validate_employee_status()
 		self.check_leave_record()
+		self.set_smart_attendance_metrics()
 
 	def on_cancel(self):
 		self.unlink_attendance_from_checkins()
@@ -252,6 +254,32 @@ class Attendance(Document):
 		employee_user = frappe.db.get_value("Employee", self.employee, "user_id", cache=True)
 		hrms.refetch_resource("hrms:attendance_calendar_events", employee_user)
 
+	def set_smart_attendance_metrics(self):
+		"""Populate daily attendance metrics using Smart Attendance Report logic."""
+		if not self.employee or not self.attendance_date:
+			return
+
+		from hrms.hr.report.smart_attendance_report.smart_attendance_report import get_data
+
+		row = {}
+		data = get_data(
+			{
+				"employee": self.employee,
+				"from_date": self.attendance_date,
+				"to_date": self.attendance_date,
+			}
+		)
+		if data:
+			row = data[0]
+
+		self.standard_working_hours = flt(row.get("standard_hours"), 2)
+		self.presence_hours = flt(row.get("presence_hours"), 2)
+		self.break_hours = flt(row.get("break_hours"), 2)
+		self.working_hours = flt(row.get("working_hours"), 2)
+		self.time_off = flt(row.get("time_off"), 2)
+		self.overtime = flt(row.get("overtime"), 2)
+		self.holiday_work = flt(row.get("holiday_work"), 2)
+
 
 @frappe.whitelist()
 def get_events(start: date | str, end: date | str, filters: str | list | None = None) -> list[dict]:
@@ -434,3 +462,73 @@ def get_unmarked_days(employee, from_date, to_date, exclude_holidays=0):
 		from_date = add_days(from_date, 1)
 
 	return unmarked_days
+
+
+@frappe.whitelist()
+def backfill_smart_attendance_metrics(from_date=None, to_date=None, employee=None):
+	"""Backfill attendance daily metrics from Smart Attendance Report logic."""
+	from hrms.hr.report.smart_attendance_report.smart_attendance_report import get_data
+
+	filters = [["docstatus", "<", 2]]
+	if employee:
+		filters.append(["employee", "=", employee])
+	if from_date:
+		filters.append(["attendance_date", ">=", getdate(from_date)])
+	if to_date:
+		filters.append(["attendance_date", "<=", getdate(to_date)])
+
+	attendance_rows = frappe.get_all(
+		"Attendance",
+		fields=["name", "employee", "attendance_date"],
+		filters=filters,
+		order_by="employee asc, attendance_date asc",
+		limit_page_length=0,
+	)
+
+	if not attendance_rows:
+		return {"success": True, "processed": 0, "updated": 0}
+
+	employee_ranges = {}
+	for row in attendance_rows:
+		work_date = getdate(row.attendance_date)
+		range_item = employee_ranges.setdefault(
+			row.employee, {"from_date": work_date, "to_date": work_date}
+		)
+		if work_date < range_item["from_date"]:
+			range_item["from_date"] = work_date
+		if work_date > range_item["to_date"]:
+			range_item["to_date"] = work_date
+
+	metric_map = {}
+	for employee_name, date_range in employee_ranges.items():
+		report_rows = get_data(
+			{
+				"employee": employee_name,
+				"from_date": date_range["from_date"],
+				"to_date": date_range["to_date"],
+			}
+		)
+		for report_row in report_rows:
+			metric_map[(employee_name, getdate(report_row.get("work_date")))] = report_row
+
+	updated = 0
+	for index, row in enumerate(attendance_rows, start=1):
+		work_date = getdate(row.attendance_date)
+		report_row = metric_map.get((row.employee, work_date), {})
+		values = {
+			"standard_working_hours": flt(report_row.get("standard_hours"), 2),
+			"presence_hours": flt(report_row.get("presence_hours"), 2),
+			"break_hours": flt(report_row.get("break_hours"), 2),
+			"working_hours": flt(report_row.get("working_hours"), 2),
+			"time_off": flt(report_row.get("time_off"), 2),
+			"overtime": flt(report_row.get("overtime"), 2),
+			"holiday_work": flt(report_row.get("holiday_work"), 2),
+		}
+		frappe.db.set_value("Attendance", row.name, values, update_modified=False)
+		updated += 1
+
+		if index % 200 == 0:
+			frappe.db.commit()  # nosemgrep
+
+	frappe.db.commit()  # nosemgrep
+	return {"success": True, "processed": len(attendance_rows), "updated": updated}

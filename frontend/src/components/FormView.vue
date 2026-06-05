@@ -337,10 +337,10 @@ import {
 	createDocumentResource,
 	toast,
 	createResource,
-	Dropdown,
 	Dialog,
 	LoadingIndicator,
 } from "frappe-ui"
+import Dropdown from "@/components/Dropdown.vue"
 import FormField from "@/components/FormField.vue"
 import FileUploaderView from "@/components/FileUploaderView.vue"
 import WorkflowActionSheet from "@/components/WorkflowActionSheet.vue"

@@ -23,7 +23,7 @@
    "fieldname": "device_id",
    "fieldtype": "Link",
    "in_list_view": 1,
-   "label": "Device ID",
+   "label": "شناسه دستگاه",
    "options": "Attendance Device"
   },
   {
@@ -31,7 +31,7 @@
    "fieldname": "device_company",
    "fieldtype": "Link",
    "in_list_view": 1,
-   "label": "Company",
+   "label": "شرکت",
    "options": "Company",
    "read_only": 1
   },
@@ -40,14 +40,14 @@
    "fieldname": "device_location",
    "fieldtype": "Data",
    "in_list_view": 1,
-   "label": "Location",
+   "label": "موقعیت",
    "read_only": 1
   },
   {
    "fieldname": "attendance_device_id",
    "fieldtype": "Data",
    "in_list_view": 1,
-   "label": "Attendance Device ID",
+   "label": "کد دستگاه حضور و غیاب",
    "reqd": 1
   }
  ],

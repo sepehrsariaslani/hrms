@@ -6,15 +6,17 @@ frappe.pages["organizational-chart"].on_page_load = function (wrapper) {
 	});
 
 	$(wrapper).bind("show", () => {
-		frappe.require("hierarchy-chart.bundle.js", () => {
+		frappe.require(["hrms.bundle.js", "hierarchy-chart.bundle.js"], () => {
 			let organizational_chart;
 			let method = "hrms.hr.page.organizational_chart.organizational_chart.get_children";
+			const hrms_ns = window.hrms || {};
 
-			if (frappe.is_mobile()) {
-				organizational_chart = new hrms.HierarchyChartMobile("Employee", wrapper, method);
-			} else {
-				organizational_chart = new hrms.HierarchyChart("Employee", wrapper, method);
+			const chart_cls = frappe.is_mobile() ? hrms_ns.HierarchyChartMobile : hrms_ns.HierarchyChart;
+			if (!chart_cls) {
+				frappe.msgprint(__("HRMS chart assets are not ready yet. Please refresh the page."));
+				return;
 			}
+			organizational_chart = new chart_cls("Employee", wrapper, method);
 
 			frappe.breadcrumbs.add("HR");
 			organizational_chart.show();

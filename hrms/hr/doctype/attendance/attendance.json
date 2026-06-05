@@ -12,6 +12,11 @@
   "employee",
   "employee_name",
   "working_hours",
+  "presence_hours",
+  "break_hours",
+  "time_off",
+  "overtime",
+  "holiday_work",
   "status",
   "leave_type",
   "leave_application",
@@ -80,7 +85,42 @@
    "depends_on": "working_hours",
    "fieldname": "working_hours",
    "fieldtype": "Float",
-   "label": "Working Hours",
+   "label": "ساعات کاری",
+   "precision": "2",
+   "read_only": 1
+  },
+  {
+   "fieldname": "presence_hours",
+   "fieldtype": "Float",
+   "label": "حضور",
+   "precision": "2",
+   "read_only": 1
+  },
+  {
+   "fieldname": "break_hours",
+   "fieldtype": "Float",
+   "label": "استراحت",
+   "precision": "2",
+   "read_only": 1
+  },
+  {
+   "fieldname": "time_off",
+   "fieldtype": "Float",
+   "label": "کسری کار",
+   "precision": "2",
+   "read_only": 1
+  },
+  {
+   "fieldname": "overtime",
+   "fieldtype": "Float",
+   "label": "اضافه کاری",
+   "precision": "2",
+   "read_only": 1
+  },
+  {
+   "fieldname": "holiday_work",
+   "fieldtype": "Float",
+   "label": "تعطیل کاری",
    "precision": "2",
    "read_only": 1
   },

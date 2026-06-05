@@ -1,7 +1,8 @@
 <template>
 	<BaseLayout :pageTitle="'تقویم هفتگی تعیین شیفت تیم'">
 		<template #body>
-			<div class="flex flex-col p-4 gap-4 mb-8">
+				<div class="flex flex-col p-4 gap-4 mb-8">
+				<ShiftManagementTabs />
 				<!-- بخش هفته و فیلترها (بدون تغییر) -->
 				<div class="bg-white rounded-lg p-3 border border-gray-100 flex items-center justify-between">
 					<Button variant="subtle" icon="chevron-right" @click="shiftWeek(-1)" />
@@ -125,7 +126,7 @@
 								>
 									<div
 										v-if="isForbidden(employee.name, day.date)"
-										class="h-full rounded bg-red-50 border border-red-200 text-red-700 text-[10px] flex items-center justify-center py-3"
+										class="h-full rounded bg-red-50 border border-red-200 text-red-700 dark:bg-rose-900/35 dark:border-rose-500/50 dark:text-rose-200 text-[10px] flex items-center justify-center py-3"
 									>
 										ممنوع
 									</div>
@@ -189,6 +190,7 @@ import { computed, inject, ref } from "vue"
 import { createResource, toast } from "frappe-ui"
 
 import BaseLayout from "@/components/BaseLayout.vue"
+import ShiftManagementTabs from "@/components/ShiftManagementTabs.vue"
 import { formatGregorianDate, formatJalaliDate, toPersianDigits } from "@/utils/jalali"
 
 const __ = inject("$translate")
@@ -211,7 +213,9 @@ const forbiddenByEmployee = ref({})
 
 const saving = ref(false)
 
-const isAllocator = computed(() => Boolean(employee.data?.is_shift_allocator))
+const isAllocator = computed(() =>
+	Boolean(employee.data?.is_shift_allocator || employee.data?.is_shift_allocator_by_role)
+)
 const allocatorApproverIds = computed(() => {
 	const ids = [employee.data?.user_id, employee.data?.name]
 	return ids
@@ -447,9 +451,9 @@ function slotClass(employee, workDate, slotCode) {
 	const requested = isRequested(employee.name, workDate, slotCode)
 	const palette = designationColor(employee.designation)
 	if (assigned && requested) return `${palette.filled} border-transparent`
-	if (assigned && !requested) return `${palette.filled} border-dashed border-gray-700`
-	if (!assigned && requested) return "bg-sky-50 text-sky-700 border-sky-300"
-	return "bg-gray-50 text-gray-500 border-gray-200"
+	if (assigned && !requested) return `${palette.filled} border-dashed border-gray-700 dark:border-slate-300`
+	if (!assigned && requested) return "bg-sky-50 text-sky-700 border-sky-300 dark:bg-sky-900/40 dark:text-sky-200 dark:border-sky-500/60"
+	return "bg-gray-50 text-gray-500 border-gray-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-600"
 }
 
 function slotStyle(employee, workDate, slotCode) {
@@ -508,16 +512,41 @@ function requiredHoursForEmployee(employeeName) {
 
 function hoursBadgeClass(employeeName) {
 	return employeeWeeklyHours(employeeName) >= requiredHoursForEmployee(employeeName)
-		? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"
+		? "bg-green-100 text-green-800 dark:bg-emerald-900/40 dark:text-emerald-200"
+		: "bg-yellow-100 text-yellow-800 dark:bg-amber-900/40 dark:text-amber-200"
 }
 
 const palette = [
-	{ badge: "bg-rose-100 text-rose-800", filled: "bg-rose-200 text-rose-900", dot: "bg-rose-500" },
-	{ badge: "bg-amber-100 text-amber-800", filled: "bg-amber-200 text-amber-900", dot: "bg-amber-500" },
-	{ badge: "bg-emerald-100 text-emerald-800", filled: "bg-emerald-200 text-emerald-900", dot: "bg-emerald-500" },
-	{ badge: "bg-cyan-100 text-cyan-800", filled: "bg-cyan-200 text-cyan-900", dot: "bg-cyan-500" },
-	{ badge: "bg-indigo-100 text-indigo-800", filled: "bg-indigo-200 text-indigo-900", dot: "bg-indigo-500" },
-	{ badge: "bg-fuchsia-100 text-fuchsia-800", filled: "bg-fuchsia-200 text-fuchsia-900", dot: "bg-fuchsia-500" },
+	{
+		badge: "bg-rose-100 text-rose-800 dark:bg-rose-900/40 dark:text-rose-200",
+		filled: "bg-rose-200 text-rose-900 dark:bg-rose-800/55 dark:text-rose-100",
+		dot: "bg-rose-500",
+	},
+	{
+		badge: "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200",
+		filled: "bg-amber-200 text-amber-900 dark:bg-amber-800/55 dark:text-amber-100",
+		dot: "bg-amber-500",
+	},
+	{
+		badge: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200",
+		filled: "bg-emerald-200 text-emerald-900 dark:bg-emerald-800/55 dark:text-emerald-100",
+		dot: "bg-emerald-500",
+	},
+	{
+		badge: "bg-cyan-100 text-cyan-800 dark:bg-cyan-900/40 dark:text-cyan-200",
+		filled: "bg-cyan-200 text-cyan-900 dark:bg-cyan-800/55 dark:text-cyan-100",
+		dot: "bg-cyan-500",
+	},
+	{
+		badge: "bg-indigo-100 text-indigo-800 dark:bg-indigo-900/40 dark:text-indigo-200",
+		filled: "bg-indigo-200 text-indigo-900 dark:bg-indigo-800/55 dark:text-indigo-100",
+		dot: "bg-indigo-500",
+	},
+	{
+		badge: "bg-fuchsia-100 text-fuchsia-800 dark:bg-fuchsia-900/40 dark:text-fuchsia-200",
+		filled: "bg-fuchsia-200 text-fuchsia-900 dark:bg-fuchsia-800/55 dark:text-fuchsia-100",
+		dot: "bg-fuchsia-500",
+	},
 ]
 
 function hexToRgb(hexColor) {
@@ -573,8 +602,8 @@ function designationColor(designation) {
 		}
 	}
 	if (!designation) return {
-		badge: "bg-gray-100 text-gray-700",
-		filled: "bg-gray-200 text-gray-800",
+		badge: "bg-gray-100 text-gray-700 dark:bg-slate-800 dark:text-slate-200",
+		filled: "bg-gray-200 text-gray-800 dark:bg-slate-700 dark:text-slate-100",
 		dot: "bg-gray-500",
 		badgeStyle: null,
 		filledStyle: null,

@@ -107,17 +107,84 @@
 							</div>
 						</header>
 
-						<main class="flex-1 space-y-6 p-4 md:p-6">
-							<section class="grid gap-4 xl:grid-cols-12">
-								<div class="xl:col-span-6">
+						<main class="flex flex-1 flex-col gap-6 p-4 md:p-6">
+							<div v-if="canCustomizeEmployeeDeskGlobal" class="flex flex-wrap items-center justify-end gap-2">
+								<Button
+									variant="outline"
+									class="!rounded-xl"
+									@click="toggleHomeEditMode"
+								>
+									{{ homeEditMode ? __("پایان ویرایش") : __("ویرایش صفحه اصلی") }}
+								</Button>
+								<Button
+									v-if="homeEditMode"
+									variant="ghost"
+									class="!rounded-xl"
+									@click="restoreHomeBlocks"
+								>
+									{{ __("بازنشانی") }}
+								</Button>
+							</div>
+
+							<section
+								v-if="isSectionVisible('enable_home_check_in_panel') || (isSectionVisible('enable_home_kpi_section') && kpiCards.length)"
+								class="grid gap-4 xl:grid-cols-12"
+								:style="getHomeGroupStyle(['enable_home_check_in_panel', 'enable_home_kpi_section'])"
+							>
+								<div
+									v-if="isSectionVisible('enable_home_check_in_panel')"
+									class="xl:col-span-6"
+									:style="getHomeSectionStyle('enable_home_check_in_panel')"
+								>
+									<div v-if="homeEditMode" class="mb-2 flex items-center justify-end gap-1">
+										<Button size="sm" variant="ghost" class="!rounded-lg" @click="moveHomeSection('enable_home_check_in_panel', -1)">↑</Button>
+										<Button size="sm" variant="ghost" class="!rounded-lg" @click="moveHomeSection('enable_home_check_in_panel', 1)">↓</Button>
+										<Button
+											size="sm"
+											:variant="isHomeSectionHidden('enable_home_check_in_panel') ? 'outline' : 'ghost'"
+											class="!rounded-lg"
+											@click="toggleHomeSection('enable_home_check_in_panel')"
+										>
+											{{ isHomeSectionHidden('enable_home_check_in_panel') ? __("نمایش") : __("مخفی") }}
+										</Button>
+									</div>
 									<CheckInPanel />
 								</div>
-								<div class="grid gap-4 sm:grid-cols-2 xl:col-span-6">
+								<div
+									v-if="isSectionVisible('enable_home_kpi_section') && kpiCards.length"
+									class="grid gap-4 sm:grid-cols-2 xl:col-span-6"
+									:style="getHomeSectionStyle('enable_home_kpi_section')"
+								>
+									<div v-if="homeEditMode" class="sm:col-span-2 mb-1 flex items-center justify-end gap-1">
+										<Button size="sm" variant="ghost" class="!rounded-lg" @click="moveHomeSection('enable_home_kpi_section', -1)">↑</Button>
+										<Button size="sm" variant="ghost" class="!rounded-lg" @click="moveHomeSection('enable_home_kpi_section', 1)">↓</Button>
+										<Button
+											size="sm"
+											:variant="isHomeSectionHidden('enable_home_kpi_section') ? 'outline' : 'ghost'"
+											class="!rounded-lg"
+											@click="toggleHomeSection('enable_home_kpi_section')"
+										>
+											{{ isHomeSectionHidden('enable_home_kpi_section') ? __("نمایش") : __("مخفی") }}
+										</Button>
+									</div>
 									<div
 										v-for="card in kpiCards"
-										:key="card.title"
-										class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+										:key="card.key"
+										class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition"
+										:class="homeEditMode && card.hidden ? 'opacity-50 saturate-50' : ''"
 									>
+										<div v-if="homeEditMode" class="mb-2 flex items-center justify-end gap-1">
+											<Button size="sm" variant="ghost" class="!rounded-lg" @click="moveHomeKpi(card.key, -1)">↑</Button>
+											<Button size="sm" variant="ghost" class="!rounded-lg" @click="moveHomeKpi(card.key, 1)">↓</Button>
+											<Button
+												size="sm"
+												:variant="isHomeKpiHidden(card.key) ? 'outline' : 'ghost'"
+												class="!rounded-lg"
+												@click="toggleHomeKpi(card.key)"
+											>
+												{{ isHomeKpiHidden(card.key) ? __("نمایش") : __("مخفی") }}
+											</Button>
+										</div>
 										<div class="text-xs font-semibold text-slate-500">
 											{{ card.title }}
 										</div>
@@ -131,23 +198,45 @@
 								</div>
 							</section>
 
-							<section class="grid gap-4 xl:grid-cols-3">
-								<div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm xl:col-span-2">
+							<section
+								v-if="isSectionVisible('enable_home_activity_section') || isSectionVisible('enable_home_expense_section')"
+								class="grid gap-4 xl:grid-cols-3"
+								:style="getHomeGroupStyle(['enable_home_activity_section', 'enable_home_expense_section'])"
+							>
+								<div
+									v-if="isSectionVisible('enable_home_activity_section')"
+									class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm xl:col-span-2"
+									:style="getHomeSectionStyle('enable_home_activity_section')"
+								>
 									<div class="mb-4 flex items-center justify-between">
 										<h3 class="text-sm font-bold text-slate-800">{{ __("روند فعالیت ۶ ماه اخیر") }}</h3>
-										<div class="flex items-center gap-3 text-[11px] text-slate-500">
-											<span class="inline-flex items-center gap-1">
-												<span class="h-2 w-2 rounded-full bg-sky-500" />
-												{{ __("حضور") }}
-											</span>
-											<span class="inline-flex items-center gap-1">
-												<span class="h-2 w-2 rounded-full bg-emerald-500" />
-												{{ __("مرخصی") }}
-											</span>
-											<span class="inline-flex items-center gap-1">
-												<span class="h-2 w-2 rounded-full bg-amber-500" />
-												{{ __("هزینه") }}
-											</span>
+										<div class="flex items-center gap-2">
+											<div class="flex items-center gap-3 text-[11px] text-slate-500">
+												<span class="inline-flex items-center gap-1">
+													<span class="h-2 w-2 rounded-full bg-sky-500" />
+													{{ __("حضور") }}
+												</span>
+												<span class="inline-flex items-center gap-1">
+													<span class="h-2 w-2 rounded-full bg-emerald-500" />
+													{{ __("مرخصی") }}
+												</span>
+												<span class="inline-flex items-center gap-1">
+													<span class="h-2 w-2 rounded-full bg-amber-500" />
+													{{ __("هزینه") }}
+												</span>
+											</div>
+											<div v-if="homeEditMode" class="flex items-center gap-1">
+												<Button size="sm" variant="ghost" class="!rounded-lg" @click="moveHomeSection('enable_home_activity_section', -1)">↑</Button>
+												<Button size="sm" variant="ghost" class="!rounded-lg" @click="moveHomeSection('enable_home_activity_section', 1)">↓</Button>
+												<Button
+													size="sm"
+													:variant="isHomeSectionHidden('enable_home_activity_section') ? 'outline' : 'ghost'"
+													class="!rounded-lg"
+													@click="toggleHomeSection('enable_home_activity_section')"
+												>
+													{{ isHomeSectionHidden('enable_home_activity_section') ? __("نمایش") : __("مخفی") }}
+												</Button>
+											</div>
 										</div>
 									</div>
 									<div class="grid grid-cols-6 gap-2 md:gap-3">
@@ -178,8 +267,26 @@
 									</div>
 								</div>
 
-								<div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-									<h3 class="text-sm font-bold text-slate-800">{{ __("وضعیت هزینه‌ها") }}</h3>
+								<div
+									v-if="isSectionVisible('enable_home_expense_section')"
+									class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+									:style="getHomeSectionStyle('enable_home_expense_section')"
+								>
+									<div class="mb-2 flex items-center justify-between">
+										<h3 class="text-sm font-bold text-slate-800">{{ __("وضعیت هزینه‌ها") }}</h3>
+										<div v-if="homeEditMode" class="flex items-center gap-1">
+											<Button size="sm" variant="ghost" class="!rounded-lg" @click="moveHomeSection('enable_home_expense_section', -1)">↑</Button>
+											<Button size="sm" variant="ghost" class="!rounded-lg" @click="moveHomeSection('enable_home_expense_section', 1)">↓</Button>
+											<Button
+												size="sm"
+												:variant="isHomeSectionHidden('enable_home_expense_section') ? 'outline' : 'ghost'"
+												class="!rounded-lg"
+												@click="toggleHomeSection('enable_home_expense_section')"
+											>
+												{{ isHomeSectionHidden('enable_home_expense_section') ? __("نمایش") : __("مخفی") }}
+											</Button>
+										</div>
+									</div>
 									<div class="mt-5 flex items-center justify-center">
 										<div
 											class="relative h-36 w-36 rounded-full"
@@ -215,9 +322,31 @@
 								</div>
 							</section>
 
-							<section class="grid gap-4 xl:grid-cols-3">
-								<div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm xl:col-span-2">
-									<h3 class="mb-4 text-sm font-bold text-slate-800">{{ __("نمودار مانده مرخصی") }}</h3>
+							<section
+								v-if="isSectionVisible('enable_home_leave_balance_section') || isSectionVisible('enable_home_quick_links_section')"
+								class="grid gap-4 xl:grid-cols-3"
+								:style="getHomeGroupStyle(['enable_home_leave_balance_section', 'enable_home_quick_links_section'])"
+							>
+								<div
+									v-if="isSectionVisible('enable_home_leave_balance_section')"
+									class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm xl:col-span-2"
+									:style="getHomeSectionStyle('enable_home_leave_balance_section')"
+								>
+									<div class="mb-4 flex items-center justify-between">
+										<h3 class="text-sm font-bold text-slate-800">{{ __("نمودار مانده مرخصی") }}</h3>
+										<div v-if="homeEditMode" class="flex items-center gap-1">
+											<Button size="sm" variant="ghost" class="!rounded-lg" @click="moveHomeSection('enable_home_leave_balance_section', -1)">↑</Button>
+											<Button size="sm" variant="ghost" class="!rounded-lg" @click="moveHomeSection('enable_home_leave_balance_section', 1)">↓</Button>
+											<Button
+												size="sm"
+												:variant="isHomeSectionHidden('enable_home_leave_balance_section') ? 'outline' : 'ghost'"
+												class="!rounded-lg"
+												@click="toggleHomeSection('enable_home_leave_balance_section')"
+											>
+												{{ isHomeSectionHidden('enable_home_leave_balance_section') ? __("نمایش") : __("مخفی") }}
+											</Button>
+										</div>
+									</div>
 									<div v-if="leaveBalanceSeries.length" class="space-y-3">
 										<div v-for="item in leaveBalanceSeries" :key="item.label">
 											<div class="mb-1 flex items-center justify-between text-xs">
@@ -237,8 +366,26 @@
 									<EmptyState v-else :message="__('You have no leaves allocated')" />
 								</div>
 
-								<div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-									<h3 class="mb-4 text-sm font-bold text-slate-800">{{ __("میانبرهای سریع") }}</h3>
+								<div
+									v-if="isSectionVisible('enable_home_quick_links_section')"
+									class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+									:style="getHomeSectionStyle('enable_home_quick_links_section')"
+								>
+									<div class="mb-4 flex items-center justify-between">
+										<h3 class="text-sm font-bold text-slate-800">{{ __("میانبرهای سریع") }}</h3>
+										<div v-if="homeEditMode" class="flex items-center gap-1">
+											<Button size="sm" variant="ghost" class="!rounded-lg" @click="moveHomeSection('enable_home_quick_links_section', -1)">↑</Button>
+											<Button size="sm" variant="ghost" class="!rounded-lg" @click="moveHomeSection('enable_home_quick_links_section', 1)">↓</Button>
+											<Button
+												size="sm"
+												:variant="isHomeSectionHidden('enable_home_quick_links_section') ? 'outline' : 'ghost'"
+												class="!rounded-lg"
+												@click="toggleHomeSection('enable_home_quick_links_section')"
+											>
+												{{ isHomeSectionHidden('enable_home_quick_links_section') ? __("نمایش") : __("مخفی") }}
+											</Button>
+										</div>
+									</div>
 									<div class="space-y-2">
 										<router-link
 											v-for="link in quickLinks"
@@ -259,8 +406,26 @@
 								</div>
 							</section>
 
-							<section class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-								<h3 class="mb-4 text-sm font-bold text-slate-800">{{ __("درخواست‌های اخیر") }}</h3>
+							<section
+								v-if="isSectionVisible('enable_home_recent_requests_section')"
+								class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+								:style="getHomeSectionStyle('enable_home_recent_requests_section')"
+							>
+								<div class="mb-4 flex items-center justify-between">
+									<h3 class="text-sm font-bold text-slate-800">{{ __("درخواست‌های اخیر") }}</h3>
+									<div v-if="homeEditMode" class="flex items-center gap-1">
+										<Button size="sm" variant="ghost" class="!rounded-lg" @click="moveHomeSection('enable_home_recent_requests_section', -1)">↑</Button>
+										<Button size="sm" variant="ghost" class="!rounded-lg" @click="moveHomeSection('enable_home_recent_requests_section', 1)">↓</Button>
+										<Button
+											size="sm"
+											:variant="isHomeSectionHidden('enable_home_recent_requests_section') ? 'outline' : 'ghost'"
+											class="!rounded-lg"
+											@click="toggleHomeSection('enable_home_recent_requests_section')"
+										>
+											{{ isHomeSectionHidden('enable_home_recent_requests_section') ? __("نمایش") : __("مخفی") }}
+										</Button>
+									</div>
+								</div>
 								<RequestPanel />
 							</section>
 						</main>
@@ -349,8 +514,13 @@ import { myAttendanceRequests } from "@/data/attendance"
 import { expenseClaimSummary, myClaims } from "@/data/claims"
 import { myAppraisals } from "@/data/appraisals"
 import { leaveBalance, myLeaves } from "@/data/leaves"
-import { layoutHasImprestAccess, layoutUnreadNewsletterCount } from "@/data/layout"
+import { employeeDeskVisibility, layoutHasImprestAccess, layoutUnreadNewsletterCount } from "@/data/layout"
 import { buildNavbarGroups } from "@/data/navigation"
+import {
+	canCustomizeEmployeeDeskGlobal,
+	employeeDeskGlobalPersonalization,
+	saveEmployeeDeskGlobalPersonalization,
+} from "@/data/personalization"
 import { activeMissions } from "@/data/missions"
 import { localizeLeaveType } from "@/utils/leaveTypeLabels"
 import { formatCurrency } from "@/utils/formatters"
@@ -363,6 +533,7 @@ const dayjs = inject("$dayjs")
 const route = useRoute()
 
 const sidebarOpen = ref(false)
+const homeEditMode = ref(false)
 
 watch(
 	() => route.path,
@@ -379,6 +550,164 @@ const employeeRole = computed(
 )
 const profileImage = computed(() => employee.data?.image || user.data?.user_image || "")
 const todayLabel = computed(() => formatJalaliDate(new Date(), { withWeekday: true }))
+const visibilityMap = computed(() => employeeDeskVisibility.data || {})
+const personalPreferences = computed(() => employeeDeskGlobalPersonalization.data?.preferences || {})
+const hiddenHomeSections = computed(() => new Set(personalPreferences.value.home_hidden_sections || []))
+const hiddenHomeKpis = computed(() => new Set(personalPreferences.value.home_hidden_kpis || []))
+const HOME_SECTION_KEYS = [
+	"enable_home_check_in_panel",
+	"enable_home_kpi_section",
+	"enable_home_activity_section",
+	"enable_home_expense_section",
+	"enable_home_leave_balance_section",
+	"enable_home_quick_links_section",
+	"enable_home_recent_requests_section",
+]
+const HOME_KPI_KEYS = [
+	"enable_kpi_pending_requests",
+	"enable_kpi_approved_requests",
+	"enable_kpi_leave_balance",
+	"enable_kpi_active_missions",
+	"enable_kpi_latest_appraisal",
+]
+
+function buildOrderedKeys(validKeys, savedKeys = []) {
+	const validSet = new Set(validKeys)
+	const ordered = []
+	const seen = new Set()
+	for (const key of [...(savedKeys || []), ...validKeys]) {
+		if (!validSet.has(key) || seen.has(key)) continue
+		seen.add(key)
+		ordered.push(key)
+	}
+	return ordered
+}
+
+const orderedHomeSectionKeys = computed(() =>
+	buildOrderedKeys(HOME_SECTION_KEYS, personalPreferences.value.home_section_order_keys || [])
+)
+
+const homeSectionOrderMap = computed(
+	() => new Map(orderedHomeSectionKeys.value.map((key, index) => [key, index]))
+)
+
+const orderedHomeKpiKeys = computed(() =>
+	buildOrderedKeys(HOME_KPI_KEYS, personalPreferences.value.kpi_order_keys || [])
+)
+
+const homeKpiOrderMap = computed(
+	() => new Map(orderedHomeKpiKeys.value.map((key, index) => [key, index]))
+)
+
+function isVisible(key) {
+	return visibilityMap.value?.[key] !== false
+}
+
+function isSectionVisible(key) {
+	if (!isVisible(key)) return false
+	if (homeEditMode.value) return true
+	return !isHomeSectionHidden(key)
+}
+
+function isHomeSectionHidden(key) {
+	return hiddenHomeSections.value.has(key)
+}
+
+function isHomeKpiHidden(key) {
+	return hiddenHomeKpis.value.has(key)
+}
+
+function getSectionOrder(key) {
+	if (homeSectionOrderMap.value.has(key)) {
+		return homeSectionOrderMap.value.get(key)
+	}
+	return Number.MAX_SAFE_INTEGER
+}
+
+function getHomeSectionStyle(key) {
+	const sectionStyle = {
+		order: getSectionOrder(key),
+	}
+	if (homeEditMode.value && isHomeSectionHidden(key)) {
+		sectionStyle.opacity = 0.45
+		sectionStyle.filter = "grayscale(40%)"
+	}
+	return sectionStyle
+}
+
+function getHomeGroupStyle(keys = []) {
+	const orders = keys.map((key) => getSectionOrder(key))
+	return {
+		order: Math.min(...orders, Number.MAX_SAFE_INTEGER),
+	}
+}
+
+function toggleHomeSection(key) {
+	if (!canCustomizeEmployeeDeskGlobal.value) return
+	const current = new Set(personalPreferences.value.home_hidden_sections || [])
+	if (current.has(key)) current.delete(key)
+	else current.add(key)
+	void saveEmployeeDeskGlobalPersonalization({
+		...personalPreferences.value,
+		home_hidden_sections: [...current],
+	})
+}
+
+function toggleHomeKpi(key) {
+	if (!canCustomizeEmployeeDeskGlobal.value) return
+	const current = new Set(personalPreferences.value.home_hidden_kpis || [])
+	if (current.has(key)) current.delete(key)
+	else current.add(key)
+	void saveEmployeeDeskGlobalPersonalization({
+		...personalPreferences.value,
+		home_hidden_kpis: [...current],
+	})
+}
+
+function moveHomeSection(key, direction) {
+	if (!canCustomizeEmployeeDeskGlobal.value) return
+	const ordered = [...orderedHomeSectionKeys.value]
+	const index = ordered.indexOf(key)
+	if (index < 0) return
+	const targetIndex = index + direction
+	if (targetIndex < 0 || targetIndex >= ordered.length) return
+	const [moved] = ordered.splice(index, 1)
+	ordered.splice(targetIndex, 0, moved)
+	void saveEmployeeDeskGlobalPersonalization({
+		...personalPreferences.value,
+		home_section_order_keys: ordered,
+	})
+}
+
+function moveHomeKpi(key, direction) {
+	if (!canCustomizeEmployeeDeskGlobal.value) return
+	const ordered = [...orderedHomeKpiKeys.value]
+	const index = ordered.indexOf(key)
+	if (index < 0) return
+	const targetIndex = index + direction
+	if (targetIndex < 0 || targetIndex >= ordered.length) return
+	const [moved] = ordered.splice(index, 1)
+	ordered.splice(targetIndex, 0, moved)
+	void saveEmployeeDeskGlobalPersonalization({
+		...personalPreferences.value,
+		kpi_order_keys: ordered,
+	})
+}
+
+function toggleHomeEditMode() {
+	homeEditMode.value = !homeEditMode.value
+}
+
+function restoreHomeBlocks() {
+	if (!canCustomizeEmployeeDeskGlobal.value) return
+	void saveEmployeeDeskGlobalPersonalization({
+		...personalPreferences.value,
+		home_hidden_sections: [],
+		home_hidden_kpis: [],
+		home_section_order_keys: [],
+		kpi_order_keys: [],
+	})
+}
 
 const PENDING_STATUSES = new Set(["draft", "open", "pending", "pending approval"])
 const APPROVED_STATUSES = new Set(["approved", "accepted", "completed"])
@@ -540,56 +869,74 @@ const leaveBalanceSeries = computed(() =>
 const quickLinks = computed(() => {
 	const links = [
 		{
+			visibilityKey: "enable_requests_center",
+			icon: markRaw(AttendanceIcon),
+			title: __("مرکز درخواست‌ها"),
+			route: "RequestsDashboard",
+			badge: pendingRequestsCount.value,
+		},
+		{
+			visibilityKey: "enable_attendance",
 			icon: markRaw(AttendanceIcon),
 			title: __("Request Attendance"),
 			route: "AttendanceRequestFormView",
 		},
 		{
+			visibilityKey: "enable_leaves",
 			icon: markRaw(LeaveIcon),
 			title: __("Request Leave"),
 			route: "LeaveApplicationFormView",
 		},
 		{
+			visibilityKey: "enable_expense_claims",
 			icon: markRaw(ExpenseIcon),
 			title: __("Claim an Expense"),
 			route: "ExpenseClaimFormView",
 		},
 		{
+			visibilityKey: "enable_missions",
 			icon: markRaw(MissionIcon),
 			title: __("ماموریت‌های کاری"),
 			route: "MissionsDashboard",
 		},
 		{
+			visibilityKey: "enable_events",
 			icon: markRaw(EventIcon),
 			title: __("رویدادها"),
 			route: "EventsDashboard",
 		},
 		{
+			visibilityKey: "enable_employee_advances",
 			icon: markRaw(EmployeeAdvanceIcon),
 			title: __("درخواست مساعده"),
 			route: "EmployeeAdvanceFormView",
 		},
 		{
+			visibilityKey: "enable_salary_slips",
 			icon: markRaw(SalaryIcon),
 			title: __("View Salary Slips"),
 			route: "SalarySlipsDashboard",
 		},
 		{
+			visibilityKey: "enable_complaints",
 			icon: markRaw(ComplaintIcon),
 			title: __("Feedback & Suggestions"),
 			route: "ComplaintsDashboard",
 		},
 		{
+			visibilityKey: "enable_meals",
 			icon: markRaw(MealIcon),
 			title: __("Meal Program"),
 			route: "MealsDashboard",
 		},
 		{
+			visibilityKey: "enable_appraisals",
 			icon: markRaw(AppraisalIcon),
 			title: __("Performance Appraisal"),
 			route: "AppraisalsDashboard",
 		},
 		{
+			visibilityKey: "enable_newsletters",
 			icon: markRaw(NewsletterIcon),
 			title: __("Organization Newsletters"),
 			route: "NewslettersDashboard",
@@ -597,47 +944,71 @@ const quickLinks = computed(() => {
 		},
 	]
 
-	if (layoutHasImprestAccess.value) {
+	if (layoutHasImprestAccess.value && isVisible("enable_imprest")) {
 		links.splice(4, 0, {
+			visibilityKey: "enable_imprest",
 			icon: markRaw(ImprestIcon),
 			title: __("مدیریت تنخواه"),
 			route: "ImprestDashboard",
 		})
 	}
 
-	return links
+	return links.filter((link) => isVisible(link.visibilityKey))
 })
 
-const kpiCards = computed(() => [
-	{
-		title: __("درخواست‌های در انتظار"),
-		value: toPersianDigits(pendingRequestsCount.value),
-		caption: __("درخواست‌های نیازمند پیگیری شما"),
-	},
-	{
-		title: __("درخواست‌های تایید شده"),
-		value: toPersianDigits(approvedRequestsCount.value),
-		caption: __("تعداد تاییدها در درخواست‌های اخیر"),
-	},
-	{
-		title: __("مانده کل مرخصی"),
-		value: toPersianDigits(totalLeaveBalance.value.toFixed(1).replace(/\.0$/, "")),
-		caption: __("روز قابل استفاده"),
-	},
-	{
-		title: __("ماموریت‌های فعال"),
-		value: toPersianDigits(activeMissionCount.value),
-		caption: __("ماموریت‌های در حال انجام یا برنامه‌ریزی‌شده"),
-	},
-	{
-		title: __("امتیاز آخرین ارزیابی"),
-		value: latestAppraisalScore.value,
-		caption: __("آخرین نتیجه ثبت‌شده عملکرد"),
-	},
-])
+const kpiCards = computed(() =>
+	[
+		{
+			key: "enable_kpi_pending_requests",
+			title: __("درخواست‌های در انتظار"),
+			value: toPersianDigits(pendingRequestsCount.value),
+			caption: __("درخواست‌های نیازمند پیگیری شما"),
+		},
+		{
+			key: "enable_kpi_approved_requests",
+			title: __("درخواست‌های تایید شده"),
+			value: toPersianDigits(approvedRequestsCount.value),
+			caption: __("تعداد تاییدها در درخواست‌های اخیر"),
+		},
+		{
+			key: "enable_kpi_leave_balance",
+			title: __("مانده کل مرخصی"),
+			value: toPersianDigits(totalLeaveBalance.value.toFixed(1).replace(/\.0$/, "")),
+			caption: __("روز قابل استفاده"),
+		},
+		{
+			key: "enable_kpi_active_missions",
+			title: __("ماموریت‌های فعال"),
+			value: toPersianDigits(activeMissionCount.value),
+			caption: __("ماموریت‌های در حال انجام یا برنامه‌ریزی‌شده"),
+		},
+		{
+			key: "enable_kpi_latest_appraisal",
+			title: __("امتیاز آخرین ارزیابی"),
+			value: latestAppraisalScore.value,
+			caption: __("آخرین نتیجه ثبت‌شده عملکرد"),
+		},
+	]
+		.filter((card) => isVisible(card.key))
+		.map((card) => ({
+			...card,
+			hidden: isHomeKpiHidden(card.key),
+		}))
+		.filter((card) => homeEditMode.value || !card.hidden)
+		.sort((left, right) => {
+			const leftOrder = homeKpiOrderMap.value.has(left.key)
+				? homeKpiOrderMap.value.get(left.key)
+				: Number.MAX_SAFE_INTEGER
+			const rightOrder = homeKpiOrderMap.value.has(right.key)
+				? homeKpiOrderMap.value.get(right.key)
+				: Number.MAX_SAFE_INTEGER
+			if (leftOrder !== rightOrder) return leftOrder - rightOrder
+			return 0
+		})
+)
 
 const canSeeAllocatorShiftTools = computed(() => {
-	return Boolean(employee.data?.is_shift_allocator)
+	return Boolean(employee.data?.is_shift_allocator || employee.data?.is_shift_allocator_by_role)
 })
 
 const canSeeWeeklyShiftPlanner = computed(() => {
@@ -645,7 +1016,6 @@ const canSeeWeeklyShiftPlanner = computed(() => {
 		employee.data?.variable_shift
 		|| employee.data?.has_rotational_shift
 		|| employee.data?.needs_shift_registration
-		|| employee.data?.is_shift_allocator
 	)
 })
 
@@ -655,6 +1025,10 @@ const menuGroups = computed(() => {
 		hasImprestAccess: layoutHasImprestAccess.value,
 		canSeeAllocatorShiftTools: canSeeAllocatorShiftTools.value,
 		canSeeWeeklyShiftPlanner: canSeeWeeklyShiftPlanner.value,
+		visibility: visibilityMap.value,
+		hiddenRoutes: personalPreferences.value.hidden_sidebar_routes || [],
+		routeOrder: personalPreferences.value.sidebar_order_routes || [],
+		customLabels: personalPreferences.value.sidebar_labels || {},
 	})
 })
 

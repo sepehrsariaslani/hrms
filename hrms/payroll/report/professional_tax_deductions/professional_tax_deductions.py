@@ -38,14 +38,9 @@ def get_columns(filters):
 def get_data(filters):
 	data = []
 
-	component_type_dict = frappe._dict(
-		frappe.db.sql(
-			""" select name, component_type from `tabSalary Component`
-		where component_type = 'Professional Tax' """
-		)
-	)
+	component_names = get_professional_tax_component_names()
 
-	if not len(component_type_dict):
+	if not component_names:
 		return []
 
 	conditions = get_conditions(filters)
@@ -59,8 +54,8 @@ def get_data(filters):
 		AND ded.parenttype = 'Salary Slip'
 		AND sal.docstatus = 1 {}
 		AND ded.salary_component IN ({})
-		""".format(conditions, ", ".join(["%s"] * len(component_type_dict))),
-		tuple(component_type_dict.keys()),
+		""".format(conditions, ", ".join(["%s"] * len(component_names))),
+		tuple(component_names),
 		as_dict=1,
 	)
 
@@ -70,3 +65,23 @@ def get_data(filters):
 		data.append(employee)
 
 	return data
+
+
+def get_professional_tax_component_names() -> list[str]:
+	if frappe.db.has_column("Salary Component", "component_type"):
+		rows = frappe.db.get_all(
+			"Salary Component",
+			filters={"component_type": "Professional Tax"},
+			pluck="name",
+		)
+		if rows:
+			return rows
+
+	return frappe.db.sql_list(
+		"""
+		SELECT name
+		FROM `tabSalary Component`
+		WHERE LOWER(name) LIKE %s
+		""",
+		("%professional tax%",),
+	)

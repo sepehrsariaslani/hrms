@@ -6,6 +6,7 @@
  "engine": "InnoDB",
  "field_order": [
   "law_year",
+  "is_default",
   "effective_from",
   "effective_to",
   "min_daily_wage",
@@ -29,6 +30,13 @@
    "label": "سال قانون",
    "reqd": 1,
    "in_list_view": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "is_default",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "پیش‌فرض"
   },
   {
    "fieldname": "effective_from",

@@ -103,7 +103,7 @@
 								<div class="text-gray-500">{{ day.jalali }}</div>
 								<div
 									v-if="isForbiddenDate(day.date)"
-									class="mt-1 text-[11px] text-red-700 bg-red-50 rounded px-1.5 py-0.5 inline-block"
+									class="mt-1 text-[11px] text-red-700 bg-red-50 dark:text-rose-200 dark:bg-rose-900/40 rounded px-1.5 py-0.5 inline-block"
 								>
 									روز ممنوع
 								</div>
@@ -177,7 +177,7 @@
 										<div class="text-[11px] text-gray-500 mt-0.5">{{ day.jalali }}</div>
 										<div
 											v-if="isForbiddenDate(day.date)"
-											class="mt-1 inline-block text-[10px] text-red-700 bg-red-50 rounded px-1.5 py-0.5"
+											class="mt-1 inline-block text-[10px] text-red-700 bg-red-50 dark:text-rose-200 dark:bg-rose-900/40 rounded px-1.5 py-0.5"
 										>
 											روز ممنوع
 										</div>
@@ -674,14 +674,14 @@ function cellHintText(workDate, slotCode) {
 
 function desktopCellClass(workDate, slotCode) {
 	if (isForbiddenDate(workDate)) {
-		return "bg-red-50 border-red-200 text-red-700 cursor-not-allowed opacity-70"
+		return "bg-red-50 border-red-200 text-red-700 dark:bg-rose-900/35 dark:border-rose-500/50 dark:text-rose-200 cursor-not-allowed opacity-70"
 	}
 
 	if (getSlot(workDate, slotCode)) {
-		return "bg-blue-50 border-blue-300 text-blue-800 ring-1 ring-blue-100"
+		return "bg-blue-50 border-blue-300 text-blue-800 dark:bg-sky-900/35 dark:border-sky-500/60 dark:text-sky-200 ring-1 ring-blue-100 dark:ring-sky-400/40"
 	}
 
-	return "bg-white border-gray-200 text-gray-600 hover:bg-slate-50 hover:border-slate-300"
+	return "bg-white border-gray-200 text-gray-600 dark:bg-slate-900/70 dark:border-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/80 hover:border-slate-300 dark:hover:border-slate-500"
 }
 
 function isForbiddenDate(dateString) {

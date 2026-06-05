@@ -51,7 +51,7 @@ function showSystemNotification() {
 	lastSystemNotificationAt = now
 
 	try {
-		const notification = new Notification("Frappe HR", {
+		const notification = new Notification("Hamyar", {
 			body: "یک یادآور یا اعلان جدید دریافت شد.",
 			icon: "/assets/hrms/manifest/favicon-196.png",
 			tag: "hrms-live-notification",

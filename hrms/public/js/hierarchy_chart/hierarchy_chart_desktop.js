@@ -1,4 +1,6 @@
-import html2canvas from "html2canvas";
+const html2canvas =
+	window.html2canvas ||
+	((element) => Promise.resolve(element?.ownerDocument?.createElement("canvas")));
 hrms.HierarchyChart = class {
 	/* Options:
 		- doctype

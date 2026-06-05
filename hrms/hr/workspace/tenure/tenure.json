@@ -1,7 +1,7 @@
 {
  "app": "hrms",
  "charts": [],
- "content": "[{\"id\":\"Do0km6oB3q\",\"type\":\"quick_list\",\"data\":{\"quick_list_name\":\"New Hires (This Month)\",\"col\":4}},{\"id\":\"90EyF0WfYs\",\"type\":\"quick_list\",\"data\":{\"quick_list_name\":\"Exits (This Month)\",\"col\":4}},{\"id\":\"lWsQRmsSwR\",\"type\":\"quick_list\",\"data\":{\"quick_list_name\":\"Trainings (This Week)\",\"col\":4}},{\"id\":\"TYoNVyW88z\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"_xgabKIxxZ\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Masters &amp; Reports</b></span>\",\"col\":12}},{\"id\":\"ZOaOHWAzNZ\",\"type\":\"card\",\"data\":{\"card_name\":\"Onboarding\",\"col\":4}},{\"id\":\"-9CR3Papyq\",\"type\":\"card\",\"data\":{\"card_name\":\"Grievance\",\"col\":4}},{\"id\":\"0s3iKnHDOj\",\"type\":\"card\",\"data\":{\"card_name\":\"Training\",\"col\":4}},{\"id\":\"TqvQSf8hTP\",\"type\":\"card\",\"data\":{\"card_name\":\"Daily Work Summary\",\"col\":4}},{\"id\":\"DBbEdPsl3o\",\"type\":\"card\",\"data\":{\"card_name\":\"Reports\",\"col\":4}}]",
+ "content": "[{\"id\": \"Do0km6oB3q\", \"type\": \"quick_list\", \"data\": {\"quick_list_name\": \"New Hires (This Month)\", \"col\": 4}}, {\"id\": \"90EyF0WfYs\", \"type\": \"quick_list\", \"data\": {\"quick_list_name\": \"Exits (This Month)\", \"col\": 4}}, {\"id\": \"lWsQRmsSwR\", \"type\": \"quick_list\", \"data\": {\"quick_list_name\": \"Trainings (This Week)\", \"col\": 4}}, {\"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Employee Onboarding\", \"col\": 3}}, {\"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Employee Separation\", \"col\": 3}}, {\"id\": \"TYoNVyW88z\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"_xgabKIxxZ\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Masters &amp; Reports</b></span>\", \"col\": 12}}, {\"type\": \"card\", \"data\": {\"card_name\": \"Onboarding, Movement & Exit\", \"col\": 4}}, {\"type\": \"card\", \"data\": {\"card_name\": \"Learning & Development\", \"col\": 4}}, {\"type\": \"card\", \"data\": {\"card_name\": \"Engagement & Daily Ops\", \"col\": 4}}, {\"type\": \"card\", \"data\": {\"card_name\": \"Tenure Reports\", \"col\": 4}}]",
  "creation": "2022-08-20 14:06:34.309347",
  "custom_blocks": [],
  "docstatus": 0,
@@ -16,20 +16,11 @@
   {
    "hidden": 0,
    "is_query_report": 0,
-   "label": "Onboarding",
-   "link_count": 3,
-   "onboard": 0,
-   "type": "Card Break"
-  },
-  {
-   "hidden": 0,
-   "is_query_report": 0,
-   "label": "Employee Onboarding Template",
-   "link_count": 0,
-   "link_to": "Employee Onboarding Template",
+   "label": "Onboarding, Movement & Exit",
+   "link_count": 7,
    "link_type": "DocType",
    "onboard": 0,
-   "type": "Link"
+   "type": "Card Break"
   },
   {
    "hidden": 0,
@@ -44,9 +35,9 @@
   {
    "hidden": 0,
    "is_query_report": 0,
-   "label": "Employee Skill Map",
+   "label": "Employee Onboarding Template",
    "link_count": 0,
-   "link_to": "Employee Skill Map",
+   "link_to": "Employee Onboarding Template",
    "link_type": "DocType",
    "onboard": 0,
    "type": "Link"
@@ -54,17 +45,9 @@
   {
    "hidden": 0,
    "is_query_report": 0,
-   "label": "Grievance",
-   "link_count": 2,
-   "onboard": 0,
-   "type": "Card Break"
-  },
-  {
-   "hidden": 0,
-   "is_query_report": 0,
-   "label": "Grievance Type",
+   "label": "Employee Boarding Activity",
    "link_count": 0,
-   "link_to": "Grievance Type",
+   "link_to": "Employee Boarding Activity",
    "link_type": "DocType",
    "onboard": 0,
    "type": "Link"
@@ -72,9 +55,9 @@
   {
    "hidden": 0,
    "is_query_report": 0,
-   "label": "Employee Grievance",
+   "label": "Employee Separation",
    "link_count": 0,
-   "link_to": "Employee Grievance",
+   "link_to": "Employee Separation",
    "link_type": "DocType",
    "onboard": 0,
    "type": "Link"
@@ -82,8 +65,39 @@
   {
    "hidden": 0,
    "is_query_report": 0,
-   "label": "Training",
-   "link_count": 4,
+   "label": "Employee Separation Template",
+   "link_count": 0,
+   "link_to": "Employee Separation Template",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Exit Interview",
+   "link_count": 0,
+   "link_to": "Exit Interview",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Full and Final Statement",
+   "link_count": 0,
+   "link_to": "Full and Final Statement",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Learning & Development",
+   "link_count": 8,
+   "link_type": "DocType",
    "onboard": 0,
    "type": "Card Break"
   },
@@ -110,9 +124,9 @@
   {
    "hidden": 0,
    "is_query_report": 0,
-   "label": "Training Feedback",
+   "label": "Training Event Employee",
    "link_count": 0,
-   "link_to": "Training Feedback",
+   "link_to": "Training Event Employee",
    "link_type": "DocType",
    "onboard": 0,
    "type": "Link"
@@ -130,10 +144,71 @@
   {
    "hidden": 0,
    "is_query_report": 0,
-   "label": "Daily Work Summary",
-   "link_count": 3,
+   "label": "Training Result Employee",
+   "link_count": 0,
+   "link_to": "Training Result Employee",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Training Feedback",
+   "link_count": 0,
+   "link_to": "Training Feedback",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Employee Training",
+   "link_count": 0,
+   "link_to": "Employee Training",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Employee Skill Map",
+   "link_count": 0,
+   "link_to": "Employee Skill Map",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Engagement & Daily Ops",
+   "link_count": 5,
+   "link_type": "DocType",
    "onboard": 0,
    "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Employee Grievance",
+   "link_count": 0,
+   "link_to": "Employee Grievance",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Grievance Type",
+   "link_count": 0,
+   "link_to": "Grievance Type",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
   },
   {
    "hidden": 0,
@@ -157,19 +232,20 @@
   },
   {
    "hidden": 0,
-   "is_query_report": 1,
-   "label": "Daily Work Summary Replies",
+   "is_query_report": 0,
+   "label": "Daily Work Summary Group User",
    "link_count": 0,
-   "link_to": "Daily Work Summary Replies",
-   "link_type": "Report",
+   "link_to": "Daily Work Summary Group User",
+   "link_type": "DocType",
    "onboard": 0,
    "type": "Link"
   },
   {
    "hidden": 0,
    "is_query_report": 0,
-   "label": "Reports",
-   "link_count": 4,
+   "label": "Tenure Reports",
+   "link_count": 5,
+   "link_type": "DocType",
    "onboard": 0,
    "type": "Card Break"
   },
@@ -179,6 +255,16 @@
    "label": "Employee Exits",
    "link_count": 0,
    "link_to": "Employee Exits",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Employee Analytics",
+   "link_count": 0,
+   "link_to": "Employee Analytics",
    "link_type": "Report",
    "onboard": 0,
    "type": "Link"
@@ -206,15 +292,15 @@
   {
    "hidden": 0,
    "is_query_report": 1,
-   "label": "Employee Analytics",
+   "label": "Daily Work Summary Replies",
    "link_count": 0,
-   "link_to": "Employee Analytics",
+   "link_to": "Daily Work Summary Replies",
    "link_type": "Report",
    "onboard": 0,
    "type": "Link"
   }
  ],
- "modified": "2026-01-09 17:45:33.210388",
+ "modified": "2026-04-25 01:18:38.769034",
  "modified_by": "Administrator",
  "module": "HR",
  "name": "Tenure",
@@ -241,7 +327,22 @@
  ],
  "roles": [],
  "sequence_id": 2.0,
- "shortcuts": [],
+ "shortcuts": [
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "Employee Onboarding",
+   "link_to": "Employee Onboarding",
+   "type": "DocType"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "Employee Separation",
+   "link_to": "Employee Separation",
+   "type": "DocType"
+  }
+ ],
  "title": "Tenure",
  "type": "Workspace"
 }

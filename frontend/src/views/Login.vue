@@ -4,9 +4,7 @@
 			<div class="flex min-h-screen w-full flex-col justify-center bg-gradient-to-b from-slate-50 to-white">
 					<div class="flex flex-col mx-auto gap-3 items-center">
 						<FrappeHRLogo class="h-8 w-8" />
-						<div class="text-3xl font-semibold text-gray-900 text-center">
-							ورود به فرپه منابع انسانی
-						</div>
+						<div class="text-3xl font-semibold text-gray-900 text-center">ورود به همیار</div>
 					</div>
 
 				<div class="mx-auto mt-10 w-full max-w-md px-8 md:max-w-lg">
@@ -171,7 +169,7 @@ import FrappeHRLogo from "@/components/icons/FrappeHRLogo.vue"
 const email = ref(null)
 const password = ref(null)
 const errorMessage = ref("")
-const authMode = ref("mobile_otp")
+const authMode = ref("password")
 const mobileNumber = ref("")
 const mobileOtpCode = ref("")
 const mobileChallengeId = ref("")
@@ -192,7 +190,27 @@ const otp = reactive({
 })
 
 const session = inject("$session")
+const __ = inject("$translate")
 let mobileCooldownInterval = null
+
+function localizeAuthErrorMessage(message) {
+	const text = String(message || "").trim()
+	if (!text) return text
+	const lowered = text.toLowerCase()
+	if (lowered.includes("invalid login")) {
+		return __("نام کاربری یا رمز عبور اشتباه است.")
+	}
+	if (lowered.includes("incorrect username or password")) {
+		return __("نام کاربری یا رمز عبور اشتباه است.")
+	}
+	if (lowered.includes("incorrect password")) {
+		return __("رمز عبور اشتباه است.")
+	}
+	if (lowered.includes("no account exists")) {
+		return __("حساب کاربری پیدا نشد.")
+	}
+	return text
+}
 
 function normalizeMobile(value) {
 	if (!value) return ""
@@ -244,7 +262,7 @@ function startMobileCooldown(seconds = 60) {
 
 function getErrorMessage(error) {
 	if (Array.isArray(error?.messages) && error.messages.length) {
-		return error.messages.join("\n")
+		return localizeAuthErrorMessage(error.messages.join("\n"))
 	}
 
 	const response = error?.responseJSON || error?.response?.data
@@ -252,7 +270,7 @@ function getErrorMessage(error) {
 		try {
 			const messages = JSON.parse(response._server_messages || "[]")
 			if (Array.isArray(messages) && messages.length) {
-				return messages
+				return localizeAuthErrorMessage(messages
 					.map((item) => {
 						try {
 							return JSON.parse(item)?.message || item
@@ -260,14 +278,14 @@ function getErrorMessage(error) {
 							return item
 						}
 					})
-					.join("\n")
+					.join("\n"))
 			}
 		} catch {
 			return "خطایی در ارتباط با سرور رخ داد."
 		}
 	}
 
-	return error?.message || "خطایی در ارتباط با سرور رخ داد."
+	return localizeAuthErrorMessage(error?.message) || "خطایی در ارتباط با سرور رخ داد."
 }
 
 function setAuthMode(mode) {

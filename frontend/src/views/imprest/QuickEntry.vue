@@ -15,7 +15,7 @@
 					</div>
 
 					<div class="bg-white rounded-xl border border-gray-100 p-4 space-y-3">
-						<div class="grid grid-cols-2 gap-2">
+						<div class="grid grid-cols-3 gap-2" data-tour="imprest-entry-type">
 							<button
 								class="rounded-lg border px-3 py-2 text-sm"
 								:class="
@@ -30,6 +30,17 @@
 							<button
 								class="rounded-lg border px-3 py-2 text-sm"
 								:class="
+									paymentType === 'Receive'
+										? 'bg-emerald-50 border-emerald-300 text-emerald-700'
+										: 'border-gray-200 text-gray-600'
+								"
+								@click="paymentType = 'Receive'"
+							>
+								{{ __("دریافت") }}
+							</button>
+							<button
+								class="rounded-lg border px-3 py-2 text-sm"
+								:class="
 									paymentType === 'Internal Transfer'
 										? 'bg-blue-50 border-blue-300 text-blue-700'
 										: 'border-gray-200 text-gray-600'
@@ -40,7 +51,7 @@
 							</button>
 						</div>
 
-						<div>
+						<div data-tour="imprest-entry-account">
 							<label class="block text-xs text-gray-600 mb-1">{{ __("تاریخ") }}</label>
 							<JalaliDatePicker v-model="postingDate" />
 						</div>
@@ -51,7 +62,9 @@
 						</div>
 
 						<div>
-							<label class="block text-xs text-gray-600 mb-1">{{ __("از حساب تنخواه") }}</label>
+							<label class="block text-xs text-gray-600 mb-1">
+								{{ paymentType === "Receive" ? __("به حساب تنخواه") : __("از حساب تنخواه") }}
+							</label>
 							<SearchableDropdown
 								v-model="paidFrom"
 								:options="allowedAccountOptions"
@@ -60,7 +73,7 @@
 						</div>
 
 						<template v-if="paymentType === 'Internal Transfer'">
-							<div>
+							<div data-tour="imprest-entry-party-type">
 								<label class="block text-xs text-gray-600 mb-1">{{ __("به حساب") }}</label>
 								<SearchableDropdown
 									v-model="paidTo"
@@ -74,7 +87,7 @@
 						</template>
 
 						<template v-else>
-							<div>
+							<div data-tour="imprest-entry-party">
 								<label class="block text-xs text-gray-600 mb-1">{{ __("نوع طرف حساب") }}</label>
 								<div class="grid grid-cols-3 gap-2">
 									<button
@@ -106,22 +119,24 @@
 									</div>
 								</template>
 								<template v-else>
-									<Link
+									<SearchableDropdown
 										v-model="party"
-										:doctype="partyDocType"
-										:query="partySearchQuery"
+										:options="partyOptionsForDropdown"
+										:placeholder="partyType === 'Employee' ? __('انتخاب کارمند') : __('انتخاب تامین‌کننده')"
 									/>
 								</template>
 							</div>
 						</template>
 
-						<div>
-							<label class="block text-xs text-gray-600 mb-1">{{ __("شماره مرجع") }}</label>
+						<div data-tour="imprest-entry-tracking">
+							<label class="block text-xs text-gray-600 mb-1">
+								{{ __("شماره پیگیری") }} <span class="text-rose-600">*</span>
+							</label>
 							<input
 								v-model="referenceNo"
 								type="text"
 								class="w-full rounded-md border border-gray-200 px-3 py-2 text-sm"
-								:placeholder="__('اختیاری')"
+								:placeholder="__('الزامی')"
 							/>
 						</div>
 
@@ -145,10 +160,11 @@
 					/>
 
 					<Button
-						class="w-full py-5 text-base"
+						class="w-full py-5 text-base !bg-amber-600 !text-white hover:!bg-amber-700"
 						:disabled="!canSubmit || saving"
 						:loading="saving"
 						@click="submitEntry"
+						data-tour="imprest-entry-submit"
 					>
 						{{
 							props.id
@@ -160,8 +176,7 @@
 					</Button>
 					<Button
 						v-if="props.id"
-						variant="outline"
-						class="w-full py-5 text-base !text-rose-600 !border-rose-200 hover:!bg-rose-50"
+						class="w-full py-5 text-base !bg-blue-600 !text-white hover:!bg-blue-700"
 						:disabled="cancelling"
 						:loading="cancelling"
 						@click="cancelEntry"
@@ -185,7 +200,6 @@ import { useRoute, useRouter } from "vue-router"
 import BaseLayout from "@/components/BaseLayout.vue"
 import JalaliDatePicker from "@/components/JalaliDatePicker.vue"
 import PersianNumberInput from "@/components/PersianNumberInput.vue"
-import Link from "@/components/Link.vue"
 import SearchableDropdown from "@/components/SearchableDropdown.vue"
 import AttachmentDropzone from "@/components/AttachmentDropzone.vue"
 import dayjs from "@/utils/dayjs"
@@ -221,17 +235,19 @@ const selectedFiles = ref([])
 const existingAttachments = ref([])
 const companyCashBankAccounts = ref([])
 const companyAccounts = ref([])
+const supplierPartyOptions = ref([])
+const employeePartyOptions = ref([])
 
-const partyTypeOptions = computed(() => [
-	{ label: __("تامین‌کننده"), value: "Supplier" },
-	{ label: __("کارمند"), value: "Employee" },
-	{ label: __("حساب"), value: "Account" },
-])
-
-const partyDocType = computed(() => partyType.value)
-const partySearchQuery = computed(() =>
-	partyType.value === "Employee" ? "hrms.api.imprest.search_imprest_employees" : ""
-)
+const partyTypeOptions = computed(() => {
+	const options = [
+		{ label: __("تامین‌کننده"), value: "Supplier" },
+		{ label: __("کارمند"), value: "Employee" },
+	]
+	if (paymentType.value === "Pay") {
+		options.push({ label: __("حساب"), value: "Account" })
+	}
+	return options
+})
 
 const contextResource = createResource({
 	url: "hrms.api.imprest.get_imprest_context",
@@ -239,8 +255,7 @@ const contextResource = createResource({
 	cache: "hrms:imprest_context",
 	onSuccess(data) {
 		applyCreateRouteDefaults(data)
-		loadCompanyAccounts()
-		loadAllCompanyAccounts()
+		ensureLookupResourcesLoaded()
 		if (props.id) loadForEdit()
 	},
 	onError(error) {
@@ -273,6 +288,11 @@ const allCompanyAccountsResource = createResource({
 	auto: false,
 })
 
+const partyOptionsResource = createResource({
+	url: "hrms.api.imprest.get_imprest_party_options",
+	auto: false,
+})
+
 const attachImageResource = createResource({
 	url: "hrms.api.imprest.attach_imprest_image",
 	auto: false,
@@ -298,10 +318,14 @@ const companyAccountOptions = computed(() =>
 		value: account.name,
 	}))
 )
+const partyOptionsForDropdown = computed(() =>
+	partyType.value === "Employee" ? employeePartyOptions.value : supplierPartyOptions.value
+)
 
 const canSubmit = computed(() => {
 	const numericAmount = Number(amount.value || 0)
 	if (!paidFrom.value || numericAmount <= 0 || !postingDate.value) return false
+	if (!String(referenceNo.value || "").trim()) return false
 
 	if (paymentType.value === "Internal Transfer") {
 		return Boolean(paidTo.value && paidTo.value !== paidFrom.value)
@@ -329,6 +353,8 @@ function applyCreateRouteDefaults(data, force = false) {
 
 	if (route.query.type === "transfer") {
 		paymentType.value = "Internal Transfer"
+	} else if (route.query.type === "receive") {
+		paymentType.value = "Receive"
 	} else if (route.query.type === "pay") {
 		paymentType.value = "Pay"
 	}
@@ -340,7 +366,7 @@ function applyCreateRouteDefaults(data, force = false) {
 }
 
 watch(paymentType, (value) => {
-	if (value !== "Pay") {
+	if (value === "Internal Transfer") {
 		party.value = ""
 		return
 	}
@@ -420,6 +446,50 @@ function loadAllCompanyAccounts() {
 	)
 }
 
+function loadPartyOptions(type) {
+	partyOptionsResource.fetch(
+		{
+			party_type: type,
+			limit: 500,
+		},
+		{
+			onSuccess(data) {
+				const options = (data || []).map((row) => ({
+					label: row.label || row.value,
+					value: row.value,
+				}))
+				if (type === "Employee") {
+					employeePartyOptions.value = options
+					return
+				}
+				supplierPartyOptions.value = options
+			},
+			onError() {
+				if (type === "Employee") {
+					employeePartyOptions.value = []
+					return
+				}
+				supplierPartyOptions.value = []
+			},
+		}
+	)
+}
+
+function ensureLookupResourcesLoaded(force = false) {
+	if (force || !companyCashBankAccounts.value.length) {
+		loadCompanyAccounts()
+	}
+	if (force || !companyAccounts.value.length) {
+		loadAllCompanyAccounts()
+	}
+	if (force || !supplierPartyOptions.value.length) {
+		loadPartyOptions("Supplier")
+	}
+	if (force || !employeePartyOptions.value.length) {
+		loadPartyOptions("Employee")
+	}
+}
+
 function loadForEdit() {
 	errorMessage.value = ""
 	entryResource.fetch(
@@ -431,7 +501,8 @@ function loadForEdit() {
 				paymentType.value = data?.payment_type || "Pay"
 				postingDate.value = data?.posting_date || dayjs().format("YYYY-MM-DD")
 				amount.value = data?.amount || data?.paid_amount || 0
-				paidFrom.value = data?.paid_from || ""
+				paidFrom.value =
+					data?.payment_type === "Receive" ? data?.paid_to || "" : data?.paid_from || ""
 				paidTo.value = data?.paid_to || ""
 				partyType.value = data?.party_type || "Supplier"
 				party.value = data?.party || ""
@@ -458,10 +529,10 @@ async function submitEntry() {
 		doctype: editingDoctype.value || route.query.doctype || undefined,
 		paid_from: paidFrom.value,
 		paid_to: paymentType.value === "Internal Transfer" ? paidTo.value : null,
-		party_type: paymentType.value === "Pay" ? partyType.value : null,
-		party: paymentType.value === "Pay" ? party.value : null,
+		party_type: paymentType.value === "Internal Transfer" ? null : partyType.value,
+		party: paymentType.value === "Internal Transfer" ? null : party.value,
 		remarks: remarks.value || "",
-		reference_no: referenceNo.value || "",
+		reference_no: String(referenceNo.value || "").trim(),
 	}
 
 	try {
@@ -616,6 +687,8 @@ function getAccountFiltersFromQuery() {
 }
 
 onIonViewWillEnter(() => {
+	// Ionic keeps pages alive, so refresh dropdown sources on each entry.
+	ensureLookupResourcesLoaded(true)
 	if (typeof contextResource.reload === "function") {
 		contextResource.reload()
 	} else {

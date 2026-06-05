@@ -212,11 +212,10 @@ def normalize_text(value):
 
 
 def load_employee_resolver():
-    employees = frappe.get_all(
-        "Employee",
-        fields=["name", "employee_name", "employee_number", "custom_source_person_id"],
-        limit_page_length=1000000,
-    )
+    fields = ["name", "employee_name", "employee_number"]
+    if frappe.get_meta("Employee").has_field("custom_source_person_id"):
+        fields.append("custom_source_person_id")
+    employees = frappe.get_all("Employee", fields=fields, limit_page_length=1000000)
     by_name = {}
     by_number = {}
     by_source_person_id = {}

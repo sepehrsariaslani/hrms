@@ -43,15 +43,20 @@
   "column_break_geio",
   "absent_days",
   "payment_days",
+  "total_working_hours",
+  "hour_rate",
+  "base_hour_rate",
+  "attendance_working_hours",
+  "attendance_presence_hours",
+  "attendance_time_off",
+  "attendance_overtime",
+  "attendance_holiday_work",
   "help_section",
   "payment_days_calculation_help",
   "earnings_and_deductions_tab",
   "timesheets_section",
   "timesheets",
   "column_break_ghjr",
-  "total_working_hours",
-  "hour_rate",
-  "base_hour_rate",
   "earning_deduction_sb",
   "earnings",
   "column_break_k1jz",
@@ -282,6 +287,41 @@
    "fieldtype": "Float",
    "label": "Total Working Hours",
    "print_hide_if_no_value": 1
+  },
+  {
+   "fieldname": "attendance_working_hours",
+   "fieldtype": "Float",
+   "label": "ساعات کاری (حضور و غیاب)",
+   "precision": "2",
+   "read_only": 1
+  },
+  {
+   "fieldname": "attendance_presence_hours",
+   "fieldtype": "Float",
+   "label": "حضور (حضور و غیاب)",
+   "precision": "2",
+   "read_only": 1
+  },
+  {
+   "fieldname": "attendance_time_off",
+   "fieldtype": "Float",
+   "label": "کسری کار (حضور و غیاب)",
+   "precision": "2",
+   "read_only": 1
+  },
+  {
+   "fieldname": "attendance_overtime",
+   "fieldtype": "Float",
+   "label": "اضافه کاری (حضور و غیاب)",
+   "precision": "2",
+   "read_only": 1
+  },
+  {
+   "fieldname": "attendance_holiday_work",
+   "fieldtype": "Float",
+   "label": "تعطیل کاری (حضور و غیاب)",
+   "precision": "2",
+   "read_only": 1
   },
   {
    "fieldname": "hour_rate",

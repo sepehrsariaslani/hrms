@@ -1,7 +1,10 @@
+import json
+
 import frappe
 from frappe import _
 from frappe.model import get_permitted_fields
 from frappe.model.rename_doc import rename_doc
+from frappe.model.utils.user_settings import get_user_settings, sync_user_settings, update_user_settings
 from frappe.model.workflow import get_workflow_name
 from frappe.query_builder import Order
 from frappe.utils import add_days, date_diff, getdate, strip_html
@@ -29,6 +32,130 @@ SUPPORTED_FIELD_TYPES = [
 
 HR_APPRAISAL_ROLES = {"HR Manager", "HR User", "System Manager"}
 DOCSTATUS_LABELS = {0: "Draft", 1: "Submitted", 2: "Cancelled"}
+EMPLOYEE_DESK_VISIBILITY_FIELDS = [
+	"enable_home_check_in_panel",
+	"enable_home_kpi_section",
+	"enable_home_activity_section",
+	"enable_home_expense_section",
+	"enable_home_leave_balance_section",
+	"enable_home_quick_links_section",
+	"enable_home_recent_requests_section",
+	"enable_kpi_pending_requests",
+	"enable_kpi_approved_requests",
+	"enable_kpi_leave_balance",
+	"enable_kpi_active_missions",
+	"enable_kpi_latest_appraisal",
+	"enable_requests_center",
+	"enable_attendance",
+	"enable_leaves",
+	"enable_missions",
+	"enable_expense_claims",
+	"enable_employee_advances",
+	"enable_salary_slips",
+	"enable_complaints",
+	"enable_meals",
+	"enable_appraisals",
+	"enable_newsletters",
+	"enable_events",
+	"enable_imprest",
+]
+EMPLOYEE_DESK_VISIBILITY_DEFAULTS = {fieldname: True for fieldname in EMPLOYEE_DESK_VISIBILITY_FIELDS}
+EMPLOYEE_DESK_PERSONALIZATION_ROLES = {"System Manager", "Administrator", "HR Manager", "HR User"}
+EMPLOYEE_DESK_GLOBAL_PERSONALIZATION_ROLES = {"Administrator"}
+EMPLOYEE_DESK_PERSONALIZATION_KEY = "HRMS Employee Desk"
+EMPLOYEE_DESK_GLOBAL_PERSONALIZATION_KEY = "hrms_employee_desk_global_personalization"
+EMPLOYEE_DESK_HOME_SECTION_KEYS = [
+	"enable_home_check_in_panel",
+	"enable_home_kpi_section",
+	"enable_home_activity_section",
+	"enable_home_expense_section",
+	"enable_home_leave_balance_section",
+	"enable_home_quick_links_section",
+	"enable_home_recent_requests_section",
+]
+EMPLOYEE_DESK_KPI_KEYS = [
+	"enable_kpi_pending_requests",
+	"enable_kpi_approved_requests",
+	"enable_kpi_leave_balance",
+	"enable_kpi_active_missions",
+	"enable_kpi_latest_appraisal",
+]
+EMPLOYEE_DESK_SIDEBAR_ROUTE_KEYS = [
+	"/home",
+	"/dashboard/requests",
+	"/dashboard/attendance",
+	"/dashboard/leaves",
+	"/dashboard/missions",
+	"/weekly-shift-planner",
+	"/shift-allocator-scheduler",
+	"/team-weekly-shifts",
+	"/dashboard/imprest",
+	"/dashboard/expense-claims",
+	"/employee-advances",
+	"/dashboard/events",
+	"/dashboard/salary-slips",
+	"/dashboard/appraisals",
+	"/dashboard/meals",
+	"/dashboard/complaints",
+	"/dashboard/newsletters",
+	"/profile",
+	"/notifications",
+	"/settings",
+]
+EMPLOYEE_DESK_TAB_KEYS = [
+	"home",
+	"requests",
+	"attendance",
+	"missions",
+	"weekly_shift",
+	"leaves",
+	"shift_allocator_scheduler",
+	"team_weekly_shifts",
+	"imprest",
+	"expenses",
+	"advances",
+	"events",
+	"salary",
+	"appraisals",
+	"meals",
+	"complaints",
+	"newsletters",
+	"profile",
+	"notifications",
+	"settings",
+]
+EMPLOYEE_DESK_DEFAULT_HIDDEN_TAB_KEYS = [
+	"requests",
+	"missions",
+	"weekly_shift",
+	"shift_allocator_scheduler",
+	"team_weekly_shifts",
+	"imprest",
+	"advances",
+	"events",
+	"appraisals",
+	"meals",
+	"complaints",
+	"newsletters",
+	"profile",
+	"notifications",
+	"settings",
+]
+EMPLOYEE_DESK_MIN_VISIBLE_TABS = 3
+EMPLOYEE_DESK_MAX_VISIBLE_TABS = 5
+EMPLOYEE_DESK_PERSONALIZATION_DEFAULTS = {
+	"home_hidden_sections": [],
+	"home_hidden_kpis": [],
+	"home_section_order_keys": [],
+	"hidden_sidebar_routes": [],
+	"hidden_tab_keys": EMPLOYEE_DESK_DEFAULT_HIDDEN_TAB_KEYS,
+	"sidebar_order_routes": [],
+	"tab_order_keys": [],
+	"kpi_order_keys": [],
+	"sidebar_labels": {},
+	"tab_labels": {},
+	"kpi_labels": {},
+}
 
 
 @frappe.whitelist()
@@ -76,7 +203,298 @@ def get_current_employee_info() -> dict:
 		employee_fields,
 		as_dict=True,
 	)
+	if not employee:
+		return employee
+
+	employee["is_shift_allocator_by_role"] = bool(
+		"Shift Allocator" in set(frappe.get_roles(current_user))
+	)
 	return employee
+
+
+def _ensure_default_employee_desk_visibility():
+	if not frappe.db.table_exists("Employee Desk Visibility"):
+		return
+
+	if frappe.db.exists("Employee Desk Visibility", {"is_default": 1, "is_active": 1}):
+		return
+
+	doc = frappe.get_doc(
+		{
+			"doctype": "Employee Desk Visibility",
+			"title": "Employee Desk Visibility - Default",
+			"is_default": 1,
+			"is_active": 1,
+			**{fieldname: 1 for fieldname in EMPLOYEE_DESK_VISIBILITY_FIELDS},
+		}
+	)
+	doc.insert(ignore_permissions=True)
+
+
+def _get_employee_desk_visibility_row(company: str | None = None):
+	fields = ["name", "company"] + EMPLOYEE_DESK_VISIBILITY_FIELDS
+	if company:
+		rows = frappe.get_all(
+			"Employee Desk Visibility",
+			filters={"company": company, "is_active": 1},
+			fields=fields,
+			order_by="modified desc",
+			limit=1,
+		)
+		if rows:
+			return rows[0]
+
+	rows = frappe.get_all(
+		"Employee Desk Visibility",
+		filters={"is_default": 1, "is_active": 1},
+		fields=fields,
+		order_by="modified desc",
+		limit=1,
+	)
+	if rows:
+		return rows[0]
+
+	return None
+
+
+def _normalize_employee_desk_visibility(row: dict | None = None) -> dict:
+	visibility = dict(EMPLOYEE_DESK_VISIBILITY_DEFAULTS)
+	if not row:
+		return visibility
+
+	for fieldname in EMPLOYEE_DESK_VISIBILITY_FIELDS:
+		value = row.get(fieldname)
+		if value is None:
+			continue
+		visibility[fieldname] = bool(value)
+	return visibility
+
+
+def _has_employee_desk_personalization_access(user: str | None = None) -> bool:
+	roles = frappe.get_roles(user or frappe.session.user)
+	return bool(set(roles) & EMPLOYEE_DESK_PERSONALIZATION_ROLES)
+
+
+def _is_site_admin(user: str | None = None) -> bool:
+	current_user = user or frappe.session.user
+	if current_user == "Administrator":
+		return True
+	roles = frappe.get_roles(current_user)
+	return "System Manager" in roles or "HR Manager" in roles
+
+
+def _has_employee_desk_global_personalization_access(user: str | None = None) -> bool:
+	if _is_site_admin(user):
+		return True
+	roles = frappe.get_roles(user or frappe.session.user)
+	return bool(set(roles) & EMPLOYEE_DESK_GLOBAL_PERSONALIZATION_ROLES)
+
+
+def _normalize_choice_list(value, valid_values: list[str]) -> list[str]:
+	if not isinstance(value, (list, tuple, set)):
+		return []
+	valid_set = set(valid_values)
+	seen = set()
+	result = []
+	for item in value:
+		candidate = str(item or "").strip()
+		if not candidate or candidate not in valid_set or candidate in seen:
+			continue
+		seen.add(candidate)
+		result.append(candidate)
+	return result
+
+
+def _normalize_label_map(value, valid_values: list[str], max_length: int = 80) -> dict:
+	if not isinstance(value, dict):
+		return {}
+
+	valid_set = set(valid_values)
+	result = {}
+	for key, label in value.items():
+		normalized_key = str(key or "").strip()
+		if not normalized_key or normalized_key not in valid_set:
+			continue
+		normalized_label = str(label or "").strip()
+		if not normalized_label:
+			continue
+		result[normalized_key] = normalized_label[:max_length]
+	return result
+
+
+def _normalize_tab_hidden_keys(hidden_tab_keys: list[str], tab_order_keys: list[str]) -> list[str]:
+	ordered_keys = _normalize_choice_list([*(tab_order_keys or []), *EMPLOYEE_DESK_TAB_KEYS], EMPLOYEE_DESK_TAB_KEYS)
+	hidden_set = set(_normalize_choice_list(hidden_tab_keys, EMPLOYEE_DESK_TAB_KEYS))
+	visible_keys = [key for key in ordered_keys if key not in hidden_set]
+
+	if len(visible_keys) > EMPLOYEE_DESK_MAX_VISIBLE_TABS:
+		for key in visible_keys[EMPLOYEE_DESK_MAX_VISIBLE_TABS :]:
+			hidden_set.add(key)
+
+	if len(visible_keys) < EMPLOYEE_DESK_MIN_VISIBLE_TABS:
+		for key in ordered_keys:
+			if key not in hidden_set:
+				continue
+			hidden_set.remove(key)
+			visible_keys.append(key)
+			if len(visible_keys) >= EMPLOYEE_DESK_MIN_VISIBLE_TABS:
+				break
+
+	return [key for key in ordered_keys if key in hidden_set]
+
+
+def _normalize_employee_desk_personalization(data: dict | None = None) -> dict:
+	data = data or {}
+	normalized = dict(EMPLOYEE_DESK_PERSONALIZATION_DEFAULTS)
+	normalized["home_hidden_sections"] = _normalize_choice_list(
+		data.get("home_hidden_sections"), EMPLOYEE_DESK_HOME_SECTION_KEYS
+	)
+	normalized["home_hidden_kpis"] = _normalize_choice_list(
+		data.get("home_hidden_kpis"), EMPLOYEE_DESK_KPI_KEYS
+	)
+	normalized["home_section_order_keys"] = _normalize_choice_list(
+		data.get("home_section_order_keys"), EMPLOYEE_DESK_HOME_SECTION_KEYS
+	)
+	normalized["hidden_sidebar_routes"] = _normalize_choice_list(
+		data.get("hidden_sidebar_routes"), EMPLOYEE_DESK_SIDEBAR_ROUTE_KEYS
+	)
+	tab_order_keys = _normalize_choice_list(data.get("tab_order_keys"), EMPLOYEE_DESK_TAB_KEYS)
+	hidden_tab_keys = _normalize_choice_list(
+		data.get("hidden_tab_keys", EMPLOYEE_DESK_DEFAULT_HIDDEN_TAB_KEYS),
+		EMPLOYEE_DESK_TAB_KEYS,
+	)
+	if data.get("hidden_tab_keys") is not None:
+		hidden_tab_key_set = set(hidden_tab_keys)
+		tab_order_key_set = set(tab_order_keys)
+		for key in EMPLOYEE_DESK_DEFAULT_HIDDEN_TAB_KEYS:
+			if key in hidden_tab_key_set or key in tab_order_key_set:
+				continue
+			hidden_tab_keys.append(key)
+			hidden_tab_key_set.add(key)
+	normalized["hidden_tab_keys"] = _normalize_tab_hidden_keys(hidden_tab_keys, tab_order_keys)
+	normalized["sidebar_order_routes"] = _normalize_choice_list(
+		data.get("sidebar_order_routes"), EMPLOYEE_DESK_SIDEBAR_ROUTE_KEYS
+	)
+	normalized["tab_order_keys"] = tab_order_keys
+	normalized["kpi_order_keys"] = _normalize_choice_list(
+		data.get("kpi_order_keys"), EMPLOYEE_DESK_KPI_KEYS
+	)
+	normalized["sidebar_labels"] = _normalize_label_map(
+		data.get("sidebar_labels"), EMPLOYEE_DESK_SIDEBAR_ROUTE_KEYS
+	)
+	normalized["tab_labels"] = _normalize_label_map(data.get("tab_labels"), EMPLOYEE_DESK_TAB_KEYS)
+	normalized["kpi_labels"] = _normalize_label_map(
+		data.get("kpi_labels"), EMPLOYEE_DESK_KPI_KEYS
+	)
+	return normalized
+
+
+def _get_employee_desk_personalization_for_current_user() -> dict:
+	raw_settings = get_user_settings(EMPLOYEE_DESK_PERSONALIZATION_KEY)
+	settings_data = frappe.parse_json(raw_settings) if raw_settings else {}
+	if isinstance(settings_data, str):
+		try:
+			settings_data = json.loads(settings_data)
+		except Exception:
+			settings_data = {}
+	settings_data = settings_data or {}
+	return _normalize_employee_desk_personalization(settings_data.get("preferences"))
+
+
+def _get_employee_desk_global_personalization() -> dict:
+	raw_settings = frappe.db.get_default(EMPLOYEE_DESK_GLOBAL_PERSONALIZATION_KEY)
+	settings_data = frappe.parse_json(raw_settings) if raw_settings else {}
+	if isinstance(settings_data, str):
+		try:
+			settings_data = json.loads(settings_data)
+		except Exception:
+			settings_data = {}
+	settings_data = settings_data or {}
+	return _normalize_employee_desk_personalization(settings_data.get("preferences"))
+
+
+@frappe.whitelist()
+def get_employee_desk_visibility(employee: str | None = None) -> dict:
+	if not frappe.db.table_exists("Employee Desk Visibility"):
+		return {"source": "builtin-default", "company": None, "visibility": dict(EMPLOYEE_DESK_VISIBILITY_DEFAULTS)}
+
+	_ensure_default_employee_desk_visibility()
+
+	employee_name = employee
+	if not employee_name:
+		employee_name = frappe.db.get_value(
+			"Employee",
+			{"user_id": frappe.session.user, "status": "Active"},
+			"name",
+		)
+
+	company = frappe.db.get_value("Employee", employee_name, "company") if employee_name else None
+	row = _get_employee_desk_visibility_row(company=company)
+	return {
+		"source": row.get("name") if row else "builtin-default",
+		"company": company,
+		"visibility": _normalize_employee_desk_visibility(row),
+	}
+
+
+@frappe.whitelist()
+def get_employee_desk_personalization() -> dict:
+	return {
+		"can_customize": _has_employee_desk_personalization_access(),
+		"preferences": _get_employee_desk_personalization_for_current_user(),
+	}
+
+
+@frappe.whitelist()
+def get_employee_desk_global_personalization() -> dict:
+	return {
+		"can_customize_global": _has_employee_desk_global_personalization_access(),
+		"preferences": _get_employee_desk_global_personalization(),
+	}
+
+
+@frappe.whitelist()
+def save_employee_desk_personalization(preferences: str | dict | None = None) -> dict:
+	if not _has_employee_desk_personalization_access():
+		frappe.throw(_("You are not allowed to customize the employee dashboard."))
+
+	payload = frappe.parse_json(preferences) if preferences else {}
+	if isinstance(payload, str):
+		try:
+			payload = json.loads(payload)
+		except Exception:
+			payload = {}
+	payload = payload or {}
+	normalized = _normalize_employee_desk_personalization(payload)
+	update_user_settings(EMPLOYEE_DESK_PERSONALIZATION_KEY, {"preferences": normalized})
+	sync_user_settings()
+	return {
+		"can_customize": True,
+		"preferences": normalized,
+	}
+
+
+@frappe.whitelist()
+def save_employee_desk_global_personalization(preferences: str | dict | None = None) -> dict:
+	if not _has_employee_desk_global_personalization_access():
+		frappe.throw(_("You are not allowed to customize the employee desk for all employees."))
+
+	payload = frappe.parse_json(preferences) if preferences else {}
+	if isinstance(payload, str):
+		try:
+			payload = json.loads(payload)
+		except Exception:
+			payload = {}
+	payload = payload or {}
+	normalized = _normalize_employee_desk_personalization(payload)
+	frappe.db.set_default(
+		EMPLOYEE_DESK_GLOBAL_PERSONALIZATION_KEY,
+		json.dumps({"preferences": normalized}),
+	)
+	return {
+		"can_customize_global": True,
+		"preferences": normalized,
+	}
 
 
 @frappe.whitelist()
@@ -1201,7 +1619,7 @@ def get_expense_claims(
 		"`tabExpense Claim`.modified",
 		"`tabExpense Claim`.creation",
 		"`tabExpense Claim Detail`.expense_type",
-		"count(`tabExpense Claim Detail`.expense_type) as total_expenses",
+		{"COUNT": "`tabExpense Claim Detail`.expense_type", "as": "total_expenses"},
 	]
 
 	if workflow_state_field := get_workflow_state_field("Expense Claim"):

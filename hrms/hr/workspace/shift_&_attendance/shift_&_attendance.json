@@ -1,11 +1,12 @@
 {
+ "app": "hrms",
  "charts": [
   {
    "chart_name": "Attendance Count",
    "label": "Attendance Count"
   }
  ],
- "content": "[{\"id\": \"r0a57m9-Yx\", \"type\": \"chart\", \"data\": {\"chart_name\": \"Attendance Count\", \"col\": 12}}, {\"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"\u0628\u0631\u0646\u0627\u0645\u0647 \u0634\u06cc\u0641\u062a \u0647\u0641\u062a\u06af\u06cc\", \"col\": 3}}, {\"id\": \"9_DQbkhJgn\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"NWHR4zbbZW\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Your Shortcuts</b></span>\", \"col\": 12}}, {\"id\": \"JS3JgWQp49\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Employee Checkin\", \"col\": 3}}, {\"id\": \"S0DZ1mFw9f\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Attendance\", \"col\": 3}}, {\"id\": \"pYPZOYG0py\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Shift Request\", \"col\": 3}}, {\"id\": \"Llf2uaX7x4\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Dashboard\", \"col\": 3}}, {\"id\": \"FwqPdfwjlv\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Roster\", \"col\": 3}}, {\"id\": \"fNKKY2A-ON\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"mYz7o2zWVf\", \"type\": \"header\", \"data\": {\"text\": \"<span style=\\\"font-size: 18px;\\\"><b>Masters &amp; Reports</b></span>\", \"col\": 12}}, {\"id\": \"iBvYqY6Ul6\", \"type\": \"card\", \"data\": {\"card_name\": \"Shifts\", \"col\": 4}}, {\"type\": \"card\", \"data\": {\"card_name\": \"\u0628\u0631\u0646\u0627\u0645\u0647\u200c\u0631\u06cc\u0632\u06cc \u0634\u06cc\u0641\u062a \u0647\u0641\u062a\u06af\u06cc\", \"col\": 4}}, {\"id\": \"aCKU8VAUu8\", \"type\": \"card\", \"data\": {\"card_name\": \"Attendance\", \"col\": 4}}, {\"id\": \"CMPmxSUFjB\", \"type\": \"card\", \"data\": {\"card_name\": \"Time\", \"col\": 4}}, {\"id\": \"WAO9X_IrfP\", \"type\": \"card\", \"data\": {\"card_name\": \"Reports\", \"col\": 4}}]",
+ "content": "[{\"id\": \"r0a57m9-Yx\", \"type\": \"chart\", \"data\": {\"chart_name\": \"Attendance Count\", \"col\": 12}}, {\"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"\u0628\u0631\u0646\u0627\u0645\u0647 \u0634\u06cc\u0641\u062a \u0647\u0641\u062a\u06af\u06cc\", \"col\": 3}}, {\"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Shift Assignment\", \"col\": 3}}, {\"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Break Assignment\", \"col\": 3}}, {\"id\": \"9_DQbkhJgn\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"NWHR4zbbZW\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Your Shortcuts</b></span>\", \"col\": 12}}, {\"id\": \"JS3JgWQp49\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Employee Checkin\", \"col\": 3}}, {\"id\": \"S0DZ1mFw9f\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Attendance\", \"col\": 3}}, {\"id\": \"pYPZOYG0py\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Shift Request\", \"col\": 3}}, {\"id\": \"Llf2uaX7x4\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Dashboard\", \"col\": 3}}, {\"id\": \"FwqPdfwjlv\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Roster\", \"col\": 3}}, {\"id\": \"fNKKY2A-ON\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"mYz7o2zWVf\", \"type\": \"header\", \"data\": {\"text\": \"<span style=\\\"font-size: 18px;\\\"><b>Masters &amp; Reports</b></span>\", \"col\": 12}}, {\"type\": \"card\", \"data\": {\"card_name\": \"Attendance Operations\", \"col\": 4}}, {\"type\": \"card\", \"data\": {\"card_name\": \"Shift & Scheduling\", \"col\": 4}}, {\"type\": \"card\", \"data\": {\"card_name\": \"Break Management\", \"col\": 4}}, {\"type\": \"card\", \"data\": {\"card_name\": \"Weekly Shift Planning\", \"col\": 4}}, {\"type\": \"card\", \"data\": {\"card_name\": \"Overtime\", \"col\": 4}}, {\"type\": \"card\", \"data\": {\"card_name\": \"Attendance Reports\", \"col\": 4}}, {\"type\": \"card\", \"data\": {\"card_name\": \"Other Shift Items\", \"col\": 4}}]",
  "creation": "2022-08-20 15:50:06.598086",
  "custom_blocks": [],
  "docstatus": 0,
@@ -20,8 +21,9 @@
   {
    "hidden": 0,
    "is_query_report": 0,
-   "label": "Attendance",
-   "link_count": 5,
+   "label": "Attendance Operations",
+   "link_count": 6,
+   "link_type": "DocType",
    "onboard": 0,
    "type": "Card Break"
   },
@@ -78,17 +80,9 @@
   {
    "hidden": 0,
    "is_query_report": 0,
-   "label": "Time",
-   "link_count": 2,
-   "onboard": 0,
-   "type": "Card Break"
-  },
-  {
-   "hidden": 0,
-   "is_query_report": 0,
-   "label": "Timesheet",
+   "label": "Employee Times",
    "link_count": 0,
-   "link_to": "Timesheet",
+   "link_to": "Employee Times",
    "link_type": "DocType",
    "onboard": 0,
    "type": "Link"
@@ -96,76 +90,8 @@
   {
    "hidden": 0,
    "is_query_report": 0,
-   "label": "Activity Type",
-   "link_count": 0,
-   "link_to": "Activity Type",
-   "link_type": "DocType",
-   "onboard": 0,
-   "type": "Link"
-  },
-  {
-   "hidden": 0,
-   "is_query_report": 0,
-   "label": "Reports",
-   "link_count": 5,
-   "onboard": 0,
-   "type": "Card Break"
-  },
-  {
-   "hidden": 0,
-   "is_query_report": 1,
-   "label": "Monthly Attendance Sheet",
-   "link_count": 0,
-   "link_to": "Monthly Attendance Sheet",
-   "link_type": "Report",
-   "onboard": 0,
-   "type": "Link"
-  },
-  {
-   "hidden": 0,
-   "is_query_report": 1,
-   "label": "Shift Attendance",
-   "link_count": 0,
-   "link_to": "Shift Attendance",
-   "link_type": "Report",
-   "onboard": 0,
-   "type": "Link"
-  },
-  {
-   "hidden": 0,
-   "is_query_report": 1,
-   "label": "Employee Hours Utilization Based On Timesheet",
-   "link_count": 0,
-   "link_to": "Employee Hours Utilization Based On Timesheet",
-   "link_type": "Report",
-   "onboard": 0,
-   "type": "Link"
-  },
-  {
-   "hidden": 0,
-   "is_query_report": 1,
-   "label": "Project Profitability",
-   "link_count": 0,
-   "link_to": "Project Profitability",
-   "link_type": "Report",
-   "onboard": 0,
-   "type": "Link"
-  },
-  {
-   "hidden": 0,
-   "is_query_report": 1,
-   "label": "Employees working on a holiday",
-   "link_count": 0,
-   "link_to": "Employees working on a holiday",
-   "link_type": "Report",
-   "onboard": 0,
-   "type": "Link"
-  },
-  {
-   "hidden": 0,
-   "is_query_report": 0,
-   "label": "Shifts",
-   "link_count": 6,
+   "label": "Shift & Scheduling",
+   "link_count": 7,
    "link_type": "DocType",
    "onboard": 0,
    "type": "Card Break"
@@ -203,6 +129,16 @@
   {
    "hidden": 0,
    "is_query_report": 0,
+   "label": "Shift Assignment Tool",
+   "link_count": 0,
+   "link_to": "Shift Assignment Tool",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
    "label": "Shift Schedule",
    "link_count": 0,
    "link_to": "Shift Schedule",
@@ -233,18 +169,8 @@
   {
    "hidden": 0,
    "is_query_report": 0,
-   "label": "Shift Assignment Tool",
-   "link_count": 0,
-   "link_to": "Shift Assignment Tool",
-   "link_type": "DocType",
-   "onboard": 0,
-   "type": "Link"
-  },
-  {
-   "hidden": 0,
-   "is_query_report": 0,
-   "label": "\u0628\u0631\u0646\u0627\u0645\u0647\u200c\u0631\u06cc\u0632\u06cc \u0634\u06cc\u0641\u062a \u0647\u0641\u062a\u06af\u06cc",
-   "link_count": 3,
+   "label": "Break Management",
+   "link_count": 2,
    "link_type": "DocType",
    "onboard": 0,
    "type": "Card Break"
@@ -252,7 +178,36 @@
   {
    "hidden": 0,
    "is_query_report": 0,
-   "label": "\u062a\u0646\u0638\u06cc\u0645\u0627\u062a \u0628\u0631\u0646\u0627\u0645\u0647\u200c\u0631\u06cc\u0632 \u0634\u06cc\u0641\u062a \u0647\u0641\u062a\u06af\u06cc",
+   "label": "Break Hours",
+   "link_count": 0,
+   "link_to": "Break Hours",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Break Assignment",
+   "link_count": 0,
+   "link_to": "Break Assignment",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Weekly Shift Planning",
+   "link_count": 7,
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Weekly Shift Planner Settings",
    "link_count": 0,
    "link_to": "Weekly Shift Planner Settings",
    "link_type": "DocType",
@@ -262,7 +217,7 @@
   {
    "hidden": 0,
    "is_query_report": 0,
-   "label": "\u0628\u0631\u0646\u0627\u0645\u0647 \u0634\u06cc\u0641\u062a \u0647\u0641\u062a\u06af\u06cc",
+   "label": "Weekly Shift Plan",
    "link_count": 0,
    "link_to": "Weekly Shift Plan",
    "link_type": "DocType",
@@ -272,15 +227,254 @@
   {
    "hidden": 0,
    "is_query_report": 0,
-   "label": "\u0646\u0647\u0627\u06cc\u06cc\u200c\u0633\u0627\u0632\u06cc \u0634\u06cc\u0641\u062a \u0647\u0641\u062a\u06af\u06cc",
+   "label": "Weekly Shift Plan Slot",
+   "link_count": 0,
+   "link_to": "Weekly Shift Plan Slot",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Weekly Shift Finalization",
    "link_count": 0,
    "link_to": "Weekly Shift Finalization",
    "link_type": "DocType",
    "onboard": 0,
    "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Weekly Shift Finalization Slot",
+   "link_count": 0,
+   "link_to": "Weekly Shift Finalization Slot",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Shift Duty Role",
+   "link_count": 0,
+   "link_to": "Shift Duty Role",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Employee Shift Duty Role",
+   "link_count": 0,
+   "link_to": "Employee Shift Duty Role",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Overtime",
+   "link_count": 4,
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Overtime Type",
+   "link_count": 0,
+   "link_to": "Overtime Type",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Overtime Slip",
+   "link_count": 0,
+   "link_to": "Overtime Slip",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Overtime Details",
+   "link_count": 0,
+   "link_to": "Overtime Details",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Overtime Salary Component",
+   "link_count": 0,
+   "link_to": "Overtime Salary Component",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Attendance Reports",
+   "link_count": 10,
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "\u06af\u0632\u0627\u0631\u0634 \u062d\u0636\u0648\u0631 \u0648 \u063a\u06cc\u0627\u0628 \u0647\u0648\u0634\u0645\u0646\u062f",
+   "link_count": 0,
+   "link_to": "Smart Attendance Report",
+   "link_type": "Report",
+   "onboard": 0,
+   "report_ref_doctype": "Employee Checkin",
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Monthly Attendance Sheet",
+   "link_count": 0,
+   "link_to": "Monthly Attendance Sheet",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Shift Attendance",
+   "link_count": 0,
+   "link_to": "Shift Attendance",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Employee Overtime",
+   "link_count": 0,
+   "link_to": "Employee Overtime",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Employee Time",
+   "link_count": 0,
+   "link_to": "Employee Time",
+   "link_type": "Report",
+   "onboard": 0,
+   "report_ref_doctype": "Employee Checkin",
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Employee Time Per Month",
+   "link_count": 0,
+   "link_to": "Employee Time Per Month",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "\u0686\u06a9 \u06a9\u0631\u062f\u0646 \u0648\u0631\u0648\u062f \u0648 \u062e\u0631\u0648\u062c \u06a9\u0627\u0631\u0645\u0646\u062f\u0627\u0646",
+   "link_count": 0,
+   "link_to": "\u0686\u06a9 \u06a9\u0631\u062f\u0646 \u0648\u0631\u0648\u062f \u0648 \u062e\u0631\u0648\u062c \u06a9\u0627\u0631\u0645\u0646\u062f\u0627\u0646",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "\u06a9\u0644 \u0633\u0627\u0639\u0627\u062a \u06a9\u0627\u0631\u06cc \u06a9\u0627\u0631\u0645\u0646\u062f\u0627\u0646",
+   "link_count": 0,
+   "link_to": "\u06a9\u0644 \u0633\u0627\u0639\u0627\u062a \u06a9\u0627\u0631\u06cc \u06a9\u0627\u0631\u0645\u0646\u062f\u0627\u0646",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Project Profitability",
+   "link_count": 0,
+   "link_to": "Project Profitability",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Employee Hours Utilization Based On Timesheet",
+   "link_count": 0,
+   "link_to": "Employee Hours Utilization Based On Timesheet",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Other Shift Items",
+   "link_count": 3,
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Activity Type",
+   "link_count": 0,
+   "link_to": "Activity Type",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Employees working on a holiday",
+   "link_count": 0,
+   "link_to": "Employees working on a holiday",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Timesheet",
+   "link_count": 0,
+   "link_to": "Timesheet",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
   }
  ],
- "modified": "2026-04-15 13:41:56.431733",
+ "modified": "2026-04-25 01:18:38.652543",
  "modified_by": "Administrator",
  "module": "HR",
  "name": "Shift & Attendance",
@@ -336,7 +530,22 @@
    "label": "\u0628\u0631\u0646\u0627\u0645\u0647 \u0634\u06cc\u0641\u062a \u0647\u0641\u062a\u06af\u06cc",
    "link_to": "Weekly Shift Plan",
    "type": "DocType"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "Shift Assignment",
+   "link_to": "Shift Assignment",
+   "type": "DocType"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "Break Assignment",
+   "link_to": "Break Assignment",
+   "type": "DocType"
   }
  ],
- "title": "Shift & Attendance"
+ "title": "Shift & Attendance",
+ "type": "Workspace"
 }

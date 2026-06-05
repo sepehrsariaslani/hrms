@@ -6,7 +6,7 @@
    "label": "Expense Claims"
   }
  ],
- "content": "[{\"id\":\"L2zVuWBp7u\",\"type\":\"chart\",\"data\":{\"chart_name\":\"Expense Claims\",\"col\":12}},{\"id\":\"xrNOam-5qD\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"sQTzb1f7Y_\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Masters &amp; Reports</b></span>\",\"col\":12}},{\"id\":\"DuIKEI2BM-\",\"type\":\"card\",\"data\":{\"card_name\":\"Claims\",\"col\":4}},{\"id\":\"YLUHzAMPPI\",\"type\":\"card\",\"data\":{\"card_name\":\"Advances\",\"col\":4}},{\"id\":\"xcW_x4wuLQ\",\"type\":\"card\",\"data\":{\"card_name\":\"Reports\",\"col\":4}},{\"id\":\"KgfEHHa8pF\",\"type\":\"card\",\"data\":{\"card_name\":\"Accounting Reports\",\"col\":4}},{\"id\":\"ZSjP2Kct-c\",\"type\":\"card\",\"data\":{\"card_name\":\"Travel\",\"col\":4}},{\"id\":\"gRpeo_qpkn\",\"type\":\"card\",\"data\":{\"card_name\":\"Fleet Management\",\"col\":4}}]",
+ "content": "[{\"id\": \"L2zVuWBp7u\", \"type\": \"chart\", \"data\": {\"chart_name\": \"Expense Claims\", \"col\": 12}}, {\"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Expense Claim\", \"col\": 3}}, {\"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Employee Advance\", \"col\": 3}}, {\"id\": \"xrNOam-5qD\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"sQTzb1f7Y_\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Masters &amp; Reports</b></span>\", \"col\": 12}}, {\"type\": \"card\", \"data\": {\"card_name\": \"Employee Finance\", \"col\": 4}}, {\"type\": \"card\", \"data\": {\"card_name\": \"Travel & Logistics\", \"col\": 4}}, {\"type\": \"card\", \"data\": {\"card_name\": \"Fleet & Operations\", \"col\": 4}}, {\"type\": \"card\", \"data\": {\"card_name\": \"Accounting Entries\", \"col\": 4}}, {\"type\": \"card\", \"data\": {\"card_name\": \"Expense Reports\", \"col\": 4}}, {\"type\": \"card\", \"data\": {\"card_name\": \"Other Expense Items\", \"col\": 4}}]",
  "creation": "2022-08-20 16:28:40.701015",
  "custom_blocks": [],
  "docstatus": 0,
@@ -21,8 +21,9 @@
   {
    "hidden": 0,
    "is_query_report": 0,
-   "label": "Claims",
-   "link_count": 2,
+   "label": "Employee Finance",
+   "link_count": 5,
+   "link_type": "DocType",
    "onboard": 0,
    "type": "Card Break"
   },
@@ -49,8 +50,39 @@
   {
    "hidden": 0,
    "is_query_report": 0,
-   "label": "Travel",
-   "link_count": 2,
+   "label": "Employee Advance",
+   "link_count": 0,
+   "link_to": "Employee Advance",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Employee Imprest Account",
+   "link_count": 0,
+   "link_to": "Employee Imprest Account",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Additional Salary",
+   "link_count": 0,
+   "link_to": "Additional Salary",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Travel & Logistics",
+   "link_count": 4,
+   "link_type": "DocType",
    "onboard": 0,
    "type": "Card Break"
   },
@@ -60,6 +92,26 @@
    "label": "Travel Request",
    "link_count": 0,
    "link_to": "Travel Request",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Travel Request Costing",
+   "link_count": 0,
+   "link_to": "Travel Request Costing",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Travel Itinerary",
+   "link_count": 0,
+   "link_to": "Travel Itinerary",
    "link_type": "DocType",
    "onboard": 0,
    "type": "Link"
@@ -77,20 +129,60 @@
   {
    "hidden": 0,
    "is_query_report": 0,
-   "label": "Advances",
+   "label": "Fleet & Operations",
    "link_count": 4,
+   "link_type": "DocType",
    "onboard": 0,
    "type": "Card Break"
   },
   {
    "hidden": 0,
    "is_query_report": 0,
-   "label": "Employee Advance",
+   "label": "Vehicle",
    "link_count": 0,
-   "link_to": "Employee Advance",
+   "link_to": "Vehicle",
    "link_type": "DocType",
    "onboard": 0,
    "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Vehicle Service",
+   "link_count": 0,
+   "link_to": "Vehicle Service",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Vehicle Service Item",
+   "link_count": 0,
+   "link_to": "Vehicle Service Item",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Vehicle Log",
+   "link_count": 0,
+   "link_to": "Vehicle Log",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Accounting Entries",
+   "link_count": 2,
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Card Break"
   },
   {
    "hidden": 0,
@@ -115,30 +207,11 @@
   {
    "hidden": 0,
    "is_query_report": 0,
-   "label": "Additional Salary",
-   "link_count": 0,
-   "link_to": "Additional Salary",
+   "label": "Expense Reports",
+   "link_count": 7,
    "link_type": "DocType",
    "onboard": 0,
-   "type": "Link"
-  },
-  {
-   "hidden": 0,
-   "is_query_report": 0,
-   "label": "Reports",
-   "link_count": 3,
-   "onboard": 0,
    "type": "Card Break"
-  },
-  {
-   "hidden": 0,
-   "is_query_report": 1,
-   "label": "Employee Advance Summary",
-   "link_count": 0,
-   "link_to": "Employee Advance Summary",
-   "link_type": "Report",
-   "onboard": 0,
-   "type": "Link"
   },
   {
    "hidden": 0,
@@ -162,11 +235,13 @@
   },
   {
    "hidden": 0,
-   "is_query_report": 0,
-   "label": "Accounting Reports",
-   "link_count": 3,
+   "is_query_report": 1,
+   "label": "Employee Advance Summary",
+   "link_count": 0,
+   "link_to": "Employee Advance Summary",
+   "link_type": "Report",
    "onboard": 0,
-   "type": "Card Break"
+   "type": "Link"
   },
   {
    "hidden": 0,
@@ -200,21 +275,22 @@
   },
   {
    "hidden": 0,
-   "is_query_report": 0,
-   "label": "Fleet Management",
-   "link_count": 5,
+   "is_query_report": 1,
+   "label": "\u0645\u0627\u0646\u062f\u0647 \u062d\u0633\u0627\u0628 \u06a9\u0627\u0631\u0645\u0646\u062f\u0627\u0646",
+   "link_count": 0,
+   "link_to": "\u0645\u0627\u0646\u062f\u0647 \u062d\u0633\u0627\u0628 \u06a9\u0627\u0631\u0645\u0646\u062f\u0627\u0646",
+   "link_type": "Report",
    "onboard": 0,
-   "type": "Card Break"
+   "type": "Link"
   },
   {
    "hidden": 0,
    "is_query_report": 0,
-   "label": "Vehicle",
-   "link_count": 0,
-   "link_to": "Vehicle",
+   "label": "Other Expense Items",
+   "link_count": 1,
    "link_type": "DocType",
    "onboard": 0,
-   "type": "Link"
+   "type": "Card Break"
   },
   {
    "hidden": 0,
@@ -225,39 +301,9 @@
    "link_type": "DocType",
    "onboard": 0,
    "type": "Link"
-  },
-  {
-   "hidden": 0,
-   "is_query_report": 0,
-   "label": "Vehicle Service Item",
-   "link_count": 0,
-   "link_to": "Vehicle Service Item",
-   "link_type": "DocType",
-   "onboard": 0,
-   "type": "Link"
-  },
-  {
-   "hidden": 0,
-   "is_query_report": 0,
-   "label": "Vehicle Log",
-   "link_count": 0,
-   "link_to": "Vehicle Log",
-   "link_type": "DocType",
-   "onboard": 0,
-   "type": "Link"
-  },
-  {
-   "hidden": 0,
-   "is_query_report": 1,
-   "label": "Vehicle Expenses",
-   "link_count": 0,
-   "link_to": "Vehicle Expenses",
-   "link_type": "Report",
-   "onboard": 0,
-   "type": "Link"
   }
  ],
- "modified": "2026-03-26 14:46:56.009602",
+ "modified": "2026-04-25 01:18:38.798052",
  "modified_by": "Administrator",
  "module": "HR",
  "name": "Expenses",
@@ -268,7 +314,22 @@
  "quick_lists": [],
  "roles": [],
  "sequence_id": 6.0,
- "shortcuts": [],
+ "shortcuts": [
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "Expense Claim",
+   "link_to": "Expense Claim",
+   "type": "DocType"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "Employee Advance",
+   "link_to": "Employee Advance",
+   "type": "DocType"
+  }
+ ],
  "title": "Expenses",
  "type": "Workspace"
 }

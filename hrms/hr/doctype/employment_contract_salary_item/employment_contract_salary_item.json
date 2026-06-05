@@ -1,0 +1,56 @@
+{
+ "actions": [],
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "salary_component_label",
+  "amount_31_days",
+  "amount_30_days",
+  "remarks"
+ ],
+ "fields": [
+  {
+   "fieldname": "salary_component_label",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "شرح",
+   "reqd": 1
+  },
+  {
+   "fieldname": "amount_31_days",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "ماه 31 روزه",
+   "options": "currency"
+  },
+  {
+   "fieldname": "amount_30_days",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "ماه 30 روزه",
+   "options": "currency"
+  },
+  {
+   "fieldname": "remarks",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "ملاحظات"
+  },
+  {
+   "fieldname": "currency",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Currency",
+   "options": "Currency"
+  }
+ ],
+ "istable": 1,
+ "links": [],
+ "module": "HR",
+ "name": "Employment Contract Salary Item",
+ "permissions": [],
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

@@ -307,7 +307,7 @@
 									<div class="font-medium truncate">{{ selectedTransaction.party_name || selectedTransaction.party }}</div>
 								</div>
 								<div class="bg-gray-50 rounded-lg p-2" v-if="selectedTransaction.reference_no">
-									<div class="text-gray-500">{{ __("شماره مرجع") }}</div>
+									<div class="text-gray-500">{{ __("شماره پیگیری") }}</div>
 									<div class="font-medium">{{ selectedTransaction.reference_no }}</div>
 								</div>
 							</div>
@@ -405,11 +405,14 @@
 				</div>
 			</Transition>
 
-			<div class="fixed bottom-20 left-3 z-40">
+			<div class="fixed bottom-20 left-3 z-40" data-tour="imprest-quick-actions">
 				<Transition name="scale">
 					<div v-if="showQuickActions" class="absolute bottom-14 left-0 bg-white rounded-xl border border-gray-100 shadow p-2 w-44">
 						<button class="w-full text-right p-2 rounded-lg hover:bg-gray-50 text-xs" @click="openQuickAction('pay')">
 							{{ __('ثبت پرداخت') }}
+						</button>
+						<button class="w-full text-right p-2 rounded-lg hover:bg-gray-50 text-xs" @click="openQuickAction('receive')">
+							{{ __('ثبت دریافت') }}
 						</button>
 						<button class="w-full text-right p-2 rounded-lg hover:bg-gray-50 text-xs" @click="openQuickAction('transfer')">
 							{{ __('ثبت انتقال داخلی') }}
@@ -1054,6 +1057,11 @@ onMounted(() => {
 })
 
 onIonViewWillEnter(() => {
+	if (typeof contextResource.reload === "function") {
+		contextResource.reload()
+	} else {
+		contextResource.fetch()
+	}
 	if (isImprestEnabled.value) loadTransactions()
 })
 

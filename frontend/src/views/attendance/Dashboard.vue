@@ -6,12 +6,7 @@
 				<div v-if="isShiftAllocator" class="grid grid-cols-1 gap-2 sm:grid-cols-2">
 					<router-link :to="{ name: 'ShiftAllocatorSchedulerView' }" v-slot="{ navigate }">
 						<Button @click="navigate" variant="solid" class="w-full py-5 text-base">
-							{{ __("تقویم شیفت هفتگی تیم") }}
-						</Button>
-					</router-link>
-					<router-link :to="{ name: 'TeamWeeklyShiftBoardView' }" v-slot="{ navigate }">
-						<Button @click="navigate" variant="outline" class="w-full py-5 text-base">
-							{{ __("تابلوی هفتگی تیم") }}
+							{{ __("مدیریت شیفت تیم") }}
 						</Button>
 					</router-link>
 				</div>
@@ -61,7 +56,9 @@ import {
 
 const employee = inject("$employee")
 
-const isShiftAllocator = computed(() => Boolean(employee.data?.is_shift_allocator))
+const isShiftAllocator = computed(() =>
+	Boolean(employee.data?.is_shift_allocator || employee.data?.is_shift_allocator_by_role)
+)
 const hasShiftPlanningAccess = computed(() =>
 	Boolean(employee.data?.variable_shift || employee.data?.has_rotational_shift || employee.data?.needs_shift_registration)
 )

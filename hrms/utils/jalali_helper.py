@@ -19,20 +19,31 @@ def gregorian_to_jalali(gregorian_date, format_string="jYYYY/jMM/jDD"):
 		return str(gregorian_date)
 
 	try:
+		input_is_string = isinstance(gregorian_date, str)
+		has_time = False
+
 		if isinstance(gregorian_date, str):
-			for fmt in ("%Y-%m-%d", "%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M:%S.%f"):
+			date_text = gregorian_date.strip()
+			for fmt, includes_time in (
+				("%Y-%m-%d %H:%M:%S.%f", True),
+				("%Y-%m-%d %H:%M:%S", True),
+				("%Y-%m-%d", False),
+			):
 				try:
-					gregorian_date = datetime.strptime(gregorian_date, fmt)
+					gregorian_date = datetime.strptime(date_text, fmt)
+					has_time = includes_time
 					break
 				except ValueError:
 					continue
 
 		if isinstance(gregorian_date, datetime):
 			dt = gregorian_date
-			has_time = True
+			if not input_is_string:
+				has_time = True
 		elif isinstance(gregorian_date, date):
 			dt = datetime.combine(gregorian_date, datetime.min.time())
-			has_time = False
+			if not input_is_string:
+				has_time = False
 		else:
 			return str(gregorian_date)
 

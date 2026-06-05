@@ -30,7 +30,7 @@ def get_dashboard_for_employee(data):
 					"Salary Withholding",
 				],
 			},
-			{"label": _("Shift"), "items": ["Shift Request", "Shift Assignment"]},
+			{"label": _("Shift"), "items": ["Shift Request", "Shift Assignment", "Break Assignment"]},
 			{"label": _("Expense"), "items": ["Expense Claim", "Travel Request", "Employee Advance"]},
 			{"label": _("Benefit"), "items": ["Employee Benefit Application", "Employee Benefit Claim"]},
 			{

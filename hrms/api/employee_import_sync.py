@@ -41,86 +41,93 @@ PERSIAN_CHAR_MAP = str.maketrans(
 EMPLOYEE_CUSTOM_FIELDS = {
     "Employee": [
         {
+            "fieldname": "attendance_device_info_section",
+            "label": "دستگاه حضور غیاب",
+            "fieldtype": "Section Break",
+            "insert_after": "personnel_case_no",
+            "collapsible": 1,
+        },
+        {
             "fieldname": "custom_source_person_id",
-            "label": "Source Person ID",
+            "label": "شناسه پرسنلی مبدا",
             "fieldtype": "Data",
-            "insert_after": "attendance_device_id",
+            "insert_after": "attendance_device_info_section",
             "read_only": 1,
             "in_list_view": 1,
         },
         {
             "fieldname": "custom_membership_date_jalali",
-            "label": "Membership Date Jalali",
+            "label": "تاریخ عضویت (جلالی)",
             "fieldtype": "Data",
             "insert_after": "custom_source_person_id",
             "read_only": 1,
         },
         {
             "fieldname": "custom_membership_date_gregorian",
-            "label": "Membership Date Gregorian",
+            "label": "تاریخ عضویت (میلادی)",
             "fieldtype": "Date",
             "insert_after": "custom_membership_date_jalali",
             "read_only": 1,
         },
         {
             "fieldname": "custom_latest_attendance_date_jalali",
-            "label": "Latest Attendance Date Jalali",
+            "label": "آخرین تاریخ حضور (جلالی)",
             "fieldtype": "Data",
             "insert_after": "custom_membership_date_gregorian",
             "read_only": 1,
         },
         {
             "fieldname": "custom_latest_attendance_date_gregorian",
-            "label": "Latest Attendance Date Gregorian",
+            "label": "آخرین تاریخ حضور (میلادی)",
             "fieldtype": "Date",
             "insert_after": "custom_latest_attendance_date_jalali",
             "read_only": 1,
         },
         {
             "fieldname": "custom_attendance_source_databases",
-            "label": "Attendance Source Databases",
+            "label": "پایگاه‌های داده حضور و غیاب",
             "fieldtype": "Small Text",
             "insert_after": "custom_latest_attendance_date_gregorian",
             "read_only": 1,
         },
         {
             "fieldname": "custom_branch_codes",
-            "label": "Branch Codes",
+            "label": "کدهای شعبه",
             "fieldtype": "Small Text",
             "insert_after": "custom_attendance_source_databases",
             "read_only": 1,
         },
         {
             "fieldname": "custom_machine_nos",
-            "label": "Machine Numbers",
+            "label": "شماره دستگاه‌ها",
             "fieldtype": "Small Text",
             "insert_after": "custom_branch_codes",
             "read_only": 1,
         },
         {
             "fieldname": "custom_employee_codes",
-            "label": "Employee Codes",
+            "label": "کدهای کارمندی",
             "fieldtype": "Small Text",
             "insert_after": "custom_machine_nos",
             "read_only": 1,
         },
         {
             "fieldname": "custom_device_map_detail",
-            "label": "Device Map Detail",
+            "label": "جزئیات نگاشت دستگاه",
             "fieldtype": "Long Text",
             "insert_after": "custom_employee_codes",
             "read_only": 1,
         },
         {
             "fieldname": "custom_total_attendance_records",
-            "label": "Total Attendance Records",
+            "label": "تعداد کل رکوردهای حضور",
             "fieldtype": "Int",
             "insert_after": "custom_device_map_detail",
             "read_only": 1,
         },
         {
             "fieldname": "custom_total_clock_punches",
-            "label": "Total Clock Punches",
+            "label": "تعداد کل ترددها",
             "fieldtype": "Int",
             "insert_after": "custom_total_attendance_records",
             "read_only": 1,
@@ -415,7 +422,10 @@ def build_employee_payload(
 
 
 def apply_payload(employee_doc, payload, attendance_device_entries, messages):
+    valid_fields = set(employee_doc.meta.get_valid_fields())
     for fieldname, value in payload.items():
+        if fieldname not in valid_fields:
+            continue
         if value in (None, ""):
             if fieldname in {"relieving_date", "branch"} and employee_doc.get(fieldname):
                 employee_doc.set(fieldname, None)

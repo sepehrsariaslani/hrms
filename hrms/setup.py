@@ -19,9 +19,11 @@ def after_install():
 	update_hr_defaults()
 	add_non_standard_user_types()
 	set_single_defaults()
+	ensure_global_print_style()
 	create_default_role_profiles()
 	run_post_install_patches()
 	sync_hr_workspace_extensions()
+	remove_home_workspace_sidebar()
 
 
 def before_uninstall():
@@ -38,6 +40,7 @@ def after_app_install(app_name):
 	print("Updating payroll setup for loans")
 	create_custom_fields(get_salary_slip_loan_fields(), ignore_validate=True)
 	add_lending_docperms_to_ess()
+	remove_home_workspace_sidebar()
 
 
 def before_app_uninstall(app_name):
@@ -48,6 +51,15 @@ def before_app_uninstall(app_name):
 	print("Updating payroll setup for loans")
 	delete_custom_fields(get_salary_slip_loan_fields())
 	remove_lending_docperms_from_ess()
+
+
+def remove_home_workspace_sidebar():
+	if not frappe.db.table_exists("Workspace Sidebar"):
+		return
+
+	if frappe.db.exists("Workspace Sidebar", "Home"):
+		frappe.delete_doc("Workspace Sidebar", "Home", force=True)
+		frappe.clear_cache()
 
 
 def get_custom_fields():
@@ -504,11 +516,60 @@ def get_custom_fields():
 				"insert_after": "branch",
 			},
 			{
-				"fieldname": "default_shift",
-				"fieldtype": "Link",
-				"label": _("Default Shift"),
-				"options": "Shift Type",
-				"insert_after": "holiday_list",
+				"fieldname": "national_id_details_section",
+				"fieldtype": "Section Break",
+				"label": _("مشخصات شناسنامه"),
+				"insert_after": "marital_status",
+			},
+			{
+				"fieldname": "birth_certificate_number",
+				"fieldtype": "Data",
+				"label": _("شماره شناسنامه"),
+				"insert_after": "national_id_details_section",
+			},
+			{
+				"fieldname": "birth_certificate_column_break",
+				"fieldtype": "Column Break",
+				"insert_after": "birth_certificate_number",
+			},
+			{
+				"fieldname": "birth_certificate_serial",
+				"fieldtype": "Data",
+				"label": _("سری شناسنامه"),
+				"insert_after": "birth_certificate_column_break",
+			},
+			{
+				"fieldname": "birth_certificate_issue_date",
+				"fieldtype": "Date",
+				"label": _("تاریخ صدور شناسنامه"),
+				"insert_after": "birth_certificate_serial",
+			},
+			{
+				"fieldname": "birth_certificate_issue_place",
+				"fieldtype": "Data",
+				"label": _("محل صدور شناسنامه"),
+				"insert_after": "birth_certificate_issue_date",
+			},
+			{
+				"fieldname": "children_count",
+				"fieldtype": "Int",
+				"label": _("تعداد فرزند"),
+				"default": "0",
+				"insert_after": "marital_status",
+			},
+			{
+				"fieldname": "personnel_case_no",
+				"fieldtype": "Data",
+				"label": _("شماره پرونده"),
+				"insert_after": "salutation",
+				"in_preview": 1,
+			},
+			{
+				"fieldname": "attendance_device_info_section",
+				"fieldtype": "Section Break",
+				"label": _("دستگاه حضور غیاب"),
+				"insert_after": "personnel_case_no",
+				"collapsible": 1,
 			},
 			{
 				"collapsible": 1,
@@ -535,7 +596,7 @@ def get_custom_fields():
 				"fieldname": "approvers_section",
 				"fieldtype": "Section Break",
 				"label": _("Approvers"),
-				"insert_after": "default_shift",
+				"insert_after": "holiday_list",
 			},
 			{
 				"fieldname": "expense_approver",
@@ -567,41 +628,41 @@ def get_custom_fields():
 				"default": "0",
 				"fieldname": "is_shift_allocator",
 				"fieldtype": "Check",
-				"label": _("Shift Allocator"),
+				"label": _("تخصیص‌دهنده شیفت"),
 				"insert_after": "shift_request_approver",
 			},
 			{
 				"default": "0",
 				"fieldname": "needs_shift_registration",
 				"fieldtype": "Check",
-				"label": _("Needs Shift Registration"),
+				"label": _("نیازمند ثبت شیفت"),
 				"insert_after": "is_shift_allocator",
 			},
 			{
 				"default": "0",
 				"fieldname": "has_rotational_shift",
 				"fieldtype": "Check",
-				"label": _("Has Rotational Shift"),
+				"label": _("دارای شیفت چرخشی"),
 				"insert_after": "needs_shift_registration",
 			},
 			{
 				"default": "0",
 				"fieldname": "variable_shift",
 				"fieldtype": "Check",
-				"label": _("Variable Shift"),
+				"label": _("شیفت متغیر"),
 				"insert_after": "has_rotational_shift",
 			},
 			{
 				"fieldname": "forbidden_shift_days",
-				"fieldtype": "MultiSelect",
-				"label": _("Forbidden Shift Days"),
+				"fieldtype": "Small Text",
+				"label": _("روزهای غیرمجاز شیفت"),
 				"options": "Saturday\nSunday\nMonday\nTuesday\nWednesday\nThursday\nFriday",
 				"insert_after": "variable_shift",
 			},
 			{
 				"fieldname": "employee_shift_duty_roles",
 				"fieldtype": "Table",
-				"label": _("Employee Shift Duty Roles"),
+				"label": _("نقش‌های شیفت کارمند"),
 				"options": "Employee Shift Duty Role",
 				"insert_after": "forbidden_shift_days",
 			},
@@ -699,6 +760,15 @@ def get_custom_fields():
 				"insert_after": "column_break_3",
 			},
 		],
+		"Leave Type": [
+			{
+				"fieldname": "leave_description_iran",
+				"fieldtype": "Small Text",
+				"label": _("توضیحات نوع مرخصی"),
+				"description": _("توضیح قانونی یا سیاست داخلی سازمان برای این نوع مرخصی."),
+				"insert_after": "leave_type_name",
+			},
+		],
 		"Terms and Conditions": [
 			{
 				"default": "1",
@@ -726,50 +796,6 @@ def make_fixtures():
 		{"doctype": "Vehicle Service Item", "service_item": "Engine Oil"},
 		{"doctype": "Vehicle Service Item", "service_item": "Oil Change"},
 		{"doctype": "Vehicle Service Item", "service_item": "Wheels"},
-		# leave type
-		{
-			"doctype": "Leave Type",
-			"leave_type_name": _("Casual Leave"),
-			"name": _("Casual Leave"),
-			"allow_encashment": 1,
-			"is_carry_forward": 1,
-			"max_continuous_days_allowed": "3",
-			"include_holiday": 1,
-		},
-		{
-			"doctype": "Leave Type",
-			"leave_type_name": _("Compensatory Off"),
-			"name": _("Compensatory Off"),
-			"allow_encashment": 0,
-			"is_carry_forward": 0,
-			"include_holiday": 1,
-			"is_compensatory": 1,
-		},
-		{
-			"doctype": "Leave Type",
-			"leave_type_name": _("Sick Leave"),
-			"name": _("Sick Leave"),
-			"allow_encashment": 0,
-			"is_carry_forward": 0,
-			"include_holiday": 1,
-		},
-		{
-			"doctype": "Leave Type",
-			"leave_type_name": _("Privilege Leave"),
-			"name": _("Privilege Leave"),
-			"allow_encashment": 0,
-			"is_carry_forward": 0,
-			"include_holiday": 1,
-		},
-		{
-			"doctype": "Leave Type",
-			"leave_type_name": _("Leave Without Pay"),
-			"name": _("Leave Without Pay"),
-			"allow_encashment": 0,
-			"is_carry_forward": 0,
-			"is_lwp": 1,
-			"include_holiday": 1,
-		},
 		# Employment Type
 		{"doctype": "Employment Type", "employee_type_name": _("Full-time")},
 		{"doctype": "Employment Type", "employee_type_name": _("Part-time")},
@@ -801,7 +827,192 @@ def make_fixtures():
 		{"doctype": "Email Account", "email_id": "jobs@example.com", "append_to": "Job Applicant"},
 	]
 
+	records.extend(get_default_leave_type_records_for_iran())
 	make_records(records)
+
+
+def get_default_leave_type_records_for_iran():
+	return [
+		{
+			"doctype": "Leave Type",
+			"leave_type_name": _("مرخصی استحقاقی"),
+			"name": _("مرخصی استحقاقی"),
+			"max_leaves_allowed": 26,
+			"max_continuous_days_allowed": 26,
+			"is_carry_forward": 1,
+			"maximum_carry_forwarded_leaves": 9,
+			"expire_carry_forwarded_leaves_after_days": 365,
+			"allow_encashment": 1,
+			"is_earned_leave": 1,
+			"earned_leave_frequency": "Monthly",
+			"allocate_on_day": "Last Day",
+			"rounding": "0.5",
+			"include_holiday": 0,
+		},
+		{
+			"doctype": "Leave Type",
+			"leave_type_name": _("مرخصی ساعتی"),
+			"name": _("مرخصی ساعتی"),
+			"max_leaves_allowed": 24,
+			"max_continuous_days_allowed": 1,
+			"is_carry_forward": 0,
+			"allow_encashment": 0,
+			"include_holiday": 0,
+		},
+		{
+			"doctype": "Leave Type",
+			"leave_type_name": _("مرخصی بدون حقوق"),
+			"name": _("مرخصی بدون حقوق"),
+			"max_leaves_allowed": 30,
+			"applicable_after": 90,
+			"max_continuous_days_allowed": 30,
+			"is_carry_forward": 0,
+			"is_lwp": 1,
+			"include_holiday": 0,
+			"allow_over_allocation": 1,
+		},
+		{
+			"doctype": "Leave Type",
+			"leave_type_name": _("مرخصی استعلاجی"),
+			"name": _("مرخصی استعلاجی"),
+			"max_leaves_allowed": 365,
+			"max_continuous_days_allowed": 30,
+			"is_carry_forward": 0,
+			"allow_encashment": 0,
+			"include_holiday": 1,
+			"allow_over_allocation": 1,
+		},
+		{
+			"doctype": "Leave Type",
+			"leave_type_name": _("مرخصی زایمان"),
+			"name": _("مرخصی زایمان"),
+			"max_leaves_allowed": 270,
+			"max_continuous_days_allowed": 270,
+			"is_carry_forward": 0,
+			"allow_encashment": 0,
+			"include_holiday": 1,
+			"allow_over_allocation": 1,
+		},
+		{
+			"doctype": "Leave Type",
+			"leave_type_name": _("مرخصی پدر هنگام تولد فرزند"),
+			"name": _("مرخصی پدر هنگام تولد فرزند"),
+			"max_leaves_allowed": 3,
+			"max_continuous_days_allowed": 3,
+			"is_carry_forward": 0,
+			"allow_encashment": 0,
+			"include_holiday": 1,
+		},
+		{
+			"doctype": "Leave Type",
+			"leave_type_name": _("مرخصی ازدواج"),
+			"name": _("مرخصی ازدواج"),
+			"max_leaves_allowed": 3,
+			"max_continuous_days_allowed": 3,
+			"is_carry_forward": 0,
+			"allow_encashment": 0,
+			"include_holiday": 1,
+		},
+		{
+			"doctype": "Leave Type",
+			"leave_type_name": _("مرخصی فوت بستگان درجه یک"),
+			"name": _("مرخصی فوت بستگان درجه یک"),
+			"max_leaves_allowed": 3,
+			"max_continuous_days_allowed": 3,
+			"is_carry_forward": 0,
+			"allow_encashment": 0,
+			"include_holiday": 1,
+		},
+		{
+			"doctype": "Leave Type",
+			"leave_type_name": _("مرخصی حج واجب"),
+			"name": _("مرخصی حج واجب"),
+			"max_leaves_allowed": 30,
+			"applicable_after": 365,
+			"max_continuous_days_allowed": 30,
+			"is_carry_forward": 0,
+			"allow_encashment": 0,
+			"include_holiday": 1,
+		},
+		{
+			"doctype": "Leave Type",
+			"leave_type_name": _("مرخصی جبرانی"),
+			"name": _("مرخصی جبرانی"),
+			"max_leaves_allowed": 10,
+			"max_continuous_days_allowed": 2,
+			"is_carry_forward": 0,
+			"allow_encashment": 0,
+			"include_holiday": 0,
+			"is_compensatory": 1,
+			"allow_over_allocation": 1,
+		},
+		{
+			"doctype": "Leave Type",
+			"leave_type_name": _("ماموریت"),
+			"name": _("ماموریت"),
+			"max_leaves_allowed": 60,
+			"max_continuous_days_allowed": 15,
+			"is_carry_forward": 0,
+			"allow_encashment": 0,
+			"include_holiday": 1,
+			"allow_over_allocation": 1,
+		},
+		{
+			"doctype": "Leave Type",
+			"leave_type_name": _("مرخصی آموزشی/تحصیلی"),
+			"name": _("مرخصی آموزشی/تحصیلی"),
+			"max_leaves_allowed": 12,
+			"applicable_after": 180,
+			"max_continuous_days_allowed": 5,
+			"is_carry_forward": 0,
+			"allow_encashment": 0,
+			"include_holiday": 0,
+		},
+		{
+			"doctype": "Leave Type",
+			"leave_type_name": _("مرخصی اضطراری"),
+			"name": _("مرخصی اضطراری"),
+			"max_leaves_allowed": 3,
+			"max_continuous_days_allowed": 2,
+			"is_carry_forward": 0,
+			"allow_encashment": 0,
+			"allow_negative": 1,
+			"allow_over_allocation": 1,
+			"include_holiday": 0,
+		},
+		{
+			"doctype": "Leave Type",
+			"leave_type_name": _("مرخصی اختیاری"),
+			"name": _("مرخصی اختیاری"),
+			"max_leaves_allowed": 2,
+			"max_continuous_days_allowed": 1,
+			"is_carry_forward": 0,
+			"allow_encashment": 0,
+			"is_optional_leave": 1,
+			"include_holiday": 0,
+		},
+		{
+			"doctype": "Leave Type",
+			"leave_type_name": _("مرخصی تشویقی"),
+			"name": _("مرخصی تشویقی"),
+			"max_leaves_allowed": 5,
+			"max_continuous_days_allowed": 2,
+			"is_carry_forward": 0,
+			"allow_encashment": 0,
+			"include_holiday": 0,
+			"allow_over_allocation": 1,
+		},
+		{
+			"doctype": "Leave Type",
+			"leave_type_name": _("مرخصی امور پزشکی"),
+			"name": _("مرخصی امور پزشکی"),
+			"max_leaves_allowed": 6,
+			"max_continuous_days_allowed": 1,
+			"is_carry_forward": 0,
+			"allow_encashment": 0,
+			"include_holiday": 0,
+		},
+	]
 
 
 def setup_notifications():
@@ -1119,7 +1330,79 @@ def update_select_perm_after_install():
 
 		frappe.flags.update_select_perm_after_migrate = False
 
+	ensure_global_print_style()
 	sync_hr_workspace_extensions()
+	remove_home_workspace_sidebar()
+
+
+def ensure_global_print_style():
+	style_name = "Peyda Global Print"
+	regular_url = frappe.utils.get_url("/assets/hrms/fonts/Pevda-Reqular.ttf")
+	medium_url = frappe.utils.get_url("/assets/hrms/fonts/Peyda-Medium.ttf")
+	semibold_url = frappe.utils.get_url("/assets/hrms/fonts/Peyda-SemiBold.ttf")
+	bold_url = frappe.utils.get_url("/assets/hrms/fonts/Peyda-Bold.ttf")
+
+	base_css = f"""
+@font-face {{
+	font-family: "Peyda";
+	src: url("{regular_url}") format("truetype");
+	font-weight: 400;
+	font-style: normal;
+}}
+
+@font-face {{
+	font-family: "Peyda";
+	src: url("{medium_url}") format("truetype");
+	font-weight: 500;
+	font-style: normal;
+}}
+
+@font-face {{
+	font-family: "Peyda";
+	src: url("{semibold_url}") format("truetype");
+	font-weight: 600;
+	font-style: normal;
+}}
+
+@font-face {{
+	font-family: "Peyda";
+	src: url("{bold_url}") format("truetype");
+	font-weight: 700;
+	font-style: normal;
+}}
+
+.print-format,
+.print-format * {{
+	font-family: "Peyda", Tahoma, Arial, sans-serif !important;
+}}
+""".strip()
+
+	if not frappe.db.exists("Print Style", style_name):
+		frappe.get_doc(
+			{
+				"doctype": "Print Style",
+				"print_style_name": style_name,
+				"css": base_css,
+				"standard": "No",
+				"disabled": 0,
+			}
+		).insert(ignore_permissions=True)
+	else:
+		style_doc = frappe.get_doc("Print Style", style_name)
+		if (style_doc.css or "").strip() != base_css:
+			style_doc.css = base_css
+			style_doc.save(ignore_permissions=True)
+
+	if frappe.db.get_single_value("Print Settings", "print_style") != style_name:
+		frappe.db.set_single_value("Print Settings", "print_style", style_name)
+
+	frappe.clear_cache()
+
+
+def make_people_workspace_standard():
+	"""Compatibility hook used by before_migrate in v16."""
+	if frappe.db.exists("Workspace Sidebar", "People"):
+		frappe.db.set_value("Workspace Sidebar", "People", "standard", 1)
 
 
 def sync_hr_workspace_extensions():

@@ -19,6 +19,11 @@ import { IonicVue } from "@ionic/vue"
 import { session } from "@/data/session"
 import { userResource } from "@/data/user"
 import { employeeResource } from "@/data/employee"
+import { employeeDeskVisibility } from "@/data/layout"
+import {
+	employeeDeskGlobalPersonalization,
+	employeeDeskPersonalization,
+} from "@/data/personalization"
 
 import dayjs from "@/utils/dayjs"
 import getIonicConfig from "@/utils/ionicConfig"
@@ -61,12 +66,124 @@ app.provide("$socket", socket)
 app.provide("$dayjs", dayjs)
 
 const ALLOCATOR_SHIFT_ROUTES = new Set(["TeamWeeklyShiftBoardView", "ShiftAllocatorSchedulerView"])
+const WEEKLY_SHIFT_ROUTES = new Set(["WeeklyShiftPlannerView"])
+const WEEKLY_SHIFT_ROUTE_PREFIXES = ["/weekly-shift-planner"]
+const VISIBILITY_ROUTE_RULES = [
+	{
+		key: "enable_requests_center",
+		prefixes: ["/dashboard/requests"],
+	},
+	{
+		key: "enable_attendance",
+		prefixes: [
+			"/dashboard/attendance",
+			"/attendance-requests",
+			"/shift-requests",
+			"/shift-assignments",
+			"/employee-checkins",
+			"/weekly-shift-planner",
+			"/team-weekly-shifts",
+			"/shift-allocator-scheduler",
+		],
+	},
+	{
+		key: "enable_leaves",
+		prefixes: ["/dashboard/leaves", "/leave-applications"],
+	},
+	{
+		key: "enable_missions",
+		prefixes: ["/dashboard/missions", "/missions"],
+	},
+	{
+		key: "enable_expense_claims",
+		prefixes: ["/dashboard/expense-claims", "/expense-claims"],
+	},
+	{
+		key: "enable_employee_advances",
+		prefixes: ["/employee-advances"],
+	},
+	{
+		key: "enable_salary_slips",
+		prefixes: ["/dashboard/salary-slips", "/salary-slips"],
+	},
+	{
+		key: "enable_complaints",
+		prefixes: ["/dashboard/complaints", "/employee-grievances"],
+	},
+	{
+		key: "enable_meals",
+		prefixes: ["/dashboard/meals", "/meal-plans", "/meal-coordinator"],
+	},
+	{
+		key: "enable_appraisals",
+		prefixes: ["/dashboard/appraisals", "/appraisals"],
+	},
+	{
+		key: "enable_newsletters",
+		prefixes: ["/dashboard/newsletters", "/newsletters"],
+	},
+	{
+		key: "enable_events",
+		prefixes: ["/dashboard/events", "/events"],
+	},
+	{
+		key: "enable_imprest",
+		prefixes: ["/dashboard/imprest", "/imprest"],
+	},
+]
+const VISIBILITY_FALLBACK_ORDER = [
+	"/home",
+	"/dashboard/attendance",
+	"/dashboard/leaves",
+	"/dashboard/expense-claims",
+	"/dashboard/salary-slips",
+	"/dashboard/requests",
+	"/profile",
+	"/notifications",
+	"/settings",
+]
 const CHUNK_LOAD_RETRY_KEY = "hrms:chunk-load-retried"
 const CHUNK_LOAD_HARD_RETRY_KEY = "hrms:chunk-load-hard-retried"
 let chunkRecoveryInProgress = false
 
 function hasAllocatorShiftAccess(employee) {
-	return Boolean(employee?.is_shift_allocator)
+	return Boolean(employee?.is_shift_allocator || employee?.is_shift_allocator_by_role)
+}
+
+function hasWeeklyShiftPlannerAccess(employee) {
+	return Boolean(
+		employee?.variable_shift
+		|| employee?.has_rotational_shift
+		|| employee?.needs_shift_registration
+	)
+}
+
+function pathMatchesPrefix(path, prefix) {
+	return path === prefix || path.startsWith(`${prefix}/`)
+}
+
+function isWeeklyShiftRoute(routeName, path) {
+	return (
+		WEEKLY_SHIFT_ROUTES.has(String(routeName || ""))
+		|| WEEKLY_SHIFT_ROUTE_PREFIXES.some((prefix) => pathMatchesPrefix(path, prefix))
+	)
+}
+
+function isPathAllowedByVisibility(path) {
+	const visibility = employeeDeskVisibility.data || {}
+	const rule = VISIBILITY_ROUTE_RULES.find((candidate) =>
+		(candidate.prefixes || []).some((prefix) => pathMatchesPrefix(path, prefix))
+	)
+
+	if (!rule) return true
+	return visibility?.[rule.key] !== false
+}
+
+function getVisibilityFallbackPath() {
+	for (const path of VISIBILITY_FALLBACK_ORDER) {
+		if (isPathAllowedByVisibility(path)) return path
+	}
+	return "/profile"
 }
 
 function isChunkLoadError(error) {
@@ -215,6 +332,9 @@ router.beforeEach(async (to, _, next) => {
 	if (to.name === "InvalidEmployee") return next()
 
 	if (!employeeResource.data) await employeeResource.reload()
+	if (!employeeDeskVisibility.data) await employeeDeskVisibility.reload()
+	if (!employeeDeskPersonalization.data) await employeeDeskPersonalization.reload()
+	if (!employeeDeskGlobalPersonalization.data) await employeeDeskGlobalPersonalization.reload()
 
 	// user should be an employee to access the app since all views are employee specific
 	const currentUser = userResource.data?.name || session.user
@@ -225,11 +345,23 @@ router.beforeEach(async (to, _, next) => {
 		return next({ name: "InvalidEmployee" })
 	}
 
+	if (isWeeklyShiftRoute(to.name, to.path) && !hasWeeklyShiftPlannerAccess(employeeResource?.data)) {
+		return next({ name: "AttendanceDashboard" })
+	}
+
 	if (
 		ALLOCATOR_SHIFT_ROUTES.has(String(to.name || ""))
 		&& !hasAllocatorShiftAccess(employeeResource?.data)
 	) {
 		return next({ name: "AttendanceDashboard" })
+	}
+
+	if (!isPathAllowedByVisibility(to.path)) {
+		const fallbackPath = getVisibilityFallbackPath()
+		if (fallbackPath !== to.path) {
+			return next({ path: fallbackPath })
+		}
+		return next({ name: "Profile" })
 	}
 
 	if (to.name === "Login") {

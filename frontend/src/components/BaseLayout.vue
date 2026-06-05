@@ -21,8 +21,8 @@
 								<FeatherIcon name="grid" class="h-5 w-5" />
 							</div>
 							<div>
-								<div class="text-sm font-semibold text-slate-500">{{ __("HRMS") }}</div>
-								<div class="text-lg font-bold text-slate-900">{{ __("Employee Desk") }}</div>
+								<div class="text-sm font-semibold text-slate-500">{{ __("Hamyar") }}</div>
+								<div class="text-lg font-bold text-slate-900">{{ __("همیار") }}</div>
 							</div>
 						</div>
 
@@ -87,7 +87,7 @@
 								</Button>
 								<div class="min-w-0">
 									<h2 class="truncate text-base font-bold text-slate-900 md:text-lg" data-tour="header-title">
-										{{ props.pageTitle || __("Frappe HR") }}
+										{{ props.pageTitle || __("Hamyar") }}
 									</h2>
 									<div class="truncate text-xs text-slate-500 md:text-sm">
 										{{ todayLabel }}
@@ -176,7 +176,7 @@
 											? 'bg-amber-50 text-amber-700'
 											: 'text-slate-600 hover:bg-slate-100'
 									"
-									@click="sidebarOpen = false"
+									@click="onSidebarItemClick(true)"
 								>
 									<FeatherIcon :name="item.icon" class="h-4 w-4" />
 									<span class="flex-1">{{ item.label }}</span>
@@ -197,14 +197,15 @@
 </template>
 
 <script setup>
-import { computed, inject, ref, watch } from "vue"
+import { computed, inject, onBeforeUnmount, onMounted, ref, watch } from "vue"
 import { useRoute } from "vue-router"
 import { IonContent, IonPage, IonRefresher, IonRefresherContent } from "@ionic/vue"
 import { FeatherIcon, Avatar } from "frappe-ui"
 
 import { unreadNotificationsCount } from "@/data/notifications"
-import { layoutHasImprestAccess, layoutUnreadNewsletterCount } from "@/data/layout"
+import { employeeDeskVisibility, layoutHasImprestAccess, layoutUnreadNewsletterCount } from "@/data/layout"
 import { buildNavbarGroups } from "@/data/navigation"
+import { employeeDeskGlobalPersonalization } from "@/data/personalization"
 import { formatJalaliDate, toPersianDigits } from "@/utils/jalali"
 
 const user = inject("$user")
@@ -244,16 +245,19 @@ const unreadCountLabel = computed(() => {
 })
 
 const canSeeAllocatorShiftTools = computed(() => {
-	return Boolean(employee.data?.is_shift_allocator)
+	return Boolean(employee.data?.is_shift_allocator || employee.data?.is_shift_allocator_by_role)
 })
 
 const canSeeWeeklyShiftPlanner = computed(() => {
 	return Boolean(
 		employee.data?.variable_shift
-		|| employee.data?.has_rotational_shift
-		|| employee.data?.needs_shift_registration
-		|| employee.data?.is_shift_allocator
+			|| employee.data?.has_rotational_shift
+			|| employee.data?.needs_shift_registration
 	)
+})
+
+const sidebarPreferences = computed(() => {
+	return employeeDeskGlobalPersonalization.data?.preferences || {}
 })
 
 const menuGroups = computed(() => {
@@ -262,8 +266,18 @@ const menuGroups = computed(() => {
 		hasImprestAccess: layoutHasImprestAccess.value,
 		canSeeAllocatorShiftTools: canSeeAllocatorShiftTools.value,
 		canSeeWeeklyShiftPlanner: canSeeWeeklyShiftPlanner.value,
+		visibility: employeeDeskVisibility.data || {},
+		hiddenRoutes: sidebarPreferences.value.hidden_sidebar_routes || [],
+		routeOrder: sidebarPreferences.value.sidebar_order_routes || [],
+		customLabels: sidebarPreferences.value.sidebar_labels || {},
 	})
 })
+
+function onSidebarItemClick(closeMobile = false) {
+	if (closeMobile) {
+		sidebarOpen.value = false
+	}
+}
 
 function isActive(path) {
 	return route.path === path || route.path.startsWith(`${path}/`)
@@ -287,4 +301,18 @@ function handlePullToRefresh(event) {
 		window.location.reload()
 	}, 120)
 }
+
+function handleGlobalNavigationUpdated() {
+	employeeDeskGlobalPersonalization.reload()
+}
+
+onMounted(() => {
+	if (typeof window === "undefined") return
+	window.addEventListener("hrms:global-navigation-updated", handleGlobalNavigationUpdated)
+})
+
+onBeforeUnmount(() => {
+	if (typeof window === "undefined") return
+	window.removeEventListener("hrms:global-navigation-updated", handleGlobalNavigationUpdated)
+})
 </script>

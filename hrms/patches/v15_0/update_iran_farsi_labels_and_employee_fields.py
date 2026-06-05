@@ -35,6 +35,7 @@ def update_workspace_link_labels():
 	for workspace_name, link_to, label in (
 		("HR", "Smart Attendance Report", "گزارش حضور و غیاب هوشمند"),
 		("Payroll", "Iran Payroll Settings", "تنظیمات حقوق ایران"),
+		("Payroll", "Iran Seniority Table", "پایه سنوات"),
 	):
 		if not frappe.db.exists("Workspace", workspace_name):
 			continue

@@ -17,6 +17,7 @@ from hrms.hr.doctype.shift_assignment.shift_assignment import OverlappingShiftEr
 
 PLAN_STATUSES = ["Draft", "Submitted", "Approved", "Rejected", "Replaced", "Cancelled"]
 HR_ROLES = {"HR Manager", "HR User", "System Manager"}
+SHIFT_ALLOCATOR_ROLE = "Shift Allocator"
 HOURS_PER_WORK_DAY = 8
 DAY_NAME_TO_WEEKDAY = {
 	"Monday": 0,
@@ -795,8 +796,12 @@ def has_shift_allocator_flag(user: str) -> bool:
 
 
 
+def has_shift_allocator_role(user: str) -> bool:
+	return SHIFT_ALLOCATOR_ROLE in set(frappe.get_roles(user))
+
+
 def is_shift_allocator(user: str) -> bool:
-	return has_shift_allocator_flag(user)
+	return has_shift_allocator_role(user) or has_shift_allocator_flag(user)
 
 
 def is_shift_registration_required(employee: str | None) -> bool:

@@ -90,6 +90,8 @@ website_route_rules = [
 jinja = {
 	"methods": [
 		"hrms.utils.get_country",
+		"hrms.utils.jalali_helper.gregorian_to_jalali",
+		"frappe.utils.jinja_globals.get_qr_code",
 	],
 }
 
@@ -207,15 +209,18 @@ doc_events = {
 		],
 	},
 	"Loan": {"validate": "hrms.hr.utils.validate_loan_repay_from_salary"},
-	"Employee": {
-		"validate": [
-			"hrms.overrides.employee_master.validate_onboarding_process",
-			"hrms.overrides.employee_designation.sync_employee_designations",
-		],
-		"on_update": [
-			"hrms.overrides.employee_master.update_approver_role",
-			"hrms.overrides.employee_master.publish_update",
-		],
+		"Employee": {
+			"validate": [
+				"hrms.overrides.employee_master.validate_onboarding_process",
+				"hrms.overrides.employee_designation.sync_employee_designations",
+				"hrms.regional.iran.utils.sync_iran_employee_compensation_fields",
+			],
+			"before_save": "hrms.regional.iran.utils.sync_iran_employee_compensation_fields",
+			"on_update": [
+				"hrms.overrides.employee_master.update_approver_role",
+				"hrms.overrides.employee_master.publish_update",
+				"hrms.regional.iran.utils.sync_iran_employee_compensation_fields_on_update",
+			],
 		"after_insert": "hrms.overrides.employee_master.update_job_applicant_and_offer",
 		"on_trash": "hrms.overrides.employee_master.update_employee_transfer",
 		"after_delete": "hrms.overrides.employee_master.publish_update",
@@ -224,6 +229,9 @@ doc_events = {
 	"Task": {"on_update": "hrms.controllers.employee_boarding_controller.update_task"},
 	"Salary Slip": {
 		"before_save": "hrms.regional.iran.utils.apply_iran_payroll_rules",
+	},
+	"Iran Payroll Settings": {
+		"on_update": "hrms.regional.iran.utils.sync_employees_after_iran_payroll_settings_update",
 	},
 }
 

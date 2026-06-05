@@ -185,6 +185,8 @@ class SalarySlip(TransactionBase):
 		if self.payroll_period and not self.current_payroll_period:
 			self.current_payroll_period = self.payroll_period.name
 
+		self.set_attendance_metrics()
+
 	def check_salary_withholding(self):
 		withholding = get_salary_withholdings(self.start_date, self.end_date, self.employee)
 		if withholding:
@@ -668,6 +670,32 @@ class SalarySlip(TransactionBase):
 			frappe.cache().hset(HOLIDAYS_BETWEEN_DATES, key, holiday_dates)
 
 		return holiday_dates
+
+	def set_attendance_metrics(self):
+		"""Aggregate attendance metrics for the salary slip period."""
+		Attendance = frappe.qb.DocType("Attendance")
+		rows = (
+			frappe.qb.from_(Attendance)
+			.select(
+				Sum(Attendance.working_hours).as_("working_hours"),
+				Sum(Attendance.presence_hours).as_("presence_hours"),
+				Sum(Attendance.time_off).as_("time_off"),
+				Sum(Attendance.overtime).as_("overtime"),
+				Sum(Attendance.holiday_work).as_("holiday_work"),
+			)
+			.where(
+				(Attendance.employee == self.employee)
+				& (Attendance.docstatus == 1)
+				& (Attendance.attendance_date.between(self.actual_start_date, self.actual_end_date))
+			)
+		).run(as_dict=True)
+
+		row = rows[0] if rows else {}
+		self.attendance_working_hours = flt(row.get("working_hours"), 2)
+		self.attendance_presence_hours = flt(row.get("presence_hours"), 2)
+		self.attendance_time_off = flt(row.get("time_off"), 2)
+		self.attendance_overtime = flt(row.get("overtime"), 2)
+		self.attendance_holiday_work = flt(row.get("holiday_work"), 2)
 
 	def calculate_lwp_or_ppl_based_on_leave_application(
 		self, holidays, working_days_list, daily_wages_fraction_for_half_day
@@ -2727,3 +2755,47 @@ def email_salary_slips(names) -> None:
 	for name in names:
 		salary_slip = frappe.get_doc("Salary Slip", name)
 		salary_slip.email_salary_slip()
+
+
+@frappe.whitelist()
+def backfill_salary_slip_attendance_metrics(from_date=None, to_date=None, employee=None):
+	"""Backfill attendance-derived metrics on salary slips."""
+	filters = [["docstatus", "<", 2]]
+	if employee:
+		filters.append(["employee", "=", employee])
+	if from_date:
+		filters.append(["start_date", ">=", getdate(from_date)])
+	if to_date:
+		filters.append(["end_date", "<=", getdate(to_date)])
+
+	salary_slips = frappe.get_all(
+		"Salary Slip",
+		filters=filters,
+		fields=["name"],
+		order_by="start_date asc, employee asc",
+		limit_page_length=0,
+	)
+
+	updated = 0
+	for index, row in enumerate(salary_slips, start=1):
+		doc = frappe.get_doc("Salary Slip", row.name)
+		doc.set_attendance_metrics()
+		frappe.db.set_value(
+			"Salary Slip",
+			row.name,
+			{
+				"attendance_working_hours": flt(doc.attendance_working_hours, 2),
+				"attendance_presence_hours": flt(doc.attendance_presence_hours, 2),
+				"attendance_time_off": flt(doc.attendance_time_off, 2),
+				"attendance_overtime": flt(doc.attendance_overtime, 2),
+				"attendance_holiday_work": flt(doc.attendance_holiday_work, 2),
+			},
+			update_modified=False,
+		)
+		updated += 1
+
+		if index % 200 == 0:
+			frappe.db.commit()  # nosemgrep
+
+	frappe.db.commit()  # nosemgrep
+	return {"success": True, "processed": len(salary_slips), "updated": updated}

@@ -2,7 +2,7 @@ const STORAGE_KEY = "hrms:color_mode"
 const COLOR_MODES = ["system", "light", "dark"]
 
 function normalizeMode(mode) {
-	return COLOR_MODES.includes(mode) ? mode : "system"
+	return COLOR_MODES.includes(mode) ? mode : "light"
 }
 
 function prefersDark() {
@@ -18,7 +18,7 @@ function shouldUseDark(mode) {
 }
 
 export function getSavedColorMode() {
-	if (typeof localStorage === "undefined") return "system"
+	if (typeof localStorage === "undefined") return "light"
 	return normalizeMode(localStorage.getItem(STORAGE_KEY))
 }
 

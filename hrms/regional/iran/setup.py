@@ -7,6 +7,7 @@ from hrms.setup import delete_custom_fields
 def setup():
 	make_custom_fields()
 	ensure_iran_payroll_settings_doc()
+	ensure_iran_seniority_table_doc()
 
 
 def uninstall():
@@ -25,6 +26,39 @@ def ensure_iran_payroll_settings_doc():
 		frappe.get_doc({"doctype": "Iran Payroll Settings", "active_law_year": 1405}).insert(ignore_permissions=True)
 
 
+def ensure_iran_seniority_table_doc():
+	if not frappe.db.exists("DocType", "Iran Seniority Table"):
+		return
+
+	fiscal_year = get_fiscal_year_by_date()
+	if not fiscal_year:
+		return
+
+	if frappe.db.exists("Iran Seniority Table", {"fiscal_year": fiscal_year}):
+		return
+
+	frappe.get_doc(
+		{
+			"doctype": "Iran Seniority Table",
+			"fiscal_year": fiscal_year,
+			"enabled": 1,
+		}
+	).insert(ignore_permissions=True)
+
+
+def get_fiscal_year_by_date(reference_date=None):
+	reference_date = reference_date or frappe.utils.nowdate()
+	fiscal_year = frappe.db.get_value(
+		"Fiscal Year",
+		{
+			"year_start_date": ["<=", reference_date],
+			"year_end_date": [">=", reference_date],
+		},
+		"name",
+	)
+	return fiscal_year or frappe.db.get_value("Fiscal Year", {}, "name")
+
+
 def get_custom_fields():
 	return {
 		"Employee": [
@@ -36,174 +70,226 @@ def get_custom_fields():
 				"collapsible": 1,
 			},
 			{
-				"fieldname": "base_pay",
+				"fieldname": "daily_pay",
 				"fieldtype": "Currency",
-				"label": "حقوق پایه ساعتی",
+				"label": "حقوق پایه روزانه",
 				"default": "0",
 				"insert_after": "iran_payroll_section",
 			},
 			{
-				"fieldname": "technical_bonus",
+				"fieldname": "monthly_base_pay",
 				"fieldtype": "Currency",
-				"label": "حق فنی ساعتی",
+				"label": "حقوق پایه ماهانه",
+				"default": "0",
+				"read_only": 1,
+				"insert_after": "daily_pay",
+			},
+			{
+				"fieldname": "base_pay",
+				"fieldtype": "Currency",
+				"label": "حقوق پایه ساعتی",
+				"default": "0",
+				"read_only": 1,
+				"insert_after": "monthly_base_pay",
+			},
+			{
+				"fieldname": "karane",
+				"fieldtype": "Currency",
+				"label": "کارانه",
 				"default": "0",
 				"insert_after": "base_pay",
 			},
 			{
-				"fieldname": "daily_pay",
+				"fieldname": "technical_allowance_monthly",
 				"fieldtype": "Currency",
-				"label": "حقوق روزانه",
+				"label": "حق فنی ماهیانه",
 				"default": "0",
-				"insert_after": "technical_bonus",
+				"insert_after": "karane",
+			},
+			{
+				"fieldname": "insurance_start_date",
+				"fieldtype": "Date",
+				"label": "تاریخ شروع بیمه",
+				"insert_after": "technical_allowance_monthly",
+			},
+			{
+				"fieldname": "insurance_service_years",
+				"fieldtype": "Int",
+				"label": "سابقه بیمه (سال)",
+				"default": "0",
+				"read_only": 1,
+				"insert_after": "insurance_start_date",
+			},
+			{
+				"fieldname": "employee_salary_type",
+				"fieldtype": "Select",
+				"label": "نوع حقوق",
+				"options": "قراردادی\nثابت\nساعتی",
+				"default": "قراردادی",
+				"insert_after": "insurance_service_years",
+			},
+			{
+				"fieldname": "fixed_monthly_salary",
+				"fieldtype": "Currency",
+				"label": "حقوق ثابت ماهیانه",
+				"default": "0",
+				"depends_on": "eval:doc.employee_salary_type=='ثابت'",
+				"insert_after": "employee_salary_type",
+			},
+			{
+				"fieldname": "employee_hourly_salary",
+				"fieldtype": "Currency",
+				"label": "حقوق ساعتی کارمند",
+				"default": "0",
+				"depends_on": "eval:doc.employee_salary_type=='ساعتی'",
+				"insert_after": "fixed_monthly_salary",
+			},
+			{
+				"fieldname": "employee_seniority_daily_base",
+				"fieldtype": "Currency",
+				"label": "پایه سنوات روزانه",
+				"default": "0",
+				"read_only": 1,
+				"insert_after": "employee_hourly_salary",
+			},
+			{
+				"fieldname": "employee_seniority_monthly_base",
+				"fieldtype": "Currency",
+				"label": "پایه سنوات ماهانه",
+				"default": "0",
+				"read_only": 1,
+				"insert_after": "employee_seniority_daily_base",
 			},
 			{
 				"fieldname": "overtime_rate",
 				"fieldtype": "Currency",
 				"label": "نرخ اضافه کاری ساعتی",
 				"default": "0",
-				"insert_after": "daily_pay",
+				"read_only": 1,
+				"insert_after": "employee_seniority_monthly_base",
 			},
 			{
 				"fieldname": "absence_deduction",
 				"fieldtype": "Currency",
 				"label": "کسر کار ساعتی",
 				"default": "0",
+				"read_only": 1,
 				"insert_after": "overtime_rate",
-			},
-			{
-				"fieldname": "monthly_technical_bonus",
-				"fieldtype": "Currency",
-				"label": "حق فنی ماهیانه",
-				"default": "0",
-				"insert_after": "absence_deduction",
 			},
 			{
 				"fieldname": "supervision_allowance",
 				"fieldtype": "Currency",
-				"label": "حق سرپرستی",
+				"label": "حق سرپرستی ماهانه",
 				"default": "0",
-				"insert_after": "monthly_technical_bonus",
+				"insert_after": "absence_deduction",
+			},
+			{
+				"fieldname": "service_allowance_monthly",
+				"fieldtype": "Currency",
+				"label": "حق سرویس (ایاب و ذهاب) ماهانه",
+				"default": "0",
+				"insert_after": "supervision_allowance",
+			},
+			{
+				"fieldname": "housing_allowance",
+				"fieldtype": "Currency",
+				"label": "حق مسکن",
+				"default": "0",
+				"read_only": 1,
+				"insert_after": "service_allowance_monthly",
+			},
+			{
+				"fieldname": "grocery_allowance",
+				"fieldtype": "Currency",
+				"label": "بن خواربار",
+				"default": "0",
+				"read_only": 1,
+				"insert_after": "housing_allowance",
+			},
+			{
+				"fieldname": "marriage_allowance",
+				"fieldtype": "Currency",
+				"label": "حق تاهل",
+				"default": "0",
+				"read_only": 1,
+				"insert_after": "grocery_allowance",
+			},
+			{
+				"fieldname": "child_allowance_per_child",
+				"fieldtype": "Currency",
+				"label": "حق اولاد هر فرزند",
+				"default": "0",
+				"read_only": 1,
+				"depends_on": "eval:doc.children_count>0",
+				"insert_after": "marriage_allowance",
+			},
+			{
+				"fieldname": "child_allowance",
+				"fieldtype": "Currency",
+				"label": "حق اولاد",
+				"default": "0",
+				"read_only": 1,
+				"depends_on": "eval:doc.children_count>0",
+				"insert_after": "child_allowance_per_child",
+			},
+			{
+				"fieldname": "min_hourly_wage",
+				"fieldtype": "Currency",
+				"label": "حداقل مزد ساعتی",
+				"default": "0",
+				"read_only": 1,
+				"insert_after": "child_allowance",
+			},
+			{
+				"fieldname": "total_receivable",
+				"fieldtype": "Currency",
+				"label": "جمع دریافتنی‌های کارمند",
+				"default": "0",
+				"read_only": 1,
+				"insert_after": "min_hourly_wage",
+			},
+			{
+				"fieldname": "employer_insurance_share",
+				"fieldtype": "Currency",
+				"label": "بیمه سهم کارفرما",
+				"default": "0",
+				"read_only": 1,
+				"depends_on": "eval:doc.employee_salary_type=='قراردادی'",
+				"insert_after": "total_receivable",
+			},
+			{
+				"fieldname": "employee_insurance_share",
+				"fieldtype": "Currency",
+				"label": "بیمه سهم کارمند",
+				"default": "0",
+				"read_only": 1,
+				"depends_on": "eval:doc.employee_salary_type=='قراردادی'",
+				"insert_after": "employer_insurance_share",
+			},
+			{
+				"fieldname": "unemployment_insurance_share",
+				"fieldtype": "Currency",
+				"label": "بیمه بیکاری",
+				"default": "0",
+				"read_only": 1,
+				"depends_on": "eval:doc.employee_salary_type=='قراردادی'",
+				"insert_after": "employee_insurance_share",
+			},
+			{
+				"fieldname": "organization_monthly_cost",
+				"fieldtype": "Currency",
+				"label": "کل هزینه پیش‌بینی شده فرد برای سازمان",
+				"default": "0",
+				"read_only": 1,
+				"depends_on": "eval:doc.employee_salary_type=='قراردادی'",
+				"insert_after": "unemployment_insurance_share",
 			},
 			{
 				"fieldname": "children_count",
 				"fieldtype": "Int",
 				"label": "تعداد فرزند",
 				"default": "0",
-				"insert_after": "supervision_allowance",
-			},
-			{
-				"fieldname": "attendance_break_settings",
-				"fieldtype": "Section Break",
-				"label": "تنظیمات کسر استراحت",
-				"insert_after": "children_count",
-				"collapsible": 1,
-			},
-			{
-				"fieldname": "deduct_morning_break",
-				"fieldtype": "Check",
-				"label": "کسر صبحانه",
-				"insert_after": "attendance_break_settings",
-				"default": "1",
-			},
-			{
-				"fieldname": "morning_break_start",
-				"fieldtype": "Time",
-				"label": "شروع صبحانه",
-				"insert_after": "deduct_morning_break",
-				"default": "09:40:00",
-				"depends_on": "eval:doc.deduct_morning_break",
-			},
-			{
-				"fieldname": "morning_break_end",
-				"fieldtype": "Time",
-				"label": "پایان صبحانه",
-				"insert_after": "morning_break_start",
-				"default": "10:00:00",
-				"depends_on": "eval:doc.deduct_morning_break",
-			},
-			{
-				"fieldname": "col_break_1",
-				"fieldtype": "Column Break",
-				"insert_after": "morning_break_end",
-			},
-			{
-				"fieldname": "deduct_lunch_break",
-				"fieldtype": "Check",
-				"label": "کسر ناهار",
-				"insert_after": "col_break_1",
-				"default": "1",
-			},
-			{
-				"fieldname": "lunch_break_start",
-				"fieldtype": "Time",
-				"label": "شروع ناهار",
-				"insert_after": "deduct_lunch_break",
-				"default": "13:00:00",
-				"depends_on": "eval:doc.deduct_lunch_break",
-			},
-			{
-				"fieldname": "lunch_break_end",
-				"fieldtype": "Time",
-				"label": "پایان ناهار",
-				"insert_after": "lunch_break_start",
-				"default": "14:00:00",
-				"depends_on": "eval:doc.deduct_lunch_break",
-			},
-			{
-				"fieldname": "sec_break_2",
-				"fieldtype": "Section Break",
-				"insert_after": "lunch_break_end",
-			},
-			{
-				"fieldname": "deduct_afternoon_break",
-				"fieldtype": "Check",
-				"label": "کسر عصرانه",
-				"insert_after": "sec_break_2",
-				"default": "1",
-			},
-			{
-				"fieldname": "afternoon_break_start",
-				"fieldtype": "Time",
-				"label": "شروع عصرانه",
-				"insert_after": "deduct_afternoon_break",
-				"default": "17:15:00",
-				"depends_on": "eval:doc.deduct_afternoon_break",
-			},
-			{
-				"fieldname": "afternoon_break_end",
-				"fieldtype": "Time",
-				"label": "پایان عصرانه",
-				"insert_after": "afternoon_break_start",
-				"default": "17:35:00",
-				"depends_on": "eval:doc.deduct_afternoon_break",
-			},
-			{
-				"fieldname": "col_break_2",
-				"fieldtype": "Column Break",
-				"insert_after": "afternoon_break_end",
-			},
-			{
-				"fieldname": "deduct_evening_break",
-				"fieldtype": "Check",
-				"label": "کسر شام",
-				"insert_after": "col_break_2",
-				"default": "1",
-			},
-			{
-				"fieldname": "evening_break_start",
-				"fieldtype": "Time",
-				"label": "شروع شام",
-				"insert_after": "deduct_evening_break",
-				"default": "20:40:00",
-				"depends_on": "eval:doc.deduct_evening_break",
-			},
-			{
-				"fieldname": "evening_break_end",
-				"fieldtype": "Time",
-				"label": "پایان شام",
-				"insert_after": "evening_break_start",
-				"default": "21:00:00",
-				"depends_on": "eval:doc.deduct_evening_break",
+				"insert_after": "organization_monthly_cost",
 			},
 		],
 		"Salary Slip": [

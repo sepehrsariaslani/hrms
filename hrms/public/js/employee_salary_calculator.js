@@ -30,7 +30,7 @@ function show_salary_calculator(frm) {
 
     // Calculate current total salary from existing fields
     const current_monthly_base = flt(frm.doc.base_pay) * WORKING_HOURS_PER_DAY * DAYS_PER_MONTH;
-    const current_monthly_tech = flt(frm.doc.monthly_technical_bonus);
+    const current_monthly_tech = flt(frm.doc.karane);
     const current_fixed = HOUSING_ALLOWANCE + GROCERY_ALLOWANCE +
         (frm.doc.marital_status === 'Married' ? MARRIAGE_ALLOWANCE : 0) +
         (CHILD_ALLOWANCE * flt(frm.doc.children_count)) +
@@ -55,14 +55,14 @@ function show_salary_calculator(frm) {
                             <tr>
                                 <td>حقوق ساعتی (base_pay)</td>
                                 <td><strong>${format_currency(flt(frm.doc.base_pay), 'ریال')}</strong></td>
-                                <td>حق فنی ساعتی (technical_bonus)</td>
-                                <td><strong>${format_currency(flt(frm.doc.technical_bonus), 'ریال')}</strong></td>
+                                <td>کارانه ماهیانه</td>
+                                <td><strong>${format_currency(flt(frm.doc.karane), 'ریال')}</strong></td>
                             </tr>
                             <tr>
                                 <td>حقوق روزانه</td>
                                 <td>${format_currency(flt(frm.doc.daily_pay), 'ریال')}</td>
                                 <td>حق فنی ماهیانه</td>
-                                <td>${format_currency(flt(frm.doc.monthly_technical_bonus), 'ریال')}</td>
+                                <td>${format_currency(flt(frm.doc.technical_allowance_monthly), 'ریال')}</td>
                             </tr>
                             <tr>
                                 <td>نرخ اضافه‌کاری</td>
@@ -241,7 +241,7 @@ function calculate_salary(dialog, frm) {
         fixed_total += flt(values.supervision_amount);
     }
 
-    // Variable salary - goes to base_pay + technical_bonus
+    // Variable salary - goes to base pay + monthly technical allowances
     const variable_salary = total_salary - fixed_total;
 
     if (variable_salary <= 0) {
@@ -251,7 +251,7 @@ function calculate_salary(dialog, frm) {
 
     // Base pay = min(official minimum wage, variable salary)
     // If salary is less than minimum wage, all variable goes to base_pay
-    // If salary is more than minimum wage, base_pay = minimum wage, rest goes to technical_bonus
+    // If salary is more than minimum wage, base_pay = minimum wage, rest goes to monthly technical allowance
     const monthly_base = Math.min(MIN_MONTHLY_WAGE_1404, variable_salary);
 
     // Technical bonus = remaining after base pay (can be 0 if salary < minimum wage)
@@ -273,9 +273,9 @@ function calculate_salary(dialog, frm) {
     // Store calculated values
     dialog.calculated_values = {
         base_pay: hourly_base,
-        technical_bonus: hourly_technical,
         daily_pay: daily_pay,
-        monthly_technical_bonus: monthly_technical,
+        karane: monthly_technical,
+        technical_allowance_monthly: monthly_technical,
         overtime_rate: overtime_rate,
         absence_deduction: absence_deduction,
         supervision_allowance: values.has_supervision ? flt(values.supervision_amount) : 0,
@@ -298,13 +298,8 @@ function calculate_salary(dialog, frm) {
                     <td>${format_currency(hourly_base, 'ریال')}</td>
                     <td>${monthly_base >= MIN_MONTHLY_WAGE_1404 ? 'حداقل مزد ساعتی وزارت کار ۱۴۰۴' : 'کمتر از حداقل - کل حقوق متغیر'}</td>
                 </tr>
-                <tr style="background:#d4edda;">
-                    <td><strong>حق فنی ساعتی</strong> (technical_bonus)</td>
-                    <td>${format_currency(hourly_technical, 'ریال')}</td>
-                    <td>${monthly_technical > 0 ? 'مابقی بعد از حداقل دستمزد' : 'صفر - حقوق کمتر از حداقل وزارت کار'}</td>
-                </tr>
                 <tr>
-                    <td><strong>حق فنی ماهیانه</strong></td>
+                    <td><strong>کارانه ماهیانه</strong></td>
                     <td>${format_currency(monthly_technical, 'ریال')}</td>
                     <td>حقوق متغیر - حقوق پایه</td>
                 </tr>
@@ -369,9 +364,9 @@ function apply_calculated_values(frm, dialog) {
     const vals = dialog.calculated_values;
 
     frm.set_value('base_pay', vals.base_pay);
-    frm.set_value('technical_bonus', vals.technical_bonus);
     frm.set_value('daily_pay', vals.daily_pay);
-    frm.set_value('monthly_technical_bonus', vals.monthly_technical_bonus);
+    frm.set_value('karane', vals.karane);
+    frm.set_value('technical_allowance_monthly', vals.technical_allowance_monthly);
     frm.set_value('overtime_rate', vals.overtime_rate);
     frm.set_value('absence_deduction', vals.absence_deduction);
     frm.set_value('supervision_allowance', vals.supervision_allowance);

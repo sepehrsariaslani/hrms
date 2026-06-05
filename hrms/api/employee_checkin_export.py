@@ -5,7 +5,10 @@ import os
 import sys
 from collections import defaultdict
 
-import jdatetime
+try:
+    import jdatetime
+except ModuleNotFoundError:
+    jdatetime = None
 import pytds
 
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -26,13 +29,19 @@ BENCH_PATH = find_bench_path(CURRENT_DIR)
 SITES_PATH = os.path.join(BENCH_PATH, "sites")
 LOGS_PATH = os.path.join(BENCH_PATH, "logs")
 
-# Make direct `python employee_checkin_export.py` execution behave like bench context.
-os.makedirs(LOGS_PATH, exist_ok=True)
-os.chdir(BENCH_PATH)
-if BENCH_PATH not in sys.path:
-    sys.path.insert(0, BENCH_PATH)
-if os.path.join(BENCH_PATH, "apps") not in sys.path:
-    sys.path.insert(0, os.path.join(BENCH_PATH, "apps"))
+def prepare_bench_context(change_cwd=False):
+    # Keep imports bench-aware, but avoid global cwd mutation during module import.
+    os.makedirs(LOGS_PATH, exist_ok=True)
+    if change_cwd:
+        os.chdir(BENCH_PATH)
+    if BENCH_PATH not in sys.path:
+        sys.path.insert(0, BENCH_PATH)
+    apps_path = os.path.join(BENCH_PATH, "apps")
+    if apps_path not in sys.path:
+        sys.path.insert(0, apps_path)
+
+
+prepare_bench_context(change_cwd=False)
 
 import frappe
 from hrms.utils.attendance_device_mapping import get_employee_mapping_rows
@@ -51,6 +60,7 @@ CHECKIN_SOURCE_CSV = os.path.join(OUTPUT_DIR, "Employee_Checkin_Source_All.csv")
 CHECKIN_UNMAPPED_CSV = os.path.join(OUTPUT_DIR, "Employee_Checkin_Unmapped.csv")
 ATTENDANCE_SUMMARY_CSV = os.path.join(OUTPUT_DIR, "Employee_Attendance_Daily_Summary.csv")
 SOURCE_DATABASE_SUMMARY_CSV = os.path.join(OUTPUT_DIR, "Employee_Checkin_Source_Database_Summary.csv")
+LAST_SOURCE_FETCH_ERROR = ""
 
 PERSIAN_CHAR_MAP = str.maketrans(
     {
@@ -142,6 +152,8 @@ def jalali_to_gregorian_datetime(date_text, time_text, database_name=""):
         return ""
 
     try:
+        if jdatetime is None:
+            return ""
         year, month, day = [int(part) for part in date_parts]
         hour = int(time_parts[0])
         minute = int(time_parts[1])
@@ -379,6 +391,7 @@ def fetch_ioinfo_logs(connection, database_name, person_name_map):
 
 
 def fetch_complete_source_logs():
+    global LAST_SOURCE_FETCH_ERROR
     connection = None
     try:
         connection = get_sql_connection()
@@ -413,8 +426,10 @@ def fetch_complete_source_logs():
                 if not row.get("Record_No"):
                     row["Record_No"] = enrichment.get("Record_No", "")
 
+        LAST_SOURCE_FETCH_ERROR = ""
         return source_rows, sorted(ioinfo_databases), True
-    except Exception:
+    except Exception as exc:
+        LAST_SOURCE_FETCH_ERROR = str(exc) or repr(exc)
         clockdmp_index = fetch_clockdmp_index_from_csv()
         fallback_rows = []
         for (person_id, punch_date, punch_time), enrichment in clockdmp_index.items():
@@ -438,6 +453,10 @@ def fetch_complete_source_logs():
     finally:
         if connection is not None:
             connection.close()
+
+
+def get_last_source_fetch_error():
+    return normalize_text(LAST_SOURCE_FETCH_ERROR)
 
 
 def build_employee_index(employees, mapping_rows=None):
@@ -481,14 +500,12 @@ def build_employee_index(employees, mapping_rows=None):
 
 
 def load_employee_index():
-    fields = [
-        "name",
-        "employee_name",
-        "employee_number",
-        "attendance_device_id",
-        "custom_source_person_id",
-        "custom_employee_codes",
-    ]
+    fields = ["name", "employee_name", "employee_number", "attendance_device_id"]
+    employee_meta = frappe.get_meta("Employee")
+    if employee_meta.has_field("custom_source_person_id"):
+        fields.append("custom_source_person_id")
+    if employee_meta.has_field("custom_employee_codes"):
+        fields.append("custom_employee_codes")
     employees = frappe.get_all("Employee", fields=fields, limit_page_length=100000)
     mapping_rows = get_employee_mapping_rows()
     return build_employee_index(employees, mapping_rows=mapping_rows)
@@ -825,7 +842,7 @@ def main():
     args = parser.parse_args()
 
     if args.use_frappe:
-        os.chdir(BENCH_PATH)
+        prepare_bench_context(change_cwd=True)
         frappe.init(site=args.site, sites_path=SITES_PATH)
         frappe.connect()
         try:

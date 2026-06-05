@@ -170,12 +170,12 @@ const activeJalaliMonth = ref({
 })
 
 const colorMap = {
-	Present: "bg-green-200 dark:bg-green-700",
-	"Work From Home": "bg-green-200 dark:bg-green-700",
-	"Half Day": "bg-yellow-200 dark:bg-yellow-700",
-	Absent: "bg-red-200 dark:bg-red-700",
-	"On Leave": "bg-blue-200 dark:bg-blue-700",
-	Holiday: "bg-gray-200 dark:bg-gray-700",
+	Present: "bg-green-200 dark:bg-emerald-500/35",
+	"Work From Home": "bg-green-200 dark:bg-emerald-500/35",
+	"Half Day": "bg-yellow-200 dark:bg-amber-500/35",
+	Absent: "bg-red-200 dark:bg-rose-500/35",
+	"On Leave": "bg-blue-200 dark:bg-sky-500/35",
+	Holiday: "bg-gray-200 dark:bg-slate-500/35",
 }
 
 // __("Present"), __("Half Day"), __("Absent"), __("On Leave"), __("Work From Home")
@@ -379,9 +379,11 @@ function getDayClass(day) {
 
 	const leaveState = leaveDateStates.value[day.gregorianDate]
 	if (leaveState === "pending") {
-		classes.push("!bg-blue-200 dark:!bg-blue-700 !ring-2 !ring-blue-400 dark:!ring-blue-500 animate-pulse")
+		classes.push(
+			"!bg-blue-200 dark:!bg-sky-500/35 !ring-2 !ring-blue-400 dark:!ring-sky-400/60 animate-pulse"
+		)
 	} else if (leaveState === "approved") {
-		classes.push("!bg-blue-300 dark:!bg-blue-700")
+		classes.push("!bg-blue-300 dark:!bg-sky-500/45")
 	}
 
 	if (day.isToday) {

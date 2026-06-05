@@ -14,7 +14,7 @@
 							/>
 						</div>
 
-						<div class="flex flex-col gap-3 rounded bg-white p-4">
+						<div v-if="canSeeThemeOptions" class="flex flex-col gap-3 rounded bg-white p-4">
 							<div class="text-sm font-bold text-gray-900">
 								{{ __("Display Theme") }}
 							</div>
@@ -34,7 +34,7 @@
 							</div>
 						</div>
 
-						<div v-if="hasThemeAccess" class="flex flex-col gap-4 rounded bg-white p-4">
+						<div v-if="canSeeThemeOptions" class="flex flex-col gap-4 rounded bg-white p-4">
 							<div class="flex items-start justify-between gap-3">
 								<div>
 									<div class="text-sm font-bold text-gray-900">
@@ -169,6 +169,8 @@
 							</div>
 						</div>
 
+						<NavbarSettingsEditor v-if="canSeeDeskEditor" />
+
 						<!-- Loading Indicator -->
 						<div
 							v-if="isLoading"
@@ -190,6 +192,7 @@ import { Switch, Input, toast, LoadingIndicator } from "frappe-ui"
 import { computed, inject, ref, watch } from "vue"
 
 import BaseLayout from "@/components/BaseLayout.vue"
+import NavbarSettingsEditor from "@/components/NavbarSettingsEditor.vue"
 import { arePushNotificationsEnabled } from "@/data/notifications"
 import {
 	DEFAULT_THEME_CONFIG,
@@ -221,12 +224,16 @@ const themePresets = [
 	{ label: "Blue", value: "#2563eb" },
 	{ label: "Green", value: "#0f766e" },
 ]
-const THEME_ACCESS_ROLES = ["System Manager"]
-
-const hasThemeAccess = computed(() => {
+const isSiteAdmin = computed(() => {
+	const userName = String(user.data?.name || "")
+	if (userName === "Administrator") return true
 	const roles = user.data?.roles || []
-	return THEME_ACCESS_ROLES.some((role) => roles.includes(role))
+	return roles.includes("System Manager") || roles.includes("HR Manager")
 })
+
+const hasThemeAccess = computed(() => isSiteAdmin.value)
+const canSeeThemeOptions = computed(() => hasThemeAccess.value)
+const canSeeDeskEditor = computed(() => isSiteAdmin.value)
 
 const HEX_COLOR_RE = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/
 const schemeOptions = [

@@ -2,6 +2,7 @@
 	<BaseLayout :pageTitle="'تقویم هفتگی تیم'">
 		<template #body>
 			<div class="flex flex-col p-4 gap-4 mb-8 relative">
+				<ShiftManagementTabs />
 				
 				<!-- بخش بالا (نمایشگر هفته) - چاپ نمی‌شود -->
 				<div class="no-print bg-white rounded-lg p-3 border border-gray-100 flex items-center justify-between">
@@ -12,7 +13,7 @@
 
 				<div v-if="!isAllocator" class="no-print bg-white rounded-lg border border-gray-100 p-4 text-sm text-gray-700">
 					این ابزار مخصوص تعیین‌کننده شیفت است. برای مدیریت و نهایی‌سازی برنامه هفتگی، کاربر باید
-					فیلد <strong>Shift Allocator</strong> داشته باشد.
+					فیلد <strong>تخصیص‌دهنده شیفت</strong> داشته باشد.
 				</div>
 
 				<template v-else>
@@ -98,7 +99,7 @@
 								<div class="schedule-grid">
 									<!-- ستون درگ و دراپ (در چاپ مخفی می‌شود) -->
 									<div class="p-3 border-l border-gray-100 bg-gray-50/60 hide-on-print">
-										<div class="text-xs text-gray-600 mb-2">کارمندان قابل تخصیص (Drag)</div>
+										<div class="text-xs text-gray-600 mb-2">کارمندان قابل تخصیص (کشیدن و رها کردن)</div>
 										<div class="flex flex-col gap-2 max-h-[700px] overflow-y-auto pr-1">
 											<div
 												v-for="member in filteredEmployees"
@@ -178,12 +179,15 @@ import { computed, inject, ref } from "vue"
 import { createResource, toast } from "frappe-ui"
 
 import BaseLayout from "@/components/BaseLayout.vue"
+import ShiftManagementTabs from "@/components/ShiftManagementTabs.vue"
 import { formatGregorianDate, formatJalaliDate, toPersianDigits } from "@/utils/jalali"
 
 // --- تمامی کدهای جاوااسکریپت و لاجیک شما بدون هیچ تغییری حفظ شده است ---
 const employee = inject("$employee")
 
-const isAllocator = computed(() => Boolean(employee.data?.is_shift_allocator))
+const isAllocator = computed(() =>
+	Boolean(employee.data?.is_shift_allocator || employee.data?.is_shift_allocator_by_role)
+)
 
 const weekStartDate = ref(formatGregorianDate(new Date()))
 const employeeFilter = ref("")
@@ -307,17 +311,25 @@ const filteredEmployees = computed(() => {
 })
 
 const roleOptions = computed(() => {
-	const roleSet = new Set()
+	const roleMap = new Map()
+	const registerRole = (value) => {
+		const roleName = normalizeRoleName(value)
+		if (!roleName) return
+		const key = roleGroupingKey(roleName)
+		if (!key || roleMap.has(key)) return
+		roleMap.set(key, roleName)
+	}
+
 	for (const row of filteredEmployees.value) {
 		for (const role of row.available_duty_roles || []) {
-			if (role?.name) roleSet.add(role.name)
+			registerRole(role?.name)
 		}
-		if (row.default_duty_role) roleSet.add(row.default_duty_role)
+		registerRole(row.default_duty_role)
 	}
 	for (const item of assignments.value) {
-		if (item.duty_role) roleSet.add(item.duty_role)
+		registerRole(item.duty_role)
 	}
-	return Array.from(roleSet)
+	return Array.from(roleMap.values())
 })
 
 const visibleRoles = computed(() => {
@@ -486,8 +498,14 @@ function buildAssignment(employeeName, workDate, slotCode, dutyRole) {
 
 function laneAssignments(workDate, slotCode, dutyRole) {
 	const allowedEmployees = new Set(filteredEmployees.value.map((row) => row.name))
+	const laneRoleKey = roleGroupingKey(dutyRole)
 	return assignments.value
-		.filter((row) => row.work_date === workDate && row.slot_code === slotCode && row.duty_role === dutyRole)
+		.filter(
+			(row) =>
+				row.work_date === workDate &&
+				row.slot_code === slotCode &&
+				roleGroupingKey(row.duty_role) === laneRoleKey
+		)
 		.filter((row) => allowedEmployees.has(row.employee))
 		.sort((a, b) => employeeName(a.employee).localeCompare(employeeName(b.employee)))
 }
@@ -504,6 +522,16 @@ function roleLabel(roleName) {
 	return teamEmployees.value
 		.flatMap((row) => row.available_duty_roles || [])
 		.find((row) => row.name === roleName)?.role_name || roleName
+}
+
+function normalizeRoleName(value) {
+	return String(value || "").trim()
+}
+
+function roleGroupingKey(value) {
+	const roleName = normalizeRoleName(value)
+	if (!roleName) return ""
+	return normalizeRoleName(roleLabel(roleName)).toLowerCase()
 }
 
 function normalizeTime(value) {

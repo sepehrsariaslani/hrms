@@ -25,7 +25,7 @@ def execute():
 		)
 		updated = True
 
-	if not doc.get("tax_slabs"):
+	if doc.meta.get_field("tax_slabs") and not doc.get("tax_slabs"):
 		doc.append("tax_slabs", {"law_year": law_year, "from_amount": 0, "to_amount": 0, "tax_rate": 0})
 		updated = True
 

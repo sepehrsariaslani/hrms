@@ -404,33 +404,35 @@
 				</div>
 			</div>
 
-			<div class="calendar-fab-wrap">
-				<Transition name="calendar-fab-pop">
-					<div
-						v-if="showActionMenu"
-						class="calendar-fab-menu rounded-xl border border-gray-200 bg-white p-2 shadow-2xl"
-					>
-						<button
-							v-for="action in quickActions"
-							:key="action.key"
-							type="button"
-							class="calendar-fab-menu-item"
-							@click="openQuickAction(action)"
+			<Teleport to="body">
+				<div class="calendar-fab-wrap">
+					<Transition name="calendar-fab-pop">
+						<div
+							v-if="showActionMenu"
+							class="calendar-fab-menu rounded-xl border border-gray-200 bg-white p-2 shadow-2xl"
 						>
-							{{ action.label }}
-						</button>
-					</div>
-				</Transition>
+							<button
+								v-for="action in quickActions"
+								:key="action.key"
+								type="button"
+								class="calendar-fab-menu-item"
+								@click="openQuickAction(action)"
+							>
+								{{ action.label }}
+							</button>
+						</div>
+					</Transition>
 
-				<button
-					type="button"
-					class="calendar-fab-button"
-					:class="{ 'calendar-fab-button-open': showActionMenu }"
-					@click="showActionMenu = !showActionMenu"
-				>
-					+
-				</button>
-			</div>
+					<button
+						type="button"
+						class="calendar-fab-button"
+						:class="{ 'calendar-fab-button-open': showActionMenu }"
+						@click="showActionMenu = !showActionMenu"
+					>
+						+
+					</button>
+				</div>
+			</Teleport>
 		</div>
 	</div>
 
@@ -648,11 +650,11 @@ const viewModes = [
 ]
 
 const colorMap = {
-	Present: "bg-green-200 dark:bg-green-700",
-	"Work From Home": "bg-green-200 dark:bg-green-700",
-	Absent: "bg-red-200 dark:bg-red-700",
-	"On Leave": "bg-blue-200 dark:bg-blue-700",
-	Holiday: "bg-gray-200 dark:bg-gray-700",
+	Present: "bg-green-200 dark:bg-emerald-500/35",
+	"Work From Home": "bg-green-200 dark:bg-emerald-500/35",
+	Absent: "bg-red-200 dark:bg-rose-500/35",
+	"On Leave": "bg-blue-200 dark:bg-sky-500/35",
+	Holiday: "bg-gray-200 dark:bg-slate-500/35",
 }
 
 const summaryStatuses = ["Present", "Absent", "On Leave", "Holiday"]
@@ -666,7 +668,9 @@ const calendarLegendItems = [
 	{ key: "evening-shift", label: "شیفت عصر", dotClass: "bg-rose-500" },
 ]
 
-const isShiftAllocator = computed(() => Boolean(employee.data?.is_shift_allocator))
+const isShiftAllocator = computed(() =>
+	Boolean(employee.data?.is_shift_allocator || employee.data?.is_shift_allocator_by_role)
+)
 const hasShiftPlanningAccess = computed(() =>
 	Boolean(employee.data?.variable_shift || employee.data?.has_rotational_shift || employee.data?.needs_shift_registration)
 )
@@ -1647,58 +1651,58 @@ function selectDate(day) {
 }
 
 function getMonthCellClass(day) {
-	if (!day.isCurrentMonth) return "bg-gray-50 text-gray-400"
+	if (!day.isCurrentMonth) return "bg-gray-50 text-gray-400 dark:bg-slate-900/40 dark:text-slate-500"
 	const state = getDayAttendanceState(day.gregorianDate)
 	const stateClassMap = {
-		present: "bg-green-50",
-		leave: "bg-blue-50",
-		absent: "bg-red-50",
-		warning: "bg-yellow-50",
-		holiday: "bg-gray-50",
+		present: "bg-green-50 dark:bg-emerald-900/35",
+		leave: "bg-blue-50 dark:bg-sky-900/35",
+		absent: "bg-red-50 dark:bg-rose-900/35",
+		warning: "bg-yellow-50 dark:bg-amber-900/35",
+		holiday: "bg-gray-50 dark:bg-slate-800/60",
 	}
-	const base = stateClassMap[state] || "bg-white"
+	const base = stateClassMap[state] || "bg-white dark:bg-slate-900/70"
 	const selected = localSelectedDate.value === day.gregorianDate
-	if (selected) return `${base} ring-2 ring-gray-900/20`
-	if (day.isToday) return `${base} ring-1 ring-amber-300`
-	return `${base} hover:bg-slate-50`
+	if (selected) return `${base} ring-2 ring-gray-900/20 dark:ring-slate-100/40`
+	if (day.isToday) return `${base} ring-1 ring-amber-300 dark:ring-amber-400/70`
+	return `${base} hover:bg-slate-50 dark:hover:bg-slate-800/80`
 }
 
 function getMonthDayClass(day) {
-	if (localSelectedDate.value === day.gregorianDate) return "bg-gray-900 text-white shadow-sm"
+	if (localSelectedDate.value === day.gregorianDate) return "bg-gray-900 text-white shadow-sm dark:bg-slate-100 dark:text-slate-900"
 	if (day.isToday) return "bg-amber-500 text-white"
-	if (!day.isCurrentMonth) return "text-gray-400"
+	if (!day.isCurrentMonth) return "text-gray-400 dark:text-slate-500"
 	const state = getDayAttendanceState(day.gregorianDate)
-	if (state === "present") return "text-green-700"
-	if (state === "warning") return "text-yellow-700"
-	if (state === "leave") return "text-blue-700"
-	if (state === "absent") return "text-red-700"
-	return "text-gray-900"
+	if (state === "present") return "text-green-700 dark:text-emerald-300"
+	if (state === "warning") return "text-yellow-700 dark:text-amber-300"
+	if (state === "leave") return "text-blue-700 dark:text-sky-300"
+	if (state === "absent") return "text-red-700 dark:text-rose-300"
+	return "text-gray-900 dark:text-slate-100"
 }
 
 function getWeekCellClass(day) {
 	const state = getDayAttendanceState(day.gregorianDate)
 	const classByState = {
-		present: "border-green-200 bg-green-50",
-		warning: "border-yellow-200 bg-yellow-50",
-		leave: "border-blue-200 bg-blue-50",
-		absent: "border-red-200 bg-red-50",
-		holiday: "border-gray-200 bg-gray-50",
+		present: "border-green-200 bg-green-50 dark:border-emerald-600/50 dark:bg-emerald-900/30",
+		warning: "border-yellow-200 bg-yellow-50 dark:border-amber-600/50 dark:bg-amber-900/30",
+		leave: "border-blue-200 bg-blue-50 dark:border-sky-600/50 dark:bg-sky-900/30",
+		absent: "border-red-200 bg-red-50 dark:border-rose-600/50 dark:bg-rose-900/30",
+		holiday: "border-gray-200 bg-gray-50 dark:border-slate-700 dark:bg-slate-800/60",
 	}
-	const base = classByState[state] || "border-gray-200 bg-white hover:bg-gray-50"
-	if (localSelectedDate.value === day.gregorianDate) return `${base} ring-2 ring-gray-900/20`
-	if (day.isToday) return `${base} ring-1 ring-amber-300`
+	const base = classByState[state] || "border-gray-200 bg-white hover:bg-gray-50 dark:border-slate-700 dark:bg-slate-900/70 dark:hover:bg-slate-800/80"
+	if (localSelectedDate.value === day.gregorianDate) return `${base} ring-2 ring-gray-900/20 dark:ring-slate-100/40`
+	if (day.isToday) return `${base} ring-1 ring-amber-300 dark:ring-amber-400/70`
 	return base
 }
 
 function getWeekDayNumberClass(day) {
-	if (localSelectedDate.value === day.gregorianDate) return "bg-gray-900 text-white"
+	if (localSelectedDate.value === day.gregorianDate) return "bg-gray-900 text-white dark:bg-slate-100 dark:text-slate-900"
 	if (day.isToday) return "bg-amber-500 text-white"
 	const state = getDayAttendanceState(day.gregorianDate)
-	if (state === "present") return "text-green-700 bg-white/80"
-	if (state === "warning") return "text-yellow-700 bg-white/80"
-	if (state === "leave") return "text-blue-700 bg-white/80"
-	if (state === "absent") return "text-red-700 bg-white/80"
-	return "text-gray-800 bg-white/80"
+	if (state === "present") return "text-green-700 bg-white/80 dark:text-emerald-200 dark:bg-slate-900/70"
+	if (state === "warning") return "text-yellow-700 bg-white/80 dark:text-amber-200 dark:bg-slate-900/70"
+	if (state === "leave") return "text-blue-700 bg-white/80 dark:text-sky-200 dark:bg-slate-900/70"
+	if (state === "absent") return "text-red-700 bg-white/80 dark:text-rose-200 dark:bg-slate-900/70"
+	return "text-gray-800 bg-white/80 dark:text-slate-200 dark:bg-slate-900/70"
 }
 
 function buildDayIndicators(date) {
@@ -1717,33 +1721,33 @@ function buildDayIndicators(date) {
 		addIndicator(
 			"shift",
 			"شیفت",
-			"bg-sky-100 text-sky-700",
+			"bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-200",
 			"bg-sky-500"
 		)
 	}
 
 	if (leaveState === "approved" || status === "On Leave") {
-		addIndicator("leave", "مرخصی", "bg-blue-100 text-blue-700", "bg-blue-500")
+		addIndicator("leave", "مرخصی", "bg-blue-100 text-blue-700 dark:bg-sky-900/40 dark:text-sky-200", "bg-blue-500")
 	} else if (leaveState === "pending") {
-		addIndicator("leave-pending", "مرخصی در انتظار", "bg-sky-100 text-sky-700", "bg-sky-500")
+		addIndicator("leave-pending", "مرخصی در انتظار", "bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-200", "bg-sky-500")
 	}
 
 	if (status === "Holiday") {
-		addIndicator("holiday", "تعطیل", "bg-gray-100 text-gray-700", "bg-gray-500")
+		addIndicator("holiday", "تعطیل", "bg-gray-100 text-gray-700 dark:bg-slate-800 dark:text-slate-200", "bg-gray-500")
 	}
 
 	if (hasMissionOnDate(date)) {
-		addIndicator("mission", "ماموریت", "bg-violet-100 text-violet-700", "bg-violet-500")
+		addIndicator("mission", "ماموریت", "bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-200", "bg-violet-500")
 	}
 
 	if (hasSingleLogType(date)) {
-		addIndicator("single-log", "هشدار تردد", "bg-rose-100 text-rose-700", "bg-rose-500")
+		addIndicator("single-log", "هشدار تردد", "bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-200", "bg-rose-500")
 	}
 
 	if (status === "Absent") {
-		addIndicator("absent", "غیبت", "bg-red-100 text-red-700", "bg-red-500")
+		addIndicator("absent", "غیبت", "bg-red-100 text-red-700 dark:bg-rose-900/40 dark:text-rose-200", "bg-red-500")
 	} else if (status === "Present" || status === "Work From Home" || status === "Half Day") {
-		addIndicator("present", "حضور", "bg-emerald-100 text-emerald-700", "bg-emerald-500")
+		addIndicator("present", "حضور", "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-200", "bg-emerald-500")
 	}
 
 	return indicators
@@ -1760,7 +1764,7 @@ function getDayIndicatorCount(date) {
 
 function getDayIndicatorSummaryText(date) {
 	const first = getDayIndicators(date)[0]
-	if (!first) return { badgeClass: "bg-gray-100 text-gray-600" }
+	if (!first) return { badgeClass: "bg-gray-100 text-gray-600 dark:bg-slate-800 dark:text-slate-300" }
 	return { badgeClass: first.badgeClass }
 }
 
@@ -2024,12 +2028,12 @@ function getDayAttendanceCompactLabel(date) {
 
 function getDayAttendanceBadgeClass(date) {
 	const state = getDayAttendanceState(date)
-	if (state === "present") return "bg-green-100 text-green-700"
-	if (state === "warning") return "bg-yellow-100 text-yellow-700"
-	if (state === "leave") return "bg-blue-100 text-blue-700"
-	if (state === "absent") return "bg-red-100 text-red-700"
-	if (state === "holiday") return "bg-gray-100 text-gray-700"
-	return "bg-gray-100 text-gray-700"
+	if (state === "present") return "bg-green-100 text-green-700 dark:bg-emerald-900/40 dark:text-emerald-200"
+	if (state === "warning") return "bg-yellow-100 text-yellow-700 dark:bg-amber-900/40 dark:text-amber-200"
+	if (state === "leave") return "bg-blue-100 text-blue-700 dark:bg-sky-900/40 dark:text-sky-200"
+	if (state === "absent") return "bg-red-100 text-red-700 dark:bg-rose-900/40 dark:text-rose-200"
+	if (state === "holiday") return "bg-gray-100 text-gray-700 dark:bg-slate-800 dark:text-slate-200"
+	return "bg-gray-100 text-gray-700 dark:bg-slate-800 dark:text-slate-200"
 }
 
 function getDayAttendanceDotClass(date) {
@@ -2658,13 +2662,15 @@ watch(
 
 .calendar-fab-wrap {
 	position: fixed;
-	left: 1rem;
-	bottom: 1rem;
-	z-index: 35;
+	left: max(1rem, env(safe-area-inset-left));
+	bottom: max(5rem, env(safe-area-inset-bottom));
+	z-index: 2147483000;
 	display: flex;
 	flex-direction: column;
 	align-items: flex-start;
 	gap: 0.6rem;
+	transform: translate3d(0, 0, 0);
+	will-change: transform;
 }
 
 .calendar-fab-menu {

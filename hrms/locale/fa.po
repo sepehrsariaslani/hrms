@@ -2926,6 +2926,10 @@ msgstr "تنظیمات خروج کارمند"
 msgid "Employee Exits"
 msgstr "کارمند خارج می‌شود"
 
+#: hrms/hr/doctype/employee_separation/employee_separation.js
+msgid "Exit"
+msgstr "خروج"
+
 #. Name of a DocType
 #: hrms/hr/doctype/employee_feedback_criteria/employee_feedback_criteria.json
 msgid "Employee Feedback Criteria"
@@ -11486,4 +11490,3 @@ msgstr "{} مطالبه نشده"
 #: hrms/hr/doctype/job_requisition/job_requisition.js:22
 msgid "{} {} open for this position."
 msgstr "{} {} برای این موقعیت باز است."
-

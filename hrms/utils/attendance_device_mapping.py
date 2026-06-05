@@ -28,11 +28,18 @@ PERSIAN_DIGITS_MAP = str.maketrans("۰۱۲۳۴۵۶۷۸۹٠١٢٣٤٥٦٧٨٩", "
 EMPLOYEE_DEVICE_CUSTOM_FIELDS = {
 	"Employee": [
 		{
+			"fieldname": "attendance_device_info_section",
+			"label": "دستگاه حضور غیاب",
+			"fieldtype": "Section Break",
+			"insert_after": "personnel_case_no",
+			"collapsible": 1,
+		},
+		{
 			"fieldname": DEVICE_MAPPING_TABLE_FIELD,
-			"label": "Attendance Device Mappings",
+			"label": "نگاشت‌های دستگاه حضور غیاب",
 			"fieldtype": "Table",
 			"options": DEVICE_MAPPING_DOCTYPE,
-			"insert_after": "attendance_device_id",
+			"insert_after": "attendance_device_info_section",
 		}
 	]
 }

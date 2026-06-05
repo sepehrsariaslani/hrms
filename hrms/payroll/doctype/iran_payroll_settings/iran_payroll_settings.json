@@ -13,8 +13,8 @@
   "weekly_working_hours",
   "yearly_rules_section",
   "yearly_rules",
-  "tax_slabs_section",
-  "tax_slabs"
+  "designation_rules_section",
+  "designation_rules"
  ],
  "fields": [
   {
@@ -59,15 +59,15 @@
    "options": "Iran Payroll Yearly Rule"
   },
   {
-   "fieldname": "tax_slabs_section",
+   "fieldname": "designation_rules_section",
    "fieldtype": "Section Break",
-   "label": "پله های مالیات"
+   "label": "تنظیمات حقوق بر اساس سمت سازمانی"
   },
   {
-   "fieldname": "tax_slabs",
+   "fieldname": "designation_rules",
    "fieldtype": "Table",
-   "label": "پله های مالیات",
-   "options": "Iran Payroll Tax Slab"
+   "label": "تنظیمات حقوق پایه نقش‌ها",
+   "options": "Iran Payroll Designation Rule"
   }
  ],
  "icon": "fa fa-cogs",

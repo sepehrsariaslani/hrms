@@ -268,10 +268,12 @@ def create_weekly_shift_finalization_amendment(source_finalization_name: str) ->
 	amendment.finalized_by = ""
 	amendment.finalized_on = None
 	amendment.generated_assignments_count = 0
-	amendment.amended_from = source_doc.name
+	amendment.amended_from = ""
 
 	amendment.flags.ignore_permissions = True
 	amendment.insert(ignore_permissions=True)
+	amendment.db_set("amended_from", source_doc.name, update_modified=False)
+	amendment.amended_from = source_doc.name
 	amendment.add_comment("Info", _("Amendment created from {0}.").format(frappe.bold(source_doc.name)))
 	return serialize_finalization(amendment)
 
