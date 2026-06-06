@@ -1464,10 +1464,12 @@ function submitQuickAttendanceRequest() {
                                 request_mode: "Checkin Request",
                                 requested_log_type: logType,
                                 requested_time: selectedTime,
-                                review_status: "Pending",
                                 reason: "On Duty",
                                 half_day: 0,
                                 include_holidays: 0,
+                                reviewed_log_type: null,
+                                reviewed_time: null,
+                                review_comment: null,
                                 explanation:
                                         String(quickAttendanceExplanation.value || "").trim()
                                         || `درخواست ثبت ${logTypeLabel} در ساعت ${selectedTime}`,
