@@ -91,7 +91,6 @@ jinja = {
 	"methods": [
 		"hrms.utils.get_country",
 		"hrms.utils.jalali_helper.gregorian_to_jalali",
-		"frappe.utils.jinja_globals.get_qr_code",
 	],
 }
 
