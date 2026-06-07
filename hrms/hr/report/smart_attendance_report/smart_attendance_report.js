@@ -14,6 +14,10 @@ frappe.query_reports["Smart Attendance Report"] = {
                 }
             );
         });
+
+        report.page.add_inner_button(__("🖨️ چاپ / PDF"), function () {
+            smart_attendance_print_report(report);
+        });
     },
 
     "filters": [
@@ -545,4 +549,174 @@ window.smart_attendance_mark_day = function (employee, work_date, current_status
     });
 
     dialog.show();
+};
+
+// ===================== تابع چاپ / PDF =====================
+window.smart_attendance_print_report = function (report) {
+    const data = frappe.query_report.data;
+    const filters = frappe.query_report.get_values();
+
+    if (!data || !data.length) {
+        frappe.msgprint(__("داده\u200cای برای چاپ وجود ندارد. ابتدا گزارش را اجرا کنید."));
+        return;
+    }
+
+    function toHHMM(val) {
+        let v = parseFloat(val) || 0;
+        if (v === 0) return "\u2014";
+        let h = Math.floor(v);
+        let m = Math.round((v - h) * 60);
+        if (m === 60) { h++; m = 0; }
+        return h + ":" + String(m).padStart(2, "0");
+    }
+
+    let employeeLabel = "\u0647\u0645\u0647 \u06a9\u0627\u0631\u0645\u0646\u062f\u0627\u0646";
+    if (filters.employee && data.length > 0) {
+        employeeLabel = data[0].employee_name || filters.employee;
+    } else if (filters.employees) {
+        employeeLabel = filters.employees;
+    }
+
+    let employeeTotals = {};
+    let tableRows = "";
+    let rowIdx = 0;
+
+    for (let row of data) {
+        rowIdx++;
+        let isHoliday = row.day_name === "\u062c\u0645\u0639\u0647" || (!row.has_issue && row.log_status === "\u062a\u0639\u0637\u06cc\u0644");
+        let rowClass = isHoliday ? "row-holiday" : (row.has_issue ? "row-issue" : "");
+        let working = parseFloat(row.working_hours) || 0;
+        let timeOff = parseFloat(row.time_off) || 0;
+        let overtime = parseFloat(row.overtime) || 0;
+        let status = (row.log_status || "").replace(/\ud83d\udfe2|\u2705|\ud83d\udd34|\ud83d\udfe1|\ud83d\udfe0|\ud83d\udfe3|\u26ab|\u2139\ufe0f/g, "").trim();
+
+        tableRows += "<tr class=\"" + rowClass + "\">"
+            + "<td class=\"idx\">" + rowIdx + "</td>"
+            + "<td class=\"date\">" + (row.work_date_shamsi || row.work_date || "") + "</td>"
+            + "<td class=\"day\">" + (row.day_name || "") + "</td>"
+            + "<td class=\"emp\">" + (row.employee_name || row.employee || "") + "</td>"
+            + "<td class=\"time\">" + (row.actual_start || "\u2014") + "</td>"
+            + "<td class=\"time\">" + (row.actual_end || "\u2014") + "</td>"
+            + "<td>" + (working > 0 ? toHHMM(working) : "<span style='color:#bbb'>\u2014</span>") + "</td>"
+            + "<td class=\"" + (timeOff > 0 ? "cell-deficit" : "") + "\">" + (timeOff > 0 ? toHHMM(timeOff) : "\u2014") + "</td>"
+            + "<td class=\"" + (overtime > 0 ? "cell-overtime" : "") + "\">" + (overtime > 0 ? toHHMM(overtime) : "\u2014") + "</td>"
+            + "<td class=\"status\">" + status + "</td>"
+            + "</tr>";
+
+        let empKey = row.employee || "unknown";
+        if (!employeeTotals[empKey]) {
+            employeeTotals[empKey] = { name: row.employee_name || row.employee || empKey, working: 0, timeOff: 0, overtime: 0, workDays: 0, totalDays: 0 };
+        }
+        employeeTotals[empKey].working += working;
+        employeeTotals[empKey].timeOff += timeOff;
+        employeeTotals[empKey].overtime += overtime;
+        employeeTotals[empKey].totalDays++;
+        if (working > 0) employeeTotals[empKey].workDays++;
+    }
+
+    let summaryRows = "";
+    for (let empKey of Object.keys(employeeTotals)) {
+        let t = employeeTotals[empKey];
+        summaryRows += "<tr class=\"row-summary\">"
+            + "<td colspan=\"3\" style=\"text-align:right;padding-right:10px\">\ud83d\udd22 \u062c\u0645\u0639: " + t.name + "</td>"
+            + "<td>" + t.workDays + " \u0631\u0648\u0632 \u0627\u0632 " + t.totalDays + "</td>"
+            + "<td colspan=\"2\"></td>"
+            + "<td>" + toHHMM(t.working) + "</td>"
+            + "<td class=\"" + (t.timeOff > 0 ? "cell-deficit" : "") + "\">" + toHHMM(t.timeOff) + "</td>"
+            + "<td class=\"" + (t.overtime > 0 ? "cell-overtime" : "") + "\">" + toHHMM(t.overtime) + "</td>"
+            + "<td></td>"
+            + "</tr>";
+    }
+
+    let nowDate = new Date().toLocaleDateString("fa-IR", { year: "numeric", month: "long", day: "numeric" });
+
+    let css = [
+        "* { box-sizing:border-box; margin:0; padding:0 }",
+        "body { font-family:Tahoma,Arial,sans-serif; direction:rtl; background:#f0f2f5; color:#1a1a2e; font-size:12px }",
+        ".print-bar { background:linear-gradient(135deg,#1e3a5f,#2980b9); color:white; padding:12px 20px; display:flex; align-items:center; gap:12px; position:sticky; top:0; z-index:100; box-shadow:0 2px 8px rgba(0,0,0,.2) }",
+        ".print-bar button { background:white; color:#1e3a5f; border:none; padding:8px 22px; border-radius:6px; cursor:pointer; font-size:13px; font-weight:bold; font-family:inherit }",
+        ".print-bar button:hover { background:#e8f0fe }",
+        ".page { max-width:1060px; margin:24px auto; background:white; border-radius:12px; box-shadow:0 4px 20px rgba(0,0,0,.12); overflow:hidden }",
+        ".report-header { background:linear-gradient(135deg,#1e3a5f 0%,#2c5f8a 100%); color:white; padding:26px 30px 0; text-align:center }",
+        ".report-header h1 { font-size:21px; font-weight:700; margin-bottom:6px }",
+        ".report-header .sub { font-size:12px; opacity:.8; margin-bottom:16px }",
+        ".accent-bar { height:4px; background:linear-gradient(90deg,#f39c12,#e74c3c,#f39c12) }",
+        ".meta-bar { display:flex; justify-content:center; gap:22px; flex-wrap:wrap; padding:12px 30px; background:#f8fafc; border-bottom:1px solid #e2e8f0 }",
+        ".meta-item { display:flex; align-items:center; gap:5px; font-size:12px; color:#4a5568 }",
+        ".meta-item strong { color:#1e3a5f }",
+        ".table-wrapper { padding-bottom:14px; overflow-x:auto }",
+        "table { width:100%; border-collapse:collapse }",
+        "thead tr { background:#1e3a5f }",
+        "th { color:white; padding:10px 6px; text-align:center; font-size:11px; font-weight:600; border:1px solid #2c5f8a; white-space:nowrap }",
+        "td { padding:6px 5px; text-align:center; border:1px solid #e2e8f0; font-size:11px; vertical-align:middle }",
+        "tbody tr:nth-child(even) td { background:#f7fafc }",
+        ".row-holiday td { background:#fffbeb !important; color:#92400e }",
+        ".row-issue td { background:#fff5f5 !important }",
+        ".row-summary td { background:#dbeafe !important; font-weight:700; border-top:2px solid #1e3a5f; border-bottom:2px solid #1e3a5f }",
+        ".cell-deficit { color:#dc2626; font-weight:700 }",
+        ".cell-overtime { color:#16a34a; font-weight:700 }",
+        ".idx { color:#94a3b8; font-size:10px } .date,.time { white-space:nowrap }",
+        ".emp { text-align:right; padding-right:8px; font-weight:500 }",
+        ".status { font-size:10px; text-align:right; padding-right:6px; color:#555 }",
+        ".signature-section { padding:28px 30px 10px; border-top:2px solid #e2e8f0 }",
+        ".sig-title { font-size:13px; font-weight:700; color:#1e3a5f; padding-bottom:8px; border-bottom:1px dashed #cbd5e0; margin-bottom:14px }",
+        ".sig-row { display:flex; justify-content:space-between; gap:18px; margin-top:10px }",
+        ".sig-box { flex:1; text-align:center }",
+        ".sig-role { font-size:12px; font-weight:600; color:#2d3748; margin-bottom:4px }",
+        ".sig-name-line { font-size:11px; color:#718096; margin-bottom:58px }",
+        ".sig-line { border-top:1px solid #4a5568; padding-top:6px; font-size:10px; color:#94a3b8 }",
+        ".report-footer { padding:10px 30px; background:#f8fafc; border-top:1px solid #e2e8f0; display:flex; justify-content:space-between; font-size:10px; color:#94a3b8 }",
+        "@media print { body{background:white} .print-bar{display:none!important} .page{max-width:100%;margin:0;border-radius:0;box-shadow:none} .report-header{padding:14px 20px 0} .report-header h1{font-size:17px} th,td{font-size:10px;padding:5px 3px} .signature-section{padding:18px 20px;margin-top:2px} .sig-name-line{margin-bottom:42px} table{page-break-inside:auto} tr{page-break-inside:avoid} thead{display:table-header-group} }"
+    ].join("\n");
+
+    let html = "<!DOCTYPE html><html dir=\"rtl\" lang=\"fa\"><head><meta charset=\"UTF-8\">"
+        + "<title>\u06af\u0632\u0627\u0631\u0634 \u062d\u0636\u0648\u0631 \u0648 \u063a\u06cc\u0627\u0628 - " + employeeLabel + "</title>"
+        + "<style>" + css + "</style></head><body>"
+        + "<div class=\"print-bar\">"
+        + "<button onclick=\"window.print()\">\ud83d\udda8\ufe0f \u0686\u0627\u067e / \u0630\u062e\u06cc\u0631\u0647 PDF</button>"
+        + "<span style=\"font-size:15px;font-weight:bold\">\u06af\u0632\u0627\u0631\u0634 \u062d\u0636\u0648\u0631 \u0648 \u063a\u06cc\u0627\u0628 \u0647\u0648\u0634\u0645\u0646\u062f</span>"
+        + "<span style=\"margin-right:auto;font-size:11px;opacity:.8\">\u0628\u0631\u0627\u06cc PDF: \u0686\u0627\u067e \u2190 \u0645\u0642\u0635\u062f: \u0630\u062e\u06cc\u0631\u0647 \u0628\u0647 \u0639\u0646\u0648\u0627\u0646 PDF</span>"
+        + "</div>"
+        + "<div class=\"page\">"
+        + "<div class=\"report-header\"><h1>\ud83d\udccb \u06af\u0632\u0627\u0631\u0634 \u062d\u0636\u0648\u0631 \u0648 \u063a\u06cc\u0627\u0628 \u0647\u0648\u0634\u0645\u0646\u062f</h1><div class=\"sub\">Human Resource Management System</div></div>"
+        + "<div class=\"accent-bar\"></div>"
+        + "<div class=\"meta-bar\">"
+        + "<div class=\"meta-item\">\ud83d\udcc5 \u0627\u0632: <strong>" + (filters.from_date || "\u2014") + "</strong></div>"
+        + "<div class=\"meta-item\">\ud83d\udcc5 \u062a\u0627: <strong>" + (filters.to_date || "\u2014") + "</strong></div>"
+        + "<div class=\"meta-item\">\ud83d\udc64 \u06a9\u0627\u0631\u0645\u0646\u062f: <strong>" + employeeLabel + "</strong></div>"
+        + "<div class=\"meta-item\">\ud83d\udcca \u062a\u0639\u062f\u0627\u062f \u0631\u062f\u06cc\u0641: <strong>" + data.length + "</strong></div>"
+        + "<div class=\"meta-item\">\ud83d\uddd3\ufe0f \u062a\u0627\u0631\u06cc\u062e \u0686\u0627\u067e: <strong>" + nowDate + "</strong></div>"
+        + "</div>"
+        + "<div class=\"table-wrapper\"><table>"
+        + "<thead><tr>"
+        + "<th style=\"width:28px\">#</th>"
+        + "<th style=\"width:88px\">\u062a\u0627\u0631\u06cc\u062e (\u0634\u0645\u0633\u06cc)</th>"
+        + "<th style=\"width:55px\">\u0631\u0648\u0632 \u0647\u0641\u062a\u0647</th>"
+        + "<th style=\"min-width:110px\">\u0646\u0627\u0645 \u06a9\u0627\u0631\u0645\u0646\u062f</th>"
+        + "<th style=\"width:58px\">\u0648\u0631\u0648\u062f</th>"
+        + "<th style=\"width:58px\">\u062e\u0631\u0648\u062c</th>"
+        + "<th style=\"width:62px\">\u0633\u0627\u0639\u062a \u06a9\u0627\u0631\u06cc</th>"
+        + "<th style=\"width:52px\">\u06a9\u0633\u0631\u06cc</th>"
+        + "<th style=\"width:62px\">\u0627\u0636\u0627\u0641\u0647\u200c\u06a9\u0627\u0631</th>"
+        + "<th>\u0648\u0636\u0639\u06cc\u062a</th>"
+        + "</tr></thead>"
+        + "<tbody>" + tableRows + summaryRows + "</tbody></table></div>"
+        + "<div class=\"signature-section\">"
+        + "<div class=\"sig-title\">\u270d\ufe0f \u062a\u0623\u06cc\u06cc\u062f\u06cc\u0647 \u0648 \u0627\u0645\u0636\u0627</div>"
+        + "<div class=\"sig-row\">"
+        + "<div class=\"sig-box\"><div class=\"sig-role\">\u06a9\u0627\u0631\u0645\u0646\u062f</div><div class=\"sig-name-line\">\u0646\u0627\u0645: ................................</div><div class=\"sig-line\">\u0627\u0645\u0636\u0627 \u0648 \u062a\u0627\u0631\u06cc\u062e</div></div>"
+        + "<div class=\"sig-box\"><div class=\"sig-role\">\u0633\u0631\u067e\u0631\u0633\u062a \u0645\u0633\u062a\u0642\u06cc\u0645</div><div class=\"sig-name-line\">\u0646\u0627\u0645: ................................</div><div class=\"sig-line\">\u0627\u0645\u0636\u0627 \u0648 \u062a\u0627\u0631\u06cc\u062e</div></div>"
+        + "<div class=\"sig-box\"><div class=\"sig-role\">\u0645\u062f\u06cc\u0631 \u0645\u0646\u0627\u0628\u0639 \u0627\u0646\u0633\u0627\u0646\u06cc</div><div class=\"sig-name-line\">\u0646\u0627\u0645: ................................</div><div class=\"sig-line\">\u0627\u0645\u0636\u0627 \u0648 \u062a\u0627\u0631\u06cc\u062e</div></div>"
+        + "<div class=\"sig-box\"><div class=\"sig-role\">\u0645\u062f\u06cc\u0631\u0639\u0627\u0645\u0644</div><div class=\"sig-name-line\">&nbsp;</div><div class=\"sig-line\">\u0645\u0647\u0631 \u0648 \u0627\u0645\u0636\u0627</div></div>"
+        + "</div></div>"
+        + "<div class=\"report-footer\"><span>\u0633\u06cc\u0633\u062a\u0645 \u062d\u0636\u0648\u0631 \u0648 \u063a\u06cc\u0627\u0628 \u0647\u0648\u0634\u0645\u0646\u062f</span><span>\u062a\u0627\u0631\u06cc\u062e \u0686\u0627\u067e: " + nowDate + "</span></div>"
+        + "</div></body></html>";
+
+    let w = window.open("", "_blank", "width=1100,height=800");
+    if (!w) {
+        frappe.msgprint(__("پنجره جدید باز نشد. لطفاً Pop-up Blocker مرورگر را غیرفعال کنید."));
+        return;
+    }
+    w.document.write(html);
+    w.document.close();
 };
