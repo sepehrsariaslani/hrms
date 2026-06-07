@@ -17,8 +17,28 @@ except ImportError:
         return str(d) if d else ""
 
 
+def ensure_excluded_field_exists():
+    """Auto-create custom_is_excluded Check field on Employee Checkin if it doesn't exist."""
+    try:
+        if not frappe.db.has_column("Employee Checkin", "custom_is_excluded"):
+            if not frappe.db.exists("Custom Field", {"dt": "Employee Checkin", "fieldname": "custom_is_excluded"}):
+                frappe.get_doc({
+                    "doctype": "Custom Field",
+                    "dt": "Employee Checkin",
+                    "label": "حساب نشود",
+                    "fieldname": "custom_is_excluded",
+                    "fieldtype": "Check",
+                    "default": "0",
+                    "insert_after": "log_type",
+                }).insert(ignore_permissions=True)
+                frappe.db.commit()
+    except Exception:
+        pass
+
+
 def execute(filters=None):
     filters = filters or {}
+    ensure_excluded_field_exists()
     columns = get_columns()
     data = get_data(filters)
     
@@ -272,6 +292,9 @@ def get_data(filters):
         # اگر company انتخاب شده ولی کارمندی پیدا نشده
         return []
 
+    has_excluded_col = frappe.db.has_column("Employee Checkin", "custom_is_excluded")
+    excl_col = ",\n            IFNULL(custom_is_excluded, 0) AS is_excluded" if has_excluded_col else ",\n            0 AS is_excluded"
+
     checkin_query = """
         SELECT 
             name,
@@ -279,13 +302,13 @@ def get_data(filters):
             DATE(time) AS work_date,
             TIME(time) AS log_time,
             time AS full_time,
-            log_type
+            log_type{excl_col}
         FROM `tabEmployee Checkin`
         WHERE DATE(time) >= %(extended_from)s
           AND DATE(time) <= %(to_date)s
           {employee_filter}
         ORDER BY employee, time
-    """.format(employee_filter=employee_filter)
+    """.format(excl_col=excl_col, employee_filter=employee_filter)
 
     params = {
         "extended_from": extended_from,
@@ -305,17 +328,21 @@ def get_data(filters):
     employee_checkins = {}
     all_logs_lookup = {}
     for employee, checkins in employee_checkins_raw.items():
-        cleaned_logs = normalize_noisy_checkins(checkins)
+        # برای محاسبات فقط لاگ‌های غیر-مستثنی استفاده می‌شود
+        non_excluded = [c for c in checkins if not c.get("is_excluded")]
+        cleaned_logs = normalize_noisy_checkins(non_excluded)
         employee_checkins[employee] = cleaned_logs
 
-        for c in cleaned_logs:
+        # برای نمایش همه لاگ‌ها (شامل مستثنی‌شده‌ها) نشان داده می‌شود
+        for c in sorted(checkins, key=lambda x: str(x.get("full_time") or "")):
             key = (c.employee, c.work_date)
             if key not in all_logs_lookup:
                 all_logs_lookup[key] = []
             all_logs_lookup[key].append({
                 "name": c.name,
                 "log_type": c.log_type,
-                "log_time": c.log_time
+                "log_time": c.log_time,
+                "is_excluded": bool(c.get("is_excluded", 0))
             })
 
     used_overnight_logs = set()
@@ -455,6 +482,7 @@ def get_data(filters):
                 i += 1
 
     employee_names = {}
+    employee_standard_hours = {}
     employees_in_checkins = list(set([c.employee for c in raw_checkins]))
 
     source_employees = list(set((employees_to_include or []) + employees_in_checkins))
@@ -462,9 +490,10 @@ def get_data(filters):
         employee_rows = frappe.get_all(
             "Employee",
             filters={"name": ["in", source_employees]},
-            fields=["name", "employee_name"],
+            fields=["name", "employee_name", "standard_working_hours"],
         )
         employee_names = {row.name: row.employee_name or row.name for row in employee_rows}
+        employee_standard_hours.update({row.name: flt(row.standard_working_hours or 0) for row in employee_rows})
 
     employee_break_assignments = get_employee_break_assignments(filters)
     shifts = get_employee_shifts(filters)
@@ -490,10 +519,11 @@ def get_data(filters):
         extra_rows = frappe.get_all(
             "Employee",
             filters={"name": ["in", missing_names]},
-            fields=["name", "employee_name"],
+            fields=["name", "employee_name", "standard_working_hours"],
         )
         for row in extra_rows:
             employee_names[row.name] = row.employee_name or row.name
+            employee_standard_hours[row.name] = flt(row.standard_working_hours or 0)
 
     for employee in sorted(employees_to_report):
         current_date = from_date
@@ -520,7 +550,7 @@ def get_data(filters):
                 )
                 standard_hours = max(0, flt(shift.get("shift_duration")) - shift_break_hours)
             else:
-                standard_hours = 7.67
+                standard_hours = employee_standard_hours.get(employee) or 7.67
 
             all_logs_str = ""
             all_logs_json = []
@@ -535,24 +565,29 @@ def get_data(filters):
                     if log["name"] in used_overnight_logs:
                         continue
 
+                    is_excl = log.get("is_excluded", False)
                     time_text = safe_time_text(log.get("log_time"))
                     log_type_icon = "⬇️" if log["log_type"] == "IN" else "⬆️"
+                    display_text = f"🚫{time_text}" if is_excl else f"{log_type_icon}{time_text}"
                     log_parts.append({
-                        "display": f"{log_type_icon}{time_text}",
+                        "display": display_text,
                         "name": log["name"],
                         "log_type": log["log_type"],
-                        "time": time_text
+                        "time": time_text,
+                        "is_excluded": is_excl
                     })
                     all_logs_json.append({
                         "name": log["name"],
                         "log_type": log["log_type"],
-                        "time": time_text
+                        "time": time_text,
+                        "is_excluded": is_excl
                     })
 
-                    if log["log_type"] == "IN":
-                        in_count += 1
-                    else:
-                        out_count += 1
+                    if not is_excl:
+                        if log["log_type"] == "IN":
+                            in_count += 1
+                        else:
+                            out_count += 1
 
                 all_logs_str = " | ".join([p["display"] for p in log_parts])
 
@@ -1226,19 +1261,23 @@ def normalize_midnight_checkout_logs(from_date, to_date, employee=None, employee
 
 def _cleanup_noisy_day_logs(employee, work_date):
     target_date = getdate(work_date)
+    has_excl = frappe.db.has_column("Employee Checkin", "custom_is_excluded")
+    excl_filter = "AND IFNULL(custom_is_excluded, 0) = 0" if has_excl else ""
+
     logs = frappe.db.sql(
         """
         SELECT name, log_type, time
         FROM `tabEmployee Checkin`
         WHERE employee = %(employee)s
           AND DATE(time) = %(work_date)s
+          {excl_filter}
         ORDER BY time, creation
-        """,
+        """.format(excl_filter=excl_filter),
         {"employee": employee, "work_date": target_date},
         as_dict=True,
     )
 
-    to_delete = []
+    to_flag = []
     kept = []
     for log in logs:
         if kept:
@@ -1246,24 +1285,31 @@ def _cleanup_noisy_day_logs(employee, work_date):
             same_timestamp = prev.time == log.time
             if same_timestamp:
                 if prev.log_type == log.log_type:
-                    to_delete.append(log.name)
+                    to_flag.append(log.name)
                     continue
 
-                # IN/OUT with identical timestamp: drop the latter noisy punch.
-                to_delete.append(log.name)
+                # IN/OUT با timestamp یکسان: لاگ بعدی نویزی است.
+                to_flag.append(log.name)
                 continue
         kept.append(log)
 
-    for name in to_delete:
-        frappe.delete_doc("Employee Checkin", name, ignore_permissions=True)
+    # به‌جای حذف، لاگ‌های نویزی را علامت‌گذاری می‌کنیم (حساب نشود)
+    if has_excl:
+        for name in to_flag:
+            frappe.db.set_value("Employee Checkin", name, "custom_is_excluded", 1, update_modified=False)
+    else:
+        # اگر فیلد هنوز ایجاد نشده، حذف می‌کنیم (fallback)
+        for name in to_flag:
+            frappe.delete_doc("Employee Checkin", name, ignore_permissions=True)
 
     repair_result = auto_repair_day_checkins(employee=employee, work_date=target_date)
 
     return {
-        "deleted_count": len(to_delete),
-        "deleted_logs": to_delete,
+        "flagged_count": len(to_flag),
+        "deleted_count": len(to_flag),  # backward compat
+        "flagged_logs": to_flag,
         "repaired_count": repair_result.get("updated_count", 0),
-        "message": _("تعداد {0} لاگ نویزی حذف شد").format(len(to_delete)),
+        "message": _("تعداد {0} لاگ نویزی علامت‌گذاری شد (حساب نشود)").format(len(to_flag)),
         "work_date": target_date,
         "employee": employee,
     }
@@ -1374,14 +1420,18 @@ def auto_repair_day_checkins(employee, work_date):
     frappe.has_permission("Employee Checkin", "write", throw=True)
     target_date = getdate(work_date)
 
+    has_excl = frappe.db.has_column("Employee Checkin", "custom_is_excluded")
+    excl_filter = "AND IFNULL(custom_is_excluded, 0) = 0" if has_excl else ""
+
     logs = frappe.db.sql(
         """
         SELECT name, log_type
         FROM `tabEmployee Checkin`
         WHERE employee = %(employee)s
           AND DATE(time) = %(work_date)s
+          {excl_filter}
         ORDER BY time, creation
-        """,
+        """.format(excl_filter=excl_filter),
         {"employee": employee, "work_date": target_date},
         as_dict=True,
     )
@@ -1518,4 +1568,31 @@ def add_manual_checkin(employee, log_type, time):
         "success": True,
         "name": doc.name,
         "message": _("لاگ با موفقیت ثبت شد")
+    }
+
+
+@frappe.whitelist()
+def toggle_checkin_excluded(checkin_name, is_excluded):
+    """Toggle the custom_is_excluded flag on an Employee Checkin record."""
+    frappe.has_permission("Employee Checkin", "write", throw=True)
+
+    if not checkin_name:
+        frappe.throw(_("نام لاگ اجباری است"))
+
+    ensure_excluded_field_exists()
+
+    frappe.db.set_value(
+        "Employee Checkin",
+        checkin_name,
+        "custom_is_excluded",
+        int(flt(is_excluded)),
+        update_modified=False
+    )
+    frappe.db.commit()
+
+    return {
+        "success": True,
+        "checkin_name": checkin_name,
+        "is_excluded": bool(int(flt(is_excluded))),
+        "message": _("لاگ حساب نشود علامت‌گذاری شد") if int(flt(is_excluded)) else _("علامت‌گذاری برداشته شد")
     }
