@@ -481,8 +481,10 @@ def get_data(filters):
             else:
                 i += 1
 
+    # ساعت کاری استاندارد را از HR Settings می‌خوانیم
+    hr_standard_hours = flt(frappe.db.get_single_value("HR Settings", "standard_working_hours") or 7.67)
+
     employee_names = {}
-    employee_standard_hours = {}
     employees_in_checkins = list(set([c.employee for c in raw_checkins]))
 
     source_employees = list(set((employees_to_include or []) + employees_in_checkins))
@@ -490,10 +492,9 @@ def get_data(filters):
         employee_rows = frappe.get_all(
             "Employee",
             filters={"name": ["in", source_employees]},
-            fields=["name", "employee_name", "standard_working_hours"],
+            fields=["name", "employee_name"],
         )
         employee_names = {row.name: row.employee_name or row.name for row in employee_rows}
-        employee_standard_hours.update({row.name: flt(row.standard_working_hours or 0) for row in employee_rows})
 
     employee_break_assignments = get_employee_break_assignments(filters)
     shifts = get_employee_shifts(filters)
@@ -519,11 +520,10 @@ def get_data(filters):
         extra_rows = frappe.get_all(
             "Employee",
             filters={"name": ["in", missing_names]},
-            fields=["name", "employee_name", "standard_working_hours"],
+            fields=["name", "employee_name"],
         )
         for row in extra_rows:
             employee_names[row.name] = row.employee_name or row.name
-            employee_standard_hours[row.name] = flt(row.standard_working_hours or 0)
 
     for employee in sorted(employees_to_report):
         current_date = from_date
@@ -550,7 +550,7 @@ def get_data(filters):
                 )
                 standard_hours = max(0, flt(shift.get("shift_duration")) - shift_break_hours)
             else:
-                standard_hours = employee_standard_hours.get(employee) or 7.67
+                standard_hours = hr_standard_hours
 
             all_logs_str = ""
             all_logs_json = []

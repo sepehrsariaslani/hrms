@@ -1,0 +1,124 @@
+### App Versions
+```
+{
+	"frappe": "16.16.0",
+	"erpnext": "16.21.1",
+	"hrms": "16.5.1",
+	"accounts": "0.0.1",
+	"persian_calendar": "0.0.1",
+	"sheets": "0.0.1",
+	"slides": "0.0.1",
+	"gameplan": "0.0.1"
+}
+```
+### Route
+```
+query-report/Smart Attendance Report
+```
+### Traceback
+```
+{'status': 'Active'}
+['HR-EMP-00184', 'HR-EMP-00182', 'HR-EMP-00181', 'HR-EMP-00180', 'HR-EMP-00179', 'HR-EMP-00177', 'HR-EMP-00176', 'HR-EMP-00175', 'HR-EMP-00174', 'HR-EMP-00173', 'HR-EMP-00172', 'HR-EMP-00171', 'HR-EMP-00170', 'HR-EMP-00168', 'HR-EMP-00167', 'HR-EMP-00165', 'HR-EMP-00163', 'HR-EMP-00162', 'HR-EMP-00161', 'HR-EMP-00156', 'HR-EMP-00152', 'HR-EMP-00150', 'HR-EMP-00149', 'HR-EMP-00148', 'HR-EMP-00147', 'HR-EMP-00146', 'HR-EMP-00145', 'HR-EMP-00144', 'HR-EMP-00141', 'HR-EMP-00139', 'HR-EMP-00137', 'HR-EMP-00131', 'HR-EMP-00130', 'HR-EMP-00129', 'HR-EMP-00127', 'HR-EMP-00125', 'HR-EMP-00124', 'HR-EMP-00121', 'HR-EMP-00120', 'HR-EMP-00119', 'HR-EMP-00116', 'HR-EMP-00113', 'HR-EMP-00112', 'HR-EMP-00110', 'HR-EMP-00108', 'HR-EMP-00107', 'HR-EMP-00105', 'HR-EMP-00101', 'HR-EMP-00095', 'HR-EMP-00094', 'HR-EMP-00092', 'HR-EMP-00091', 'HR-EMP-00086', 'HR-EMP-00085', 'HR-EMP-00084', 'HR-EMP-00082', 'HR-EMP-00081', 'HR-EMP-00078', 'HR-EMP-00076', 'HR-EMP-00074', 'HR-EMP-00073', 'HR-EMP-00070', 'HR-EMP-00066', 'HR-EMP-00065', 'HR-EMP-00064', 'HR-EMP-00063', 'HR-EMP-00061', 'HR-EMP-00060', 'HR-EMP-00003', 'HR-EMP-00056', 'HR-EMP-00055', 'HR-EMP-00053', 'HR-EMP-00052', 'HR-EMP-00048', 'HR-EMP-00047', 'HR-EMP-00044', 'HR-EMP-00041', 'HR-EMP-00037', 'HR-EMP-00035', 'HR-EMP-00033', 'HR-EMP-00029', 'HR-EMP-00028', 'HR-EMP-00026', 'HR-EMP-00024', 'HR-EMP-00022', 'HR-EMP-00021', 'HR-EMP-00018', 'HR-EMP-00017', 'HR-EMP-00016', 'HR-EMP-00015', 'HR-EMP-00014', 'HR-EMP-00013', 'HR-EMP-00012', 'HR-EMP-00011', 'HR-EMP-00010', 'HR-EMP-00009', 'HR-EMP-00008', 'HR-EMP-00007', 'HR-EMP-00006', 'HR-EMP-00004', 'HR-EMP-00002', 'HR-EMP-00001']
+Traceback (most recent call last):
+  File "apps/frappe/frappe/app.py", line 153, in application
+    response = frappe.api.handle(request)
+  File "apps/frappe/frappe/api/__init__.py", line 63, in handle
+    data = endpoint(**arguments)
+  File "apps/frappe/frappe/api/v1.py", line 40, in handle_rpc_call
+    return frappe.handler.handle()
+           ~~~~~~~~~~~~~~~~~~~~~^^
+  File "apps/frappe/frappe/handler.py", line 53, in handle
+    data = execute_cmd(cmd)
+  File "apps/frappe/frappe/handler.py", line 86, in execute_cmd
+    return frappe.call(method, **frappe.form_dict)
+           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "apps/frappe/frappe/__init__.py", line 1129, in call
+    return fn(*args, **newargs)
+  File "apps/frappe/frappe/utils/typing_validations.py", line 36, in wrapper
+    return func(*args, **kwargs)
+  File "apps/persian_calendar/persian_calendar/api/query_report.py", line 78, in run
+    return core_query_report.run(
+           ~~~~~~~~~~~~~~~~~~~~~^
+    	report_name=report_name,
+     ^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<7 lines>...
+    	js_filters=js_filters,
+     ^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "apps/frappe/frappe/utils/typing_validations.py", line 36, in wrapper
+    return func(*args, **kwargs)
+  File "apps/frappe/frappe/__init__.py", line 491, in wrapper_fn
+    retval = fn(*args, **get_newargs(fn, kwargs))
+  File "apps/frappe/frappe/desk/query_report.py", line 239, in run
+    result = generate_report_result(report, filters, user, custom_columns, is_tree, parent_field)
+  File "apps/frappe/frappe/__init__.py", line 491, in wrapper_fn
+    retval = fn(*args, **get_newargs(fn, kwargs))
+  File "apps/frappe/frappe/desk/query_report.py", line 91, in generate_report_result
+    res = get_report_result(report, filters) or []
+          ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "apps/frappe/frappe/desk/query_report.py", line 67, in get_report_result
+    res = report.execute_script_report(filters)
+  File "apps/frappe/frappe/core/doctype/report/report.py", line 198, in execute_script_report
+    res = self.execute_module(filters)
+  File "apps/frappe/frappe/core/doctype/report/report.py", line 214, in execute_module
+    return frappe.get_attr(method_name)(frappe._dict(filters))
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "apps/hrms/hrms/hr/report/smart_attendance_report/smart_attendance_report.py", line 43, in execute
+    data = get_data(filters)
+  File "apps/hrms/hrms/hr/report/smart_attendance_report/smart_attendance_report.py", line 490, in get_data
+    employee_rows = frappe.get_all(
+        "Employee",
+        filters={"name": ["in", source_employees]},
+        fields=["name", "employee_name", "standard_working_hours"],
+    )
+  File "apps/frappe/frappe/__init__.py", line 1387, in get_all
+    return get_list(doctype, *args, **kwargs)
+  File "apps/frappe/frappe/__init__.py", line 1362, in get_list
+    return frappe.model.qb_query.DatabaseQuery(doctype).execute(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "apps/frappe/frappe/model/qb_query.py", line 212, in execute
+    result = query.run(debug=debug, as_dict=not as_list, update=update)
+  File "apps/frappe/frappe/query_builder/utils.py", line 131, in execute_query
+    result = frappe.local.db.sql(query, params, *args, **kwargs)  # nosemgrep
+  File "apps/frappe/frappe/database/database.py", line 272, in sql
+    self.execute_query(query, values)
+    ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "apps/frappe/frappe/database/database.py", line 372, in execute_query
+    return self._cursor.execute(query, values)
+           ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "env/lib/python3.14/site-packages/MySQLdb/cursors.py", line 179, in execute
+    res = self._query(mogrified_query)
+  File "env/lib/python3.14/site-packages/MySQLdb/cursors.py", line 330, in _query
+    db.query(q)
+    ~~~~~~~~^^^
+  File "env/lib/python3.14/site-packages/MySQLdb/connections.py", line 280, in query
+    _mysql.connection.query(self, query)
+    ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+MySQLdb.OperationalError: (1054, "Unknown column 'standard_working_hours' in 'SELECT'")
+
+```
+### Request Data
+```
+{
+	"type": "GET",
+	"args": {
+		"report_name": "Smart Attendance Report",
+		"filters": "{\"from_date\":\"2026-05-08\",\"to_date\":\"2026-06-07\",\"__jalali_calendar_mode\":1}",
+		"ignore_prepared_report": false,
+		"are_default_filters": true,
+		"js_filters": "[{\"fieldname\":\"company\",\"fieldtype\":\"Link\",\"options\":\"Company\"},{\"fieldname\":\"employee\",\"fieldtype\":\"Link\",\"options\":\"Employee\"}]"
+	},
+	"headers": {},
+	"error_handlers": {},
+	"url": "/api/method/frappe.desk.query_report.run",
+	"request_id": null
+}
+```
+### Response Data
+```
+{
+	"exception": "MySQLdb.OperationalError: (1054, \"Unknown column 'standard_working_hours' in 'SELECT'\")",
+	"exc_type": "OperationalError"
+}
+```
