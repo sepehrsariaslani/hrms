@@ -11,6 +11,11 @@ from frappe.utils import add_days, date_diff, getdate, strip_html
 
 from erpnext.setup.doctype.employee.employee import get_holiday_list_for_employee
 
+import hrms.api.qr_attendance  # noqa: F401 — registers @frappe.whitelist() endpoints
+import hrms.api.attendance  # noqa: F401 — registers @frappe.whitelist() endpoints
+import hrms.api.travel  # noqa: F401
+import hrms.api.newsletter  # noqa: F401
+
 SUPPORTED_FIELD_TYPES = [
 	"Link",
 	"Select",
