@@ -332,9 +332,14 @@ router.beforeEach(async (to, _, next) => {
 	if (to.name === "InvalidEmployee") return next()
 
 	if (!employeeResource.data) await employeeResource.reload()
-	if (!employeeDeskVisibility.data) await employeeDeskVisibility.reload()
-	if (!employeeDeskPersonalization.data) await employeeDeskPersonalization.reload()
-	if (!employeeDeskGlobalPersonalization.data) await employeeDeskGlobalPersonalization.reload()
+	try {
+		if (!employeeDeskVisibility.data) await employeeDeskVisibility.reload()
+		if (!employeeDeskPersonalization.data) await employeeDeskPersonalization.reload()
+		if (!employeeDeskGlobalPersonalization.data) await employeeDeskGlobalPersonalization.reload()
+	} catch (e) {
+		// optional layout resources may fail (e.g. 404 on imprest/newsletter) — don't block navigation
+		console.warn("layout resource load failed:", e)
+	}
 
 	// user should be an employee to access the app since all views are employee specific
 	const currentUser = userResource.data?.name || session.user

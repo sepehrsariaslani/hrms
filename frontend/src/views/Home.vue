@@ -198,6 +198,27 @@
 								</div>
 							</section>
 
+							<!-- KPI Attendance Bar Chart -->
+							<section
+								v-if="isSectionVisible('enable_home_attendance_chart_section') && employee?.data?.name"
+								class="rounded-2xl border border-slate-200 bg-white"
+								:style="getHomeSectionStyle('enable_home_attendance_chart_section')"
+							>
+								<div v-if="homeEditMode" class="flex items-center justify-end gap-1 px-4 pt-2">
+									<Button size="sm" variant="ghost" class="!rounded-lg" @click="moveHomeSection('enable_home_attendance_chart_section', -1)">↑</Button>
+									<Button size="sm" variant="ghost" class="!rounded-lg" @click="moveHomeSection('enable_home_attendance_chart_section', 1)">↓</Button>
+									<Button
+										size="sm"
+										:variant="isHomeSectionHidden('enable_home_attendance_chart_section') ? 'outline' : 'ghost'"
+										class="!rounded-lg"
+										@click="toggleHomeSection('enable_home_attendance_chart_section')"
+									>
+										{{ isHomeSectionHidden('enable_home_attendance_chart_section') ? __("نمایش") : __("مخفی") }}
+									</Button>
+								</div>
+								<EmployeeAttendanceChart :employee="employee.data.name" />
+							</section>
+
 							<section
 								v-if="isSectionVisible('enable_home_activity_section') || isSectionVisible('enable_home_expense_section')"
 								class="grid gap-4 xl:grid-cols-3"
@@ -497,6 +518,7 @@ import { Avatar, FeatherIcon } from "frappe-ui"
 
 import RequestPanel from "@/components/RequestPanel.vue"
 import CheckInPanel from "@/components/CheckInPanel.vue"
+import EmployeeAttendanceChart from "@/components/EmployeeAttendanceChart.vue"
 import AttendanceIcon from "@/components/icons/AttendanceIcon.vue"
 import LeaveIcon from "@/components/icons/LeaveIcon.vue"
 import ExpenseIcon from "@/components/icons/ExpenseIcon.vue"
@@ -557,6 +579,7 @@ const hiddenHomeKpis = computed(() => new Set(personalPreferences.value.home_hid
 const HOME_SECTION_KEYS = [
 	"enable_home_check_in_panel",
 	"enable_home_kpi_section",
+	"enable_home_attendance_chart_section",
 	"enable_home_activity_section",
 	"enable_home_expense_section",
 	"enable_home_leave_balance_section",

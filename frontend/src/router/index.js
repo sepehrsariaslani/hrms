@@ -139,6 +139,26 @@ const routes = [
 		name: "InvalidEmployee",
 		component: () => import("@/views/InvalidEmployee.vue"),
 	},
+	{
+		path: "/qr-attendance",
+		name: "QRAttendance",
+		component: () => import("@/views/qr_attendance/Download.vue"),
+	},
+	{
+		path: "/qr-attendance/my",
+		name: "MyQR",
+		component: () => import("@/views/qr_attendance/MyQR.vue"),
+	},
+	{
+		path: "/attendance/scan",
+		name: "QRScan",
+		component: () => import("@/views/qr_attendance/Scan.vue"),
+	},
+	{
+		path: "/qr-scan",
+		name: "QRScanLegacy",
+		component: () => import("@/views/qr_attendance/Scan.vue"),
+	},
 	...attendanceRoutes,
 	...leaveRoutes,
 	...claimRoutes,

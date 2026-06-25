@@ -48,6 +48,24 @@ export function buildNavbarGroups(
 			})
 		}
 	}
+	if (isEnabled("enable_attendance")) {
+		if (includeRoute("/qr-attendance")) {
+			shiftItems.push({
+				route: "/qr-attendance",
+				label: labelFor("/qr-attendance", __("کد QR حضور و غیاب")),
+				icon: "qr-code",
+			})
+		}
+	}
+	if (isEnabled("enable_attendance")) {
+		if (includeRoute("/qr-scan")) {
+			shiftItems.push({
+				route: "/qr-scan",
+				label: labelFor("/qr-scan", __("اسکن QR")),
+				icon: "scan",
+			})
+		}
+	}
 	if (isEnabled("enable_leaves")) {
 		if (includeRoute("/dashboard/leaves")) {
 			shiftItems.push({
