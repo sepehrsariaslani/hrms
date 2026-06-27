@@ -1042,12 +1042,18 @@ const canSeeWeeklyShiftPlanner = computed(() => {
 	)
 })
 
+const canManageQrAttendance = computed(() => {
+	const roles = user.data?.roles || []
+	return roles.includes("System Manager") || roles.includes("HR Manager")
+})
+
 const menuGroups = computed(() => {
 	return buildNavbarGroups(__, {
 		unreadNewsletterCount: layoutUnreadNewsletterCount.value,
 		hasImprestAccess: layoutHasImprestAccess.value,
 		canSeeAllocatorShiftTools: canSeeAllocatorShiftTools.value,
 		canSeeWeeklyShiftPlanner: canSeeWeeklyShiftPlanner.value,
+		canManageQrAttendance: canManageQrAttendance.value,
 		visibility: visibilityMap.value,
 		hiddenRoutes: personalPreferences.value.hidden_sidebar_routes || [],
 		routeOrder: personalPreferences.value.sidebar_order_routes || [],

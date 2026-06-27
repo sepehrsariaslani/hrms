@@ -5,6 +5,7 @@ export function buildNavbarGroups(
 		hasImprestAccess = false,
 		canSeeAllocatorShiftTools = false,
 		canSeeWeeklyShiftPlanner = false,
+		canManageQrAttendance = false,
 		visibility = {},
 		hiddenRoutes = [],
 		routeOrder = [],
@@ -45,24 +46,6 @@ export function buildNavbarGroups(
 				route: "/dashboard/attendance",
 				label: labelFor("/dashboard/attendance", __("تقویم حضور و غیاب")),
 				icon: "calendar",
-			})
-		}
-	}
-	if (isEnabled("enable_attendance")) {
-		if (includeRoute("/qr-attendance")) {
-			shiftItems.push({
-				route: "/qr-attendance",
-				label: labelFor("/qr-attendance", __("کد QR حضور و غیاب")),
-				icon: "qr-code",
-			})
-		}
-	}
-	if (isEnabled("enable_attendance")) {
-		if (includeRoute("/qr-scan")) {
-			shiftItems.push({
-				route: "/qr-scan",
-				label: labelFor("/qr-scan", __("اسکن QR")),
-				icon: "scan",
 			})
 		}
 	}
@@ -190,6 +173,13 @@ export function buildNavbarGroups(
 				badge: unreadNewsletterCount,
 			})
 		}
+	}
+	if (canManageQrAttendance && includeRoute("/qr-attendance")) {
+		otherItems.push({
+			route: "/qr-attendance",
+			label: labelFor("/qr-attendance", __("کد QR حضور و غیاب")),
+			icon: "qr-code",
+		})
 	}
 
 	const groups = [

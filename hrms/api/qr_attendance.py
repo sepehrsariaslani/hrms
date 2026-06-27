@@ -1,313 +1,258 @@
+# Copyright (c) 2026, Frappe Technologies Pvt. Ltd. and contributors
+# For license information, please see license.txt
+
+import base64
 import hashlib
 import hmac
 import json
-import base64
-import io
 import secrets
+from urllib.parse import parse_qs, urlparse
 
 import frappe
 from frappe import _
-from frappe.utils import now_datetime, get_datetime, cint, flt
-from frappe.utils.file_manager import save_file
+from frappe.utils import flt, now_datetime
 
-try:
-    import qrcode
-    from qrcode.image.svg import SvgImage
-    HAS_QR = True
-except ImportError:
-    HAS_QR = False
+from hrms.hr.utils import get_distance_between_coordinates
 
-try:
-    from PIL import Image
-    HAS_PIL = True
-except ImportError:
-    HAS_PIL = False
+QR_MANAGER_ROLES = ("HR Manager", "System Manager")
+DEFAULT_QR_RADIUS_METERS = 200
 
 
-# ──────────────────────────────────────────────
-# Helpers
-# ──────────────────────────────────────────────
-
-def _get_secret_key(company: str) -> str:
-    """دریافت یا تولید کلید امنیتی شرکت"""
-    secret = frappe.db.get_value("Company", company, "qr_secret_key")
-    if not secret:
-        secret = secrets.token_hex(32)
-        frappe.db.set_value("Company", company, "qr_secret_key", secret)
-        frappe.db.commit()
-    return secret
+def _generate_qr_secret(company):
+	seed = f"{company.name}:{frappe.local.site}:{secrets.token_hex(8)}"
+	return hashlib.sha256(seed.encode()).hexdigest()[:32]
 
 
-def _sign_qr_data(company: str, secret: str) -> str:
-    """امضای داده QR با HMAC"""
-    message = f"company:{company}"
-    signature = hmac.new(
-        secret.encode("utf-8"),
-        message.encode("utf-8"),
-        hashlib.sha256
-    ).hexdigest()[:16]
-    return signature
+def _extract_qr_data(qr_data):
+	value = str(qr_data or "").strip()
+	if not value:
+		return value
+	try:
+		parsed = urlparse(value)
+		params = parse_qs(parsed.query or "")
+		if params.get("qr_data"):
+			return params["qr_data"][0]
+	except Exception:
+		pass
+	return value
 
 
-def _verify_qr_data(company: str, secret: str, signature: str) -> bool:
-    """تأیید امضای QR"""
-    expected = _sign_qr_data(company, secret)
-    return hmac.compare_digest(expected, signature)
+def _decode_qr_payload(qr_data):
+	try:
+		padded = qr_data + "=" * (-len(qr_data) % 4)
+		return json.loads(base64.urlsafe_b64decode(padded.encode()).decode())
+	except Exception:
+		frappe.throw(_("کد QR نامعتبر است."))
 
 
-def _generate_qr_image(data: str, size: int = 10) -> bytes:
-    """تولید تصویر QR به صورت PNG"""
-    if not HAS_QR:
-        frappe.throw(_("لطفاً کتابخانه qrcode را نصب کنید: pip install qrcode[pil]"))
-
-    qr = qrcode.QRCode(
-        version=1,
-        error_correction=qrcode.constants.ERROR_CORRECT_L,
-        box_size=size,
-        border=4,
-    )
-    qr.add_data(data)
-    qr.make(fit=True)
-
-    img = qr.make_image(fill_color="black", back_color="white")
-
-    buffer = io.BytesIO()
-    img.save(buffer, format="PNG")
-    buffer.seek(0)
-    return buffer.getvalue()
+def _payload_signature(company, payload):
+	message = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()
+	return hmac.new(str(company.qr_secret_key).encode(), message, hashlib.sha256).hexdigest()
 
 
-def _get_company_location(company: str) -> dict:
-    """دریافت مختصات شرکت"""
-    lat, lng, radius = frappe.db.get_value(
-        "Company", company,
-        ["qr_attendance_latitude", "qr_attendance_longitude", "qr_attendance_radius_meters"]
-    )
-    return {
-        "latitude": flt(lat) if lat else None,
-        "longitude": flt(lng) if lng else None,
-        "radius": cint(radius) if radius else 200,
-    }
+def _build_qr_payload(company):
+	payload = {
+		"t": "hrms_attendance",
+		"v": 2,
+		"co": company.name,
+		"site": frappe.local.site,
+	}
+	payload["sig"] = _payload_signature(company, payload)
+	return base64.urlsafe_b64encode(
+		json.dumps(payload, separators=(",", ":")).encode()
+	).decode().rstrip("=")
 
 
-def _check_location(user_lat: float, user_lng: float, company: str) -> dict:
-    """بررسی فاصله کارمند از شرکت"""
-    loc = _get_company_location(company)
+def _validate_qr_signature(company, decoded):
+	signature = decoded.get("sig")
+	if not signature:
+		frappe.throw(_("این کد QR قدیمی یا نامعتبر است. لطفاً QR شرکت را دوباره تولید و چاپ کنید."))
 
-    if loc["latitude"] is None or loc["longitude"] is None:
-        return {"allowed": True, "message": _("مختصات شرکت تنظیم نشده — بدون بررسی لوکیشن")}
-
-    # Haversine formula
-    import math
-    R = 6371000  # شعاع زمین به متر
-
-    lat1 = math.radians(loc["latitude"])
-    lat2 = math.radians(user_lat)
-    dlat = math.radians(user_lat - loc["latitude"])
-    dlng = math.radians(user_lng - loc["longitude"])
-
-    a = math.sin(dlat / 2) ** 2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlng / 2) ** 2
-    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
-    distance = R * c
-
-    allowed = distance <= loc["radius"]
-    return {
-        "allowed": allowed,
-        "distance": round(distance),
-        "radius": loc["radius"],
-        "message": (
-            _("فاصله شما از شرکت: {0} متر — داخل محدوده").format(round(distance))
-            if allowed
-            else _("فاصله شما از شرکت: {0} متر — خارج از محدوده مجاز ({1} متر)").format(
-                round(distance), loc["radius"]
-            )
-        ),
-    }
+	payload = dict(decoded)
+	payload.pop("sig", None)
+	expected_signature = _payload_signature(company, payload)
+	if not hmac.compare_digest(str(signature), expected_signature):
+		frappe.throw(_("امضای امنیتی کد QR معتبر نیست."))
 
 
-def _get_employee_from_user() -> str | None:
-    """دریافت Employee مرتبط با کاربر فعلی"""
-    user = frappe.session.user
-    if user in ("Guest", "Administrator"):
-        return None
-    employee = frappe.db.get_value("Employee", {"user_id": user, "status": "Active"}, "name")
-    return employee
+def _company_qr_needs_refresh(company):
+	if not company.get("qr_code_data"):
+		return True
+	try:
+		decoded = _decode_qr_payload(company.qr_code_data)
+		return decoded.get("v") != 2 or not decoded.get("sig") or decoded.get("co") != company.name
+	except Exception:
+		return True
 
 
-def _get_default_company() -> str | None:
-    """دریافت شرکت پیش‌فرض"""
-    company = frappe.defaults.get_user_default("company")
-    if not company:
-        companies = frappe.get_all("Company", limit=1, pluck="name")
-        company = companies[0] if companies else None
-    return company
+def _parse_coordinate(value, label):
+	if value in (None, ""):
+		frappe.throw(_("برای ثبت حضور، دریافت لوکیشن الزامی است."))
+	try:
+		return float(value)
+	except (TypeError, ValueError):
+		frappe.throw(_("مقدار {0} معتبر نیست.").format(label))
 
 
-# ──────────────────────────────────────────────
-# API: دریافت QR شرکت
-# ──────────────────────────────────────────────
+def _validate_company_location(company, latitude, longitude):
+	company_latitude = company.get("qr_attendance_latitude")
+	company_longitude = company.get("qr_attendance_longitude")
+	if company_latitude in (None, "") or company_longitude in (None, ""):
+		frappe.throw(_("محدوده مجاز حضور و غیاب QR برای این شرکت تنظیم نشده است."))
+
+	radius = flt(company.get("qr_attendance_radius_meters")) or DEFAULT_QR_RADIUS_METERS
+	if radius <= 0:
+		frappe.throw(_("شعاع مجاز حضور و غیاب QR باید بیشتر از صفر باشد."))
+
+	distance = get_distance_between_coordinates(
+		float(company_latitude),
+		float(company_longitude),
+		latitude,
+		longitude,
+	)
+	if distance > radius:
+		frappe.throw(
+			_("شما خارج از محدوده مجاز شرکت هستید. فاصله شما {0} متر است و حد مجاز {1} متر است.").format(
+				int(round(distance)),
+				int(round(radius)),
+			)
+		)
+	return distance, radius
+
+
+def _make_geolocation(latitude, longitude):
+	return frappe.json.dumps(
+		{
+			"type": "FeatureCollection",
+			"features": [
+				{
+					"type": "Feature",
+					"properties": {"source": "QR Code"},
+					"geometry": {"type": "Point", "coordinates": [longitude, latitude]},
+				}
+			],
+		}
+	)
+
 
 @frappe.whitelist()
 def get_company_qr_code():
-    """تولید و دریافت کد QR شرکت برای چاپ"""
-    # بررسی دسترسی
-    if not any(role in frappe.get_roles() for role in ["HR Manager", "System Manager"]):
-        frappe.throw(_("فقط مدیر منابع انسانی یا مدیر سیستم مجاز است"), frappe.PermissionError)
+	frappe.only_for(QR_MANAGER_ROLES)
 
-    company = _get_default_company()
-    if not company:
-        frappe.throw(_("شرکت پیش‌فرض یافت نشد"))
+	employee = frappe.db.get_value(
+		"Employee",
+		{"user_id": frappe.session.user, "status": "Active"},
+		["name", "company", "employee_name"],
+		as_dict=True,
+	)
+	if not employee:
+		frappe.throw(_("کارمند فعالی برای حساب کاربری شما یافت نشد."))
 
-    secret = _get_secret_key(company)
-    signature = _sign_qr_data(company, secret)
+	company = frappe.get_doc("Company", employee.company)
 
-    # ساخت لینک QR
-    qr_payload = frappe.utils.get_url() + f"/hrms/qr-scan?company={company}&sig={signature}"
+	if not company.get("qr_secret_key"):
+		company.db_set("qr_secret_key", _generate_qr_secret(company))
+		company.reload()
 
-    # تولید تصویر
-    qr_bytes = _generate_qr_image(qr_payload)
-    qr_base64 = base64.b64encode(qr_bytes).decode("utf-8")
+	if _company_qr_needs_refresh(company):
+		company.db_set("qr_code_data", _build_qr_payload(company))
+		company.db_set("qr_generated_on", now_datetime())
+		company.reload()
 
-    # ذخیره تصویر روی شرکت
-    filename = f"qr-{company}-{frappe.utils.now_datetime().strftime('%Y%m%d%H%M%S')}.png"
-    saved = save_file(
-        fname=filename,
-        content=qr_bytes,
-        dt="Company",
-        dn=company,
-        is_private=0,
-    )
+	return {
+		"qr_data": company.qr_code_data,
+		"company": company.name,
+		"employee": employee.name,
+	}
 
-    if not saved or not saved.file_url:
-        frappe.throw(_("خطا در ذخیره تصویر QR. لطفاً مجدداً تلاش کنید"), frappe.ValidationError)
-
-    frappe.db.set_value("Company", company, "qr_code_image", saved.file_url)
-    frappe.db.set_value("Company", company, "qr_generated_on", now_datetime())
-    frappe.db.commit()
-
-    return {
-        "company": company,
-        "qr_code": f"data:image/png;base64,{qr_base64}",
-        "qr_image_url": saved.file_url,
-        "qr_link": qr_payload,
-        "message": _("کد QR شرکت {0} با موفقیت تولید شد").format(company),
-    }
-
-
-# ──────────────────────────────────────────────
-# API: دریافت QR شخصی کارمند
-# ──────────────────────────────────────────────
 
 @frappe.whitelist()
 def get_employee_qr_code():
-    """تولید و دریافت کد QR شخصی کارمند"""
-    employee = _get_employee_from_user()
-    if not employee:
-        frappe.throw(_("کارمند فعال یافت نشد"))
+	frappe.throw(_("کد QR اختصاصی کارمند غیرفعال شده است. فقط کد QR شرکت استفاده می‌شود."))
 
-    company = _get_default_company()
-    if not company:
-        frappe.throw(_("شرکت پیش‌فرض یافت نشد"))
-
-    secret = _get_secret_key(company)
-    signature = _sign_qr_data(company, secret)
-
-    qr_payload = frappe.utils.get_url() + f"/hrms/qr-scan?company={company}&sig={signature}&employee={employee}"
-
-    qr_bytes = _generate_qr_image(qr_payload)
-    qr_base64 = base64.b64encode(qr_bytes).decode("utf-8")
-
-    return {
-        "employee": employee,
-        "company": company,
-        "qr_code": f"data:image/png;base64,{qr_base64}",
-        "qr_link": qr_payload,
-        "message": _("کد QR شخصی شما تولید شد"),
-    }
-
-
-# ──────────────────────────────────────────────
-# API: ثبت اسکن QR
-# ──────────────────────────────────────────────
 
 @frappe.whitelist()
-def scan_qr_attendance(company: str = None, sig: str = None, qr_data: str = None,
-                       latitude: float = None, longitude: float = None):
-    """ثبت ورود/خروج کارمند از طریق اسکن QR"""
+def scan_qr_attendance(qr_data, log_type=None, latitude=None, longitude=None):
+	if not qr_data:
+		frappe.throw(_("داده کد QR الزامی است."))
 
-    # ── استخراج داده از پارامترها ──
-    if qr_data and not company:
-        # qr_data می‌تواند URL کامل یا payload خام باشد
-        try:
-            from urllib.parse import urlparse, parse_qs
-            parsed = urlparse(qr_data)
-            params = parse_qs(parsed.query)
-            company = params.get("company", [None])[0]
-            sig = params.get("sig", [None])[0]
-        except Exception:
-            pass
+	latitude = _parse_coordinate(latitude, _("عرض جغرافیایی"))
+	longitude = _parse_coordinate(longitude, _("طول جغرافیایی"))
+	qr_data = _extract_qr_data(qr_data)
+	decoded = _decode_qr_payload(qr_data)
 
-    if not company:
-        frappe.throw(_("پارامتر company الزامی است"))
+	if decoded.get("t") != "hrms_attendance":
+		frappe.throw(_("این کد QR برای سیستم حضور و غیاب معتبر نیست."))
 
-    # ── تأیید امضا ──
-    secret = frappe.db.get_value("Company", company, "qr_secret_key")
-    if not secret:
-        frappe.throw(_("کلید امنیتی شرکت یافت نشد. لطفاً ابتدا QR جدید تولید کنید"))
+	company_name = decoded.get("co")
+	if not company_name:
+		frappe.throw(_("داده کد QR ناقص است."))
 
-    if sig and not _verify_qr_data(company, secret, sig):
-        frappe.throw(_("کد QR نامعتبر است"), frappe.AuthenticationError)
+	if decoded.get("emp"):
+		frappe.throw(_("کد QR اختصاصی کارمند پذیرفته نمی‌شود. باید QR شرکت را اسکن کنید."))
 
-    # ── بررسی لاگین ──
-    employee = _get_employee_from_user()
-    if not employee:
-        frappe.throw(_("لطفاً ابتدا وارد سیستم شوید"), frappe.AuthenticationError)
+	if not frappe.db.exists("Company", company_name):
+		frappe.throw(_("شرکت یافت نشد."))
 
-    # ── بررسی لوکیشن ──
-    if latitude is None or longitude is None:
-        frappe.throw(
-            _("دسترسی به موقعیت جغرافیایی الزامی است. لطفاً اجازه دسترسی به لوکیشن را بدهید"),
-            frappe.ValidationError,
-        )
+	company = frappe.get_doc("Company", company_name)
+	if not company.get("qr_secret_key"):
+		frappe.throw(_("این شرکت کد QR حضور و غیاب ندارد."))
 
-    loc_result = _check_location(latitude, longitude, company)
-    if not loc_result["allowed"]:
-        frappe.throw(loc_result["message"], frappe.ValidationError)
+	_validate_qr_signature(company, decoded)
+	distance, radius = _validate_company_location(company, latitude, longitude)
 
-    # ── تعیین نوع ورود/خروج ──
-    last_checkin = frappe.db.get_value(
-        "Employee Checkin",
-        {"employee": employee},
-        ["name", "log_type", "time"],
-        order_by="time desc",
-        as_dict=True,
-    )
+	employee = frappe.db.get_value(
+		"Employee",
+		{"user_id": frappe.session.user, "status": "Active"},
+		["name", "company", "status", "employee_name"],
+		as_dict=True,
+	)
+	if not employee:
+		frappe.throw(_("کارمند فعالی برای حساب کاربری شما یافت نشد."))
 
-    if last_checkin and last_checkin.log_type == "IN":
-        log_type = "OUT"
-    else:
-        log_type = "IN"
+	if employee.company != company_name:
+		frappe.throw(_("شما به این شرکت دسترسی ندارید."))
 
-    # ── ثبت در Employee Checkin ──
-    checkin = frappe.new_doc("Employee Checkin")
-    checkin.employee = employee
-    checkin.log_type = log_type
-    checkin.time = now_datetime()
-    checkin.device_id = f"QR:{latitude},{longitude}"
-    checkin.skip_auto_attendance = 1
-    checkin.insert(ignore_permissions=True)
-    frappe.db.commit()
+	if employee.status != "Active":
+		frappe.throw(_("حساب کاربری شما فعال نیست."))
 
-    employee_name = frappe.db.get_value("Employee", employee, "employee_name")
+	if log_type and log_type not in ("IN", "OUT"):
+		frappe.throw(_("نوع عملیات حضور و غیاب معتبر نیست."))
 
-    return {
-        "success": True,
-        "employee": employee,
-        "employee_name": employee_name,
-        "log_type": log_type,
-        "time": str(now_datetime()),
-        "message": _("{0} — ورود/خروج ثبت شد ({1})").format(
-            employee_name, _("ورود") if log_type == "IN" else _("خروج")
-        ),
-        "location_check": loc_result,
-    }
+	if not log_type:
+		last_checkin = frappe.db.get_all(
+			"Employee Checkin",
+			filters={"employee": employee.name},
+			fields=["log_type"],
+			order_by="time desc",
+			limit=1,
+		)
+		log_type = "OUT" if last_checkin and last_checkin[0].log_type == "IN" else "IN"
+
+	now = now_datetime()
+	checkin = frappe.get_doc({
+		"doctype": "Employee Checkin",
+		"employee": employee.name,
+		"employee_name": employee.employee_name,
+		"log_type": log_type,
+		"time": now,
+		"device_id": "QR Code",
+		"latitude": latitude,
+		"longitude": longitude,
+		"geolocation": _make_geolocation(latitude, longitude),
+	})
+	checkin.insert(ignore_permissions=True)
+	frappe.db.commit()
+
+	return {
+		"status": "success",
+		"employee": employee.name,
+		"employee_name": employee.employee_name,
+		"log_type": log_type,
+		"action": "ورود" if log_type == "IN" else "خروج",
+		"time": str(now),
+		"source": "QR Code",
+		"checkin": checkin.name,
+		"distance_meters": round(distance, 2),
+		"allowed_radius_meters": round(radius, 2),
+	}

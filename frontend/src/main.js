@@ -66,6 +66,7 @@ app.provide("$socket", socket)
 app.provide("$dayjs", dayjs)
 
 const ALLOCATOR_SHIFT_ROUTES = new Set(["TeamWeeklyShiftBoardView", "ShiftAllocatorSchedulerView"])
+const QR_ATTENDANCE_MANAGER_ROLES = ["HR Manager", "System Manager"]
 const WEEKLY_SHIFT_ROUTES = new Set(["WeeklyShiftPlannerView"])
 const WEEKLY_SHIFT_ROUTE_PREFIXES = ["/weekly-shift-planner"]
 const VISIBILITY_ROUTE_RULES = [
@@ -156,6 +157,11 @@ function hasWeeklyShiftPlannerAccess(employee) {
 		|| employee?.has_rotational_shift
 		|| employee?.needs_shift_registration
 	)
+}
+
+function hasQrAttendanceManagerAccess(user) {
+	const roles = user?.roles || []
+	return QR_ATTENDANCE_MANAGER_ROLES.some((role) => roles.includes(role))
 }
 
 function pathMatchesPrefix(path, prefix) {
@@ -324,7 +330,7 @@ router.beforeEach(async (to, _, next) => {
 			return next(false)
 		}
 		if (to.name !== "Login") {
-			return next({ name: "Login" })
+			return next({ name: "Login", query: { redirect: to.fullPath } })
 		}
 		return next()
 	}
@@ -348,6 +354,10 @@ router.beforeEach(async (to, _, next) => {
 		|| employeeResource?.data?.user_id !== currentUser
 	) {
 		return next({ name: "InvalidEmployee" })
+	}
+
+	if (to.name === "QRAttendanceDownload" && !hasQrAttendanceManagerAccess(userResource.data)) {
+		return next({ name: "AttendanceDashboard" })
 	}
 
 	if (isWeeklyShiftRoute(to.name, to.path) && !hasWeeklyShiftPlannerAccess(employeeResource?.data)) {

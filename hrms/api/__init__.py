@@ -2269,3 +2269,185 @@ def get_allowed_states_for_workflow(workflow: dict, user_id: str) -> list[str]:
 @frappe.whitelist()
 def get_permitted_fields_for_write(doctype: str) -> list[str]:
 	return get_permitted_fields(doctype, permission_type="write")
+
+
+# Rest Time APIs
+def _check_hr_manager_role():
+	"""Ensure the current user has HR Manager or System Manager role."""
+	user_roles = set(frappe.get_roles(frappe.session.user))
+	if not user_roles & {"HR Manager", "System Manager"}:
+		frappe.throw(_("You must be an HR Manager or System Manager to manage rest times."))
+
+
+@frappe.whitelist(methods=["POST"])
+def assign_rest_time(employee_id: str, rest_time_name: str, from_date: str | None = None) -> dict:
+	"""Assign a Rest Time to an employee by creating a Rest Time Assignment record.
+
+	Args:
+		employee_id: The Employee ID (e.g. "HR-EMP-00001").
+		rest_time_name: The name/ID of the Rest Time to assign.
+		from_date: Optional start date (defaults to today).
+
+	Returns:
+		dict with success status and assignment name.
+	"""
+	_check_hr_manager_role()
+
+	if not employee_id or not rest_time_name:
+		frappe.throw(_("employee_id and rest_time_name are required."))
+
+	# Validate employee exists and is active
+	if not frappe.db.exists("Employee", employee_id):
+		frappe.throw(_("Employee {0} not found.").format(employee_id))
+	if frappe.db.get_value("Employee", employee_id, "status") == "Inactive":
+		frappe.throw(_("Cannot assign rest time to an inactive employee."))
+
+	# Validate rest time exists
+	if not frappe.db.exists("Rest Time", rest_time_name):
+		frappe.throw(_("Rest Time {0} not found.").format(rest_time_name))
+
+	# Idempotency: check for existing active assignment
+	existing = frappe.db.get_value(
+		"Rest Time Assignment",
+		{
+			"employee": employee_id,
+			"rest_time": rest_time_name,
+			"status": "Active",
+			"docstatus": 1,
+		},
+		"name",
+	)
+	if existing:
+		return {
+			"success": True,
+			"message": _("Rest Time already assigned."),
+			"assignment": existing,
+			"already_exists": True,
+		}
+
+	from frappe.utils import getdate, nowdate
+
+	doc = frappe.get_doc(
+		{
+			"doctype": "Rest Time Assignment",
+			"employee": employee_id,
+			"rest_time": rest_time_name,
+			"from_date": from_date or nowdate(),
+			"status": "Active",
+		}
+	)
+	doc.insert()
+	doc.submit()
+
+	return {
+		"success": True,
+		"message": _("Rest Time assigned successfully."),
+		"assignment": doc.name,
+	}
+
+
+@frappe.whitelist(methods=["POST"])
+def remove_rest_time_assignment(assignment: str | None = None, employee_id: str | None = None, rest_time_name: str | None = None) -> dict:
+	"""Remove a Rest Time assignment from an employee.
+
+	Either provide the assignment record name directly, or provide
+	employee_id + rest_time_name to look it up.
+
+	Args:
+		assignment: The Rest Time Assignment record name.
+		employee_id: Employee ID (used with rest_time_name for lookup).
+		rest_time_name: Rest Time name (used with employee_id for lookup).
+
+	Returns:
+		dict with success status.
+	"""
+	_check_hr_manager_role()
+
+	if not assignment and not (employee_id and rest_time_name):
+		frappe.throw(_("Provide either assignment name or employee_id + rest_time_name."))
+
+	if not assignment:
+		assignment = frappe.db.get_value(
+			"Rest Time Assignment",
+			{
+				"employee": employee_id,
+				"rest_time": rest_time_name,
+				"status": "Active",
+				"docstatus": 1,
+			},
+			"name",
+		)
+		if not assignment:
+			frappe.throw(
+				_("No active Rest Time Assignment found for employee {0} and rest time {1}.").format(
+					employee_id, rest_time_name
+				)
+			)
+
+	doc = frappe.get_doc("Rest Time Assignment", assignment)
+
+	if doc.docstatus == 1:
+		doc.cancel()
+
+	frappe.delete_doc("Rest Time Assignment", assignment)
+
+	return {
+		"success": True,
+		"message": _("Rest Time assignment removed successfully."),
+		"assignment": assignment,
+	}
+
+
+@frappe.whitelist()
+def get_employee_rest_times(employee_id: str) -> list[dict]:
+	"""Get all active rest-time assignments for an employee.
+
+	Args:
+		employee_id: The Employee ID.
+
+	Returns:
+		List of assignment records with rest time details.
+	"""
+	_check_hr_manager_role()
+
+	if not employee_id:
+		frappe.throw(_("employee_id is required."))
+
+	if not frappe.db.exists("Employee", employee_id):
+		frappe.throw(_("Employee {0} not found.").format(employee_id))
+
+	assignments = frappe.get_all(
+		"Rest Time Assignment",
+		filters={
+			"employee": employee_id,
+			"status": "Active",
+			"docstatus": 1,
+		},
+		fields=[
+			"name",
+			"employee",
+			"rest_time",
+			"status",
+			"from_date",
+			"to_date",
+			"creation",
+			"modified",
+		],
+		order_by="from_date desc",
+	)
+
+	# Enrich with rest time details
+	for assignment in assignments:
+		rt = frappe.get_cached_value(
+			"Rest Time",
+			assignment.rest_time,
+			["rest_name", "rest_start", "rest_end", "deduction_hours"],
+			as_dict=True,
+		)
+		if rt:
+			assignment["rest_time_label"] = rt.rest_name
+			assignment["rest_start"] = str(rt.rest_start) if rt.rest_start else None
+			assignment["rest_end"] = str(rt.rest_end) if rt.rest_end else None
+			assignment["deduction_hours"] = rt.deduction_hours
+
+	return assignments
