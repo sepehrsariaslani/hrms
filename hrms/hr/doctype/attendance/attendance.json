@@ -7,13 +7,15 @@
  "document_type": "Setup",
  "engine": "InnoDB",
  "field_order": [
-  "attendance_details",
-  "naming_series",
-  "employee",
-  "employee_name",
+ "attendance_details",
+ "naming_series",
+ "employee",
+ "employee_name",
+  "gross_working_hours",
   "working_hours",
   "presence_hours",
   "break_hours",
+  "break_details_json",
   "time_off",
   "overtime",
   "holiday_work",
@@ -88,6 +90,20 @@
    "label": "ساعات کاری",
    "precision": "2",
    "read_only": 1
+  },
+  {
+   "fieldname": "gross_working_hours",
+   "fieldtype": "Float",
+   "label": "ساعات کاری ناخالص",
+   "precision": "2",
+   "read_only": 1
+  },
+  {
+   "fieldname": "break_details_json",
+   "fieldtype": "Small Text",
+   "label": "جزئیات استراحت",
+   "read_only": 1,
+   "hidden": 1
   },
   {
    "fieldname": "presence_hours",

@@ -1,5 +1,5 @@
 app_name = "hrms"
-app_title = "Frappe HR"
+app_title = "hamyar"
 app_publisher = "Frappe Technologies Pvt. Ltd."
 app_description = "Modern HR and Payroll Software"
 app_email = "contact@frappe.io"
@@ -99,8 +99,8 @@ jinja = {
 
 # before_install = "hrms.install.before_install"
 after_install = "hrms.install.after_install"
-before_migrate = "hrms.setup.make_people_workspace_standard"
-after_migrate = "hrms.setup.update_select_perm_after_install"
+# before_migrate = "hrms.setup.make_people_workspace_standard"
+# after_migrate = "hrms.setup.update_select_perm_after_install"
 
 setup_wizard_complete = "hrms.subscription_utils.update_erpnext_access"
 

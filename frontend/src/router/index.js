@@ -139,6 +139,16 @@ const routes = [
 		name: "InvalidEmployee",
 		component: () => import("@/views/InvalidEmployee.vue"),
 	},
+	{
+		path: "/qr-attendance",
+		name: "QRAttendanceDownload",
+		component: () => import("@/views/qr_attendance/Download.vue"),
+	},
+	{
+		path: "/qr-scan",
+		name: "QRAttendanceScan",
+		component: () => import("@/views/qr_attendance/Scan.vue"),
+	},
 	...attendanceRoutes,
 	...leaveRoutes,
 	...claimRoutes,

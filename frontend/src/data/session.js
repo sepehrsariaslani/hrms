@@ -19,7 +19,7 @@ function handleLogin(response) {
 		employeeResource.reload()
 
 		session.user = sessionUser()
-		router.replace({ path: "/" })
+		router.replace(router.currentRoute.value.query.redirect || "/")
 	}
 }
 
@@ -38,7 +38,7 @@ export const session = reactive({
 			userResource.reload()
 			employeeResource.reload()
 			session.user = sessionUser()
-			router.replace({ path: "/" })
+			router.replace(router.currentRoute.value.query.redirect || "/")
 		}
 		return response
 	},

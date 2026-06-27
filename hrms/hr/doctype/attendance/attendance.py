@@ -255,11 +255,18 @@ class Attendance(Document):
 		hrms.refetch_resource("hrms:attendance_calendar_events", employee_user)
 
 	def set_smart_attendance_metrics(self):
-		"""Populate daily attendance metrics using Smart Attendance Report logic."""
+		"""Populate daily attendance metrics using Smart Attendance Report logic.
+
+		Also computes break deduction from Break Assignment records and stores
+		gross_working_hours so the UI can show gross / break / net breakdown.
+		"""
 		if not self.employee or not self.attendance_date:
 			return
 
-		from hrms.hr.report.smart_attendance_report.smart_attendance_report import get_data
+		from hrms.hr.report.smart_attendance_report.smart_attendance_report import (
+			get_data,
+			get_break_deduction_details,
+		)
 
 		row = {}
 		data = get_data(
@@ -279,6 +286,18 @@ class Attendance(Document):
 		self.time_off = flt(row.get("time_off"), 2)
 		self.overtime = flt(row.get("overtime"), 2)
 		self.holiday_work = flt(row.get("holiday_work"), 2)
+
+		# Enrich with Break Assignment-based deduction details
+		break_details = get_break_deduction_details(
+			self.employee,
+			self.attendance_date,
+			self.attendance_date,
+		)
+		if break_details and break_details.get("has_checkins"):
+			self.gross_working_hours = flt(break_details.get("gross_hours"), 2)
+			self.break_hours = flt(break_details.get("total_break_hours"), 2)
+			self.working_hours = flt(break_details.get("net_working_hours"), 2)
+			self.break_details_json = frappe.as_json(break_details.get("break_details", []))
 
 
 @frappe.whitelist()

@@ -216,7 +216,69 @@
                                         </div>
                                 </div>
 
-                                <!-- Leave Balance Donut Charts -->
+                                <!-- Attendance KPI Summary Cards -->
+                                <div v-if="employee?.data?.name" class="w-full bg-white rounded p-4 my-2">
+                                        <div class="text-base font-semibold text-gray-900 mb-4">شاخص‌های تردد</div>
+
+                                        <!-- Loading State -->
+                                        <div v-if="attendanceKpiResource.loading" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+                                                <div v-for="i in 5" :key="'kpi-skel-'+i" class="rounded-xl border border-gray-100 bg-gray-50 p-3 animate-pulse">
+                                                        <div class="h-4 w-16 rounded bg-gray-200 mb-2" />
+                                                        <div class="h-7 w-12 rounded bg-gray-200 mb-1" />
+                                                        <div class="h-3 w-20 rounded bg-gray-200" />
+                                                </div>
+                                        </div>
+
+                                        <!-- KPI Cards Grid -->
+                                        <div v-else class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+                                                <div
+                                                        v-for="card in attendanceKpiCards"
+                                                        :key="card.key"
+                                                        class="relative rounded-xl border p-3 transition"
+                                                        :class="{
+                                                                'border-blue-100 bg-blue-50/60': card.color === 'blue',
+                                                                'border-sky-100 bg-sky-50/60': card.color === 'sky',
+                                                                'border-amber-100 bg-amber-50/60': card.color === 'amber',
+                                                                'border-emerald-100 bg-emerald-50/60': card.color === 'emerald',
+                                                                'border-red-100 bg-red-50/60': card.color === 'red',
+                                                        }"
+                                                >
+                                                        <div class="flex items-center gap-1.5 mb-1">
+                                                                <FeatherIcon
+                                                                        :name="card.icon"
+                                                                        class="h-3.5 w-3.5"
+                                                                        :class="{
+                                                                                'text-blue-500': card.color === 'blue',
+                                                                                'text-sky-500': card.color === 'sky',
+                                                                                'text-amber-500': card.color === 'amber',
+                                                                                'text-emerald-500': card.color === 'emerald',
+                                                                                'text-red-400': card.color === 'red',
+                                                                        }"
+                                                                />
+                                                                <span class="text-[11px] font-medium text-gray-500 truncate">{{ card.title }}</span>
+                                                        </div>
+                                                        <div
+                                                                class="text-xl font-bold"
+                                                                :class="{
+                                                                        'text-blue-700': card.color === 'blue',
+                                                                        'text-sky-700': card.color === 'sky',
+                                                                        'text-amber-700': card.color === 'amber',
+                                                                        'text-emerald-700': card.color === 'emerald',
+                                                                        'text-red-600': card.color === 'red',
+                                                                }"
+                                                        >
+                                                                {{ card.value }}
+                                                        </div>
+                                                        <div class="text-[10px] text-gray-400 mt-0.5">{{ card.caption }}</div>
+                                                </div>
+                                        </div>
+                                </div>
+
+                                <!-- Attendance Bar Chart -->
+                                <div v-if="employee?.data?.name" class="w-full my-2">
+                                        <EmployeeAttendanceChart :employee="employee.data.name" />
+                                </div>
+
                                 <div v-if="leaveCharts.length" class="w-full bg-white rounded p-4 my-2">
                                         <div class="text-base font-semibold text-gray-900 mb-4">وضعیت مرخصی‌ها</div>
                                         <div class="grid grid-cols-2 gap-3">
@@ -304,10 +366,12 @@ import { FeatherIcon, createDocumentResource, createResource, toast } from "frap
 import BaseLayout from "@/components/BaseLayout.vue"
 import Link from "@/components/Link.vue"
 import ProfileInfoModal from "@/components/ProfileInfoModal.vue"
+import EmployeeAttendanceChart from "@/components/EmployeeAttendanceChart.vue"
 import { FileAttachment } from "@/composables"
 import { employees } from "@/data/employees"
 import { showErrorAlert } from "@/utils/dialogs"
 import { formatCurrency } from "@/utils/formatters"
+import { toPersianDigits } from "@/utils/jalali"
 
 const DOCTYPE = "Employee"
 const MAX_PROFILE_IMAGE_SIZE_BYTES = 5 * 1024 * 1024
@@ -402,6 +466,15 @@ const leaveBalanceResource = createResource({
         auto: false,
 })
 
+// ─── Attendance KPI Data ────────────────────────────────────────────────────
+const attendanceKpiResource = createResource({
+        url: "frappe.client.get_list",
+        auto: false,
+})
+
+const ATTENDANCE_KPI_STANDARD_HOURS = 8
+const ATTENDANCE_KPI_MAX_DAYS = 30
+
 const CHART_COLORS = ["#f59e0b", "#3b82f6", "#10b981", "#8b5cf6", "#ef4444", "#06b6d4", "#f97316", "#84cc16"]
 
 const leaveCharts = computed(() => {
@@ -420,6 +493,115 @@ const leaveCharts = computed(() => {
                         color: CHART_COLORS[index % CHART_COLORS.length],
                 }
         })
+})
+
+// ─── Attendance KPI Summary Cards ───────────────────────────────────────────
+const attendanceKpiSummary = computed(() => {
+        const checkins = attendanceKpiResource.data || []
+        if (!checkins.length) {
+                return {
+                        totalDays: 0,
+                        totalHours: 0,
+                        avgHours: 0,
+                        overtimeDays: 0,
+                        deficitDays: 0,
+                        perfectDays: 0,
+                }
+        }
+
+        // Group checkins by date
+        const byDate = {}
+        for (const c of checkins) {
+                const date = String(c.time || "").split(" ")[0]
+                if (!date) continue
+                if (!byDate[date]) byDate[date] = []
+                byDate[date].push(c)
+        }
+
+        let totalMinutes = 0
+        let overtimeDays = 0
+        let deficitDays = 0
+        let perfectDays = 0
+        const standardMinutes = ATTENDANCE_KPI_STANDARD_HOURS * 60
+
+        for (const [date, logs] of Object.entries(byDate)) {
+                const sorted = [...logs].sort((a, b) => String(a.time).localeCompare(String(b.time)))
+                let dayMinutes = 0
+                let lastInTime = null
+                for (const log of sorted) {
+                        if (log.log_type === "IN") {
+                                lastInTime = log.time
+                        } else if (log.log_type === "OUT" && lastInTime) {
+                                const inMs = new Date(lastInTime.replace(" ", "T")).getTime()
+                                const outMs = new Date(log.time.replace(" ", "T")).getTime()
+                                if (outMs > inMs) dayMinutes += (outMs - inMs) / 60000
+                                lastInTime = null
+                        }
+                }
+                totalMinutes += dayMinutes
+                if (dayMinutes > standardMinutes + 30) overtimeDays++
+                else if (dayMinutes > 0 && dayMinutes < standardMinutes - 30) deficitDays++
+                else if (dayMinutes > 0) perfectDays++
+        }
+
+        const totalDays = Object.keys(byDate).length
+        const totalHours = totalMinutes / 60
+        const avgHours = totalDays > 0 ? totalHours / totalDays : 0
+
+        return {
+                totalDays,
+                totalHours,
+                avgHours,
+                overtimeDays,
+                deficitDays,
+                perfectDays,
+        }
+})
+
+const attendanceKpiCards = computed(() => {
+        const summary = attendanceKpiSummary.value
+        return [
+                {
+                        key: "total_days",
+                        title: __("روزهای حضور"),
+                        value: toPersianDigits(String(summary.totalDays)),
+                        caption: __("روز با تردد ثبت‌شده"),
+                        icon: "calendar",
+                        color: "blue",
+                },
+                {
+                        key: "total_hours",
+                        title: __("مجموع ساعات حضور"),
+                        value: toPersianDigits(summary.totalHours.toFixed(1).replace(/\.0$/, "")),
+                        caption: __("ساعت کار کل"),
+                        icon: "clock",
+                        color: "sky",
+                },
+                {
+                        key: "avg_hours",
+                        title: __("میانگین حضور روزانه"),
+                        value: toPersianDigits(summary.avgHours.toFixed(1).replace(/\.0$/, "")),
+                        caption: __("ساعت در روز"),
+                        icon: "trending-up",
+                        color: "amber",
+                },
+                {
+                        key: "overtime_days",
+                        title: __("روزهای اضافه‌کاری"),
+                        value: toPersianDigits(String(summary.overtimeDays)),
+                        caption: __("بیش از ۸ ساعت"),
+                        icon: "arrow-up-circle",
+                        color: "emerald",
+                },
+                {
+                        key: "deficit_days",
+                        title: __("روزهای کسری"),
+                        value: toPersianDigits(String(summary.deficitDays)),
+                        caption: __("کمتر از ۸ ساعت"),
+                        icon: "arrow-down-circle",
+                        color: "red",
+                },
+        ]
 })
 
 const displayedProfileImage = computed(
@@ -774,6 +956,27 @@ onMounted(() => {
         })
 })
 
+function fetchAttendanceKpiData(employeeName) {
+        if (!employeeName) return
+        const today = new Date()
+        const from = new Date(today)
+        from.setDate(from.getDate() - ATTENDANCE_KPI_MAX_DAYS + 1)
+        const pad = (n) => String(n).padStart(2, "0")
+        const fromStr = `${from.getFullYear()}-${pad(from.getMonth() + 1)}-${pad(from.getDate())}`
+        const toStr = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`
+        attendanceKpiResource.fetch({
+                doctype: "Employee Checkin",
+                fields: ["name", "log_type", "time"],
+                filters: [
+                        ["employee", "=", employeeName],
+                        ["time", ">=", fromStr + " 00:00:00"],
+                        ["time", "<=", toStr + " 23:59:59"],
+                ],
+                order_by: "time asc",
+                limit_page_length: 500,
+        })
+}
+
 watch(
         () => employee.data?.name,
         async (employeeName) => {
@@ -783,6 +986,7 @@ watch(
                 assignEmployeeFormFromDoc()
                 await loadEmployeeBankAccounts()
                 leaveBalanceResource.fetch({ employee: employeeName })
+                fetchAttendanceKpiData(employeeName)
         },
         { immediate: true }
 )

@@ -256,6 +256,11 @@ const canSeeWeeklyShiftPlanner = computed(() => {
 	)
 })
 
+const canManageQrAttendance = computed(() => {
+	const roles = user.data?.roles || []
+	return roles.includes("System Manager") || roles.includes("HR Manager")
+})
+
 const sidebarPreferences = computed(() => {
 	return employeeDeskGlobalPersonalization.data?.preferences || {}
 })
@@ -266,6 +271,7 @@ const menuGroups = computed(() => {
 		hasImprestAccess: layoutHasImprestAccess.value,
 		canSeeAllocatorShiftTools: canSeeAllocatorShiftTools.value,
 		canSeeWeeklyShiftPlanner: canSeeWeeklyShiftPlanner.value,
+		canManageQrAttendance: canManageQrAttendance.value,
 		visibility: employeeDeskVisibility.data || {},
 		hiddenRoutes: sidebarPreferences.value.hidden_sidebar_routes || [],
 		routeOrder: sidebarPreferences.value.sidebar_order_routes || [],

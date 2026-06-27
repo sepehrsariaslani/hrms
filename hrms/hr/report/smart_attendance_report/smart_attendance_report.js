@@ -86,20 +86,35 @@ frappe.query_reports["Smart Attendance Report"] = {
 
     "formatter": function (value, row, column, data, default_formatter) {
         // ستون‌های ساعتی که باید به فرمت HH:MM نمایش داده شوند
-        const HOUR_COLUMNS = ["standard_hours", "presence_hours", "break_hours", "working_hours", "time_off", "overtime", "holiday_work"];
+        const HOUR_COLUMNS = ["standard_hours", "presence_hours", "gross_working_hours", "break_hours", "working_hours", "time_off", "overtime", "holiday_work"];
         if (HOUR_COLUMNS.includes(column.fieldname) && data) {
             let raw = parseFloat(data[column.fieldname] || 0);
             let h = Math.floor(raw);
             let m = Math.round((raw - h) * 60);
             if (m === 60) { h += 1; m = 0; }
             let hhmm = h + ":" + String(m).padStart(2, "0");
+            if (column.fieldname === "break_hours" && raw > 0) {
+                return "<span style='color:#e67e22;font-weight:bold'>" + hhmm + "</span>";
+            }
             if (column.fieldname === "time_off" && raw > 0) {
                 return "<span style='color:red;font-weight:bold'>" + hhmm + "</span>";
             }
             if (column.fieldname === "overtime" && raw > 0) {
                 return "<span style='color:green;font-weight:bold'>" + hhmm + "</span>";
             }
+            if (column.fieldname === "gross_working_hours" && raw > 0) {
+                return "<span style='color:#666'>" + hhmm + "</span>";
+            }
             return hhmm;
+        }
+
+        // break_details column: show as-is with smaller font
+        if (column.fieldname === "break_details" && data) {
+            let details = data.break_details || "";
+            if (details) {
+                return "<span style='font-size:11px;color:#555'>" + details + "</span>";
+            }
+            return "<span style='color:#999;font-size:11px'>-</span>";
         }
 
         value = default_formatter(value, row, column, data);

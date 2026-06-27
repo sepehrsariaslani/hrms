@@ -1,0 +1,1 @@
+hrms/uninstall.py

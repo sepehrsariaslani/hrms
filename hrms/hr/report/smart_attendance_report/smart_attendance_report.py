@@ -130,6 +130,13 @@ def get_columns():
             "width": 60
         },
         {
+            "fieldname": "gross_working_hours",
+            "label": _("ناخالص"),
+            "fieldtype": "Float",
+            "precision": 2,
+            "width": 60
+        },
+        {
             "fieldname": "break_hours",
             "label": _("استراحت"),
             "fieldtype": "Float",
@@ -142,6 +149,12 @@ def get_columns():
             "fieldtype": "Float",
             "precision": 2,
             "width": 60
+        },
+        {
+            "fieldname": "break_details",
+            "label": _("جزئیات استراحت"),
+            "fieldtype": "Data",
+            "width": 200
         },
         {
             "fieldname": "time_off",
@@ -610,8 +623,10 @@ def get_data(filters):
                 "first_in_name": None,
                 "last_out_name": None,
                 "presence_hours": 0,
+                "gross_working_hours": 0,
                 "break_hours": 0,
                 "working_hours": 0,
+                "break_details": "",
                 "time_off": 0 if (is_holiday or is_friday) else standard_hours,
                 "overtime": 0,
                 "holiday_work": 0,
@@ -667,6 +682,7 @@ def get_data(filters):
                 presence_hours = total_presence_seconds / 3600
 
                 break_hours = 0
+                break_details_parts = []
                 if pairs:
                     first_in_seconds = time_to_seconds(session["first_in"])
                     last_out_seconds = time_to_seconds(session["last_out"])
@@ -676,11 +692,29 @@ def get_data(filters):
                         first_in_seconds, last_out_seconds, break_windows_for_day
                     )
 
+                    # Build per-break detail strings for display
+                    for bw in break_windows_for_day:
+                        bs = bw.get("start", 0)
+                        be = bw.get("end", 0)
+                        if be <= bs:
+                            be += 24 * 3600
+                        overlap = max(0, min(last_out_seconds, be) - max(first_in_seconds, bs))
+                        if overlap <= 0:
+                            overlap = max(0, min(last_out_seconds, be + 24 * 3600) - max(first_in_seconds, bs + 24 * 3600))
+                        if overlap > 0:
+                            ded_sec = max(0, int(bw.get("deduction_seconds") or 0))
+                            effective = min(overlap, ded_sec or overlap)
+                            break_details_parts.append(
+                                f"{bw.get('name', '?')}: {int(bs//3600):02d}:{int((bs%3600)//60):02d}-{int(be//3600):02d}:{int((be%3600)//60):02d} → {flt(effective/3600, 1)}h"
+                            )
+
                 working_hours = max(0, presence_hours - break_hours)
 
                 row["presence_hours"] = flt(presence_hours, 2)
+                row["gross_working_hours"] = flt(presence_hours, 2)
                 row["break_hours"] = flt(break_hours, 2)
                 row["working_hours"] = flt(working_hours, 2)
+                row["break_details"] = " | ".join(break_details_parts) if break_details_parts else ""
 
                 if is_holiday or is_friday:
                     row["time_off"] = 0
@@ -1507,6 +1541,246 @@ def upsert_attendance_from_report(employee, work_date, status, leave_type=None):
         "attendance": attendance.name,
         "leave_application": leave_application_name,
         "leave_error": leave_error,
+    }
+
+
+@frappe.whitelist()
+def get_break_deduction_details(employee, from_date, to_date=None):
+    """
+    Calculate break deduction details for an employee on a specific date.
+
+    Uses Break Assignment + Break Hours doctypes (NOT per-employee custom fields).
+    Returns gross_hours, total_break_hours, net_working_hours, and per-break details.
+
+    Handles edge cases:
+    - Overlapping breaks: each break window is evaluated independently, capped by span
+    - Breaks outside check-in/check-out window: only overlapping portion is deducted
+    - Multiple breaks in one day: all applicable breaks are summed
+    """
+    from_date = getdate(from_date)
+    to_date = getdate(to_date) if to_date else from_date
+
+    # 1. Get check-in/out pairs for the employee on the given date(s)
+    checkin_query = """
+        SELECT
+            name, employee, DATE(time) AS work_date, TIME(time) AS log_time,
+            time AS full_time, log_type
+        FROM `tabEmployee Checkin`
+        WHERE employee = %(employee)s
+          AND DATE(time) >= %(from_date)s
+          AND DATE(time) <= %(to_date)s
+          AND IFNULL(custom_is_excluded, 0) = 0
+        ORDER BY time
+    """
+    raw_checkins = frappe.db.sql(
+        checkin_query,
+        {"employee": employee, "from_date": from_date, "to_date": to_date},
+        as_dict=True,
+    )
+
+    if not raw_checkins:
+        return {
+            "employee": employee,
+            "from_date": str(from_date),
+            "to_date": str(to_date),
+            "gross_hours": 0,
+            "total_break_hours": 0,
+            "net_working_hours": 0,
+            "break_details": [],
+            "checkin_pairs": [],
+            "has_checkins": False,
+        }
+
+    # 2. Build IN/OUT pairs per day — optimized: pre-sort and pair sequentially
+    from datetime import datetime, timedelta
+
+    def _time_to_seconds(tv):
+        if tv is None:
+            return 0
+        if isinstance(tv, timedelta):
+            return int(tv.total_seconds())
+        s = str(tv).split(".")[0]
+        parts = s.split(":")
+        return int(parts[0]) * 3600 + int(parts[1]) * 60 + (int(parts[2]) if len(parts) > 2 else 0)
+
+    # Group checkins by day and sort by time
+    checkins_by_day = {}
+    for c in raw_checkins:
+        wd = c.work_date
+        if wd not in checkins_by_day:
+            checkins_by_day[wd] = []
+        checkins_by_day[wd].append(c)
+    for wd in checkins_by_day:
+        checkins_by_day[wd].sort(key=lambda x: str(x.full_time))
+
+    daily_sessions = {}
+    for wd, day_checkins in checkins_by_day.items():
+        session = {"pairs": [], "unpaired_ins": [], "first_in": None, "last_out": None}
+        daily_sessions[wd] = session
+
+        i = 0
+        while i < len(day_checkins):
+            c = day_checkins[i]
+            if c.log_type == "IN":
+                # Find next OUT after this IN
+                next_out = None
+                for j in range(i + 1, len(day_checkins)):
+                    if day_checkins[j].log_type == "OUT":
+                        next_out = day_checkins[j]
+                        break
+                if next_out:
+                    in_dt = c.full_time if isinstance(c.full_time, datetime) else datetime.strptime(str(c.full_time), "%Y-%m-%d %H:%M:%S")
+                    out_dt = next_out.full_time if isinstance(next_out.full_time, datetime) else datetime.strptime(str(next_out.full_time), "%Y-%m-%d %H:%M:%S")
+                    dur = max(0, (out_dt - in_dt).total_seconds())
+                    session["pairs"].append({
+                        "in_time": c.log_time,
+                        "out_time": next_out.log_time,
+                        "in_seconds": _time_to_seconds(c.log_time),
+                        "out_seconds": _time_to_seconds(next_out.log_time),
+                        "duration_seconds": dur,
+                    })
+                    if not session["first_in"]:
+                        session["first_in"] = c.log_time
+                    session["last_out"] = next_out.log_time
+                    # Skip the OUT we just paired
+                    i = day_checkins.index(next_out) + 1
+                else:
+                    session["unpaired_ins"].append(c.log_time)
+                    if not session["first_in"]:
+                        session["first_in"] = c.log_time
+                    i += 1
+            elif c.log_type == "OUT":
+                # Unpaired OUT — skip (handled by overnight logic in report)
+                i += 1
+            else:
+                i += 1
+
+    # 3. Get Break Assignment records for this employee
+    break_rows = frappe.db.sql(
+        """
+        SELECT
+            ba.from_date, ba.to_date,
+            bh.break_name, bh.break_start, bh.break_end, bh.deduction_hours
+        FROM `tabBreak Assignment` ba
+        JOIN `tabBreak Hours` bh ON bh.name = ba.break_hours
+        WHERE ba.employee = %(employee)s
+          AND ba.docstatus = 1
+          AND ba.status = 'Active'
+          AND bh.is_active = 1
+          AND ba.from_date <= %(to_date)s
+          AND (ba.to_date IS NULL OR ba.to_date >= %(from_date)s)
+        ORDER BY bh.break_start
+        """,
+        {"employee": employee, "from_date": from_date, "to_date": to_date},
+        as_dict=True,
+    )
+
+    break_windows = []
+    for row in break_rows:
+        br_start = _time_to_seconds(row.break_start)
+        br_end = _time_to_seconds(row.break_end)
+        ded = flt(row.deduction_hours)
+        break_windows.append({
+            "name": row.break_name,
+            "start": br_start,
+            "end": br_end,
+            "deduction_seconds": int(ded * 3600),
+            "from_date": getdate(row.from_date),
+            "to_date": getdate(row.to_date) if row.to_date else None,
+        })
+
+    # 4. Calculate per-day break deductions
+    total_gross = 0
+    total_break = 0
+    all_break_details = []
+    all_pairs = []
+
+    for wd in sorted(daily_sessions.keys()):
+        session = daily_sessions[wd]
+        pairs = session["pairs"]
+
+        if not pairs:
+            all_pairs.append({
+                "work_date": str(wd),
+                "gross_hours": 0,
+                "break_hours": 0,
+                "net_hours": 0,
+                "first_in": session.get("first_in"),
+                "last_out": session.get("last_out"),
+                "break_details": [],
+            })
+            continue
+
+        first_in_sec = _time_to_seconds(session["first_in"])
+        last_out_sec = _time_to_seconds(session["last_out"])
+
+        # Handle overnight: if last out < first in, add 24h
+        if last_out_sec <= first_in_sec and pairs:
+            last_pair_out = pairs[-1]["out_seconds"]
+            first_pair_in = pairs[0]["in_seconds"]
+            if last_pair_out < first_pair_in:
+                last_out_sec += 24 * 3600
+
+        gross_seconds = sum(p["duration_seconds"] for p in pairs)
+        gross_hours = gross_seconds / 3600
+
+        # Calculate break deduction using the existing function
+        break_hours = calculate_break_hours(first_in_sec, last_out_sec, break_windows)
+        net_hours = max(0, gross_hours - break_hours)
+
+        # Build per-break detail
+        day_break_details = []
+        for bw in break_windows:
+            # Check if this window applies to this date
+            if bw["from_date"] > wd or (bw["to_date"] and bw["to_date"] < wd):
+                continue
+
+            bs = bw["start"]
+            be = bw["end"]
+            if be <= bs:
+                be += 24 * 3600
+
+            # Check overlap with work span
+            overlap = max(0, min(last_out_sec, be) - max(first_in_sec, bs))
+            if overlap <= 0:
+                # Try next-day projection
+                overlap = max(0, min(last_out_sec, be + 24 * 3600) - max(first_in_sec, bs + 24 * 3600))
+                if overlap <= 0:
+                    continue
+
+            effective = min(overlap, bw["deduction_seconds"] or overlap)
+            day_break_details.append({
+                "break_name": bw["name"],
+                "break_start": f"{bw['start'] // 3600:02d}:{(bw['start'] % 3600) // 60:02d}",
+                "break_end": f"{bw['end'] // 3600:02d}:{(bw['end'] % 3600) // 60:02d}",
+                "deduction_hours": flt(effective / 3600, 2),
+                "overlap_minutes": flt(overlap / 60, 1),
+            })
+
+        total_gross += gross_hours
+        total_break += break_hours
+
+        all_break_details.extend(day_break_details)
+        all_pairs.append({
+            "work_date": str(wd),
+            "gross_hours": flt(gross_hours, 2),
+            "break_hours": flt(break_hours, 2),
+            "net_hours": flt(net_hours, 2),
+            "first_in": session.get("first_in"),
+            "last_out": session.get("last_out"),
+            "break_details": day_break_details,
+        })
+
+    return {
+        "employee": employee,
+        "from_date": str(from_date),
+        "to_date": str(to_date),
+        "gross_hours": flt(total_gross, 2),
+        "total_break_hours": flt(total_break, 2),
+        "net_working_hours": flt(max(0, total_gross - total_break), 2),
+        "break_details": all_break_details,
+        "checkin_pairs": all_pairs,
+        "has_checkins": True,
     }
 
 
