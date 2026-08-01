@@ -735,14 +735,16 @@ def apply_smart_attendance_summary(doc):
 	set_doc_field_if_exists(doc, "early_exit_minutes_iran", flt(early_exit_minutes, 2))
 	set_doc_field_if_exists(doc, "night_hours_iran", flt(night_hours, 2))
 
-	# Keep every "worked hours" flavour aligned on the same value so there is no
-	# drift between multiple fields describing the same quantity.
-	for field in ("employee_working_hours", "attendance_working_hours", "attendance_presence_hours"):
-		set_doc_field_if_exists(doc, field, worked_hours)
-
 	# Backward compatibility with existing custom print formats.
+	set_doc_field_if_exists(doc, "employee_working_hours", worked_hours)
 	set_doc_field_if_exists(doc, "overtime", overtime_hours)
 	set_doc_field_if_exists(doc, "absence", shortage_hours)
+
+	# NOTE: the attendance_* fields (attendance_working_hours,
+	# attendance_presence_hours, attendance_time_off, attendance_overtime,
+	# attendance_holiday_work) are filled by Salary Slip.set_attendance_metrics()
+	# directly from the Attendance table. We intentionally leave them untouched
+	# here so each source keeps its own value.
 
 
 def apply_iran_payroll_rules(doc, method=None):
@@ -856,7 +858,6 @@ def apply_iran_payroll_rules(doc, method=None):
 	# Income tax is managed خارج از تنظیمات حقوق ایران.
 	upsert_component_row(doc, "deductions", DEDUCTION_COMPONENTS["income_tax"], 0)
 
-	apply_smart_attendance_summary(doc)
 	doc.calculate_net_pay()
 	doc.compute_year_to_date()
 	doc.compute_month_to_date()
