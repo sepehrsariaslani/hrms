@@ -728,7 +728,6 @@ def apply_smart_attendance_summary(doc):
 	set_doc_field_if_exists(doc, "absence", shortage_hours)
 
 
-@frappe.whitelist()
 def apply_iran_payroll_rules(doc, method=None):
 	if doc.doctype != "Salary Slip" or doc.docstatus != 0:
 		return

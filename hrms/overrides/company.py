@@ -20,7 +20,11 @@ def make_company_fixtures(doc, method=None):
 	if not frappe.flags.country_change:
 		return
 
-	run_regional_setup(doc.country)
+	# For Iran, only create initial Salary Components.
+	# Do not install Iran payroll rules, settings, tables or custom fields.
+	if get_regional_country_slug(doc.country) != "iran":
+		run_regional_setup(doc.country)
+
 	make_salary_components(doc.country)
 
 
