@@ -559,15 +559,14 @@ def get_data(filters):
             shift = shifts.get(employee, {})
             break_windows_for_day = get_break_windows_for_date(employee_break_assignments, employee, current_date)
             holiday_info = holidays.get((employee, current_date), {})
+            # A day is a holiday only if it is present in the employee's assigned
+            # Holiday List. Do NOT hardcode Friday/Thursday — the assigned list is
+            # the single source of truth for what counts as a holiday.
             is_holiday = bool(holiday_info)
             weekday = current_date.weekday()
-            is_friday = weekday == 4
-            is_thursday = weekday == 3
 
-            if is_holiday or is_friday:
+            if is_holiday:
                 standard_hours = 0
-            elif is_thursday:
-                standard_hours = 4
             elif shift.get("shift_duration"):
                 shift_start_seconds = time_to_seconds(shift.get("start_time"))
                 shift_end_seconds = time_to_seconds(shift.get("end_time"))
@@ -629,7 +628,7 @@ def get_data(filters):
                 "shift_type": shift.get("shift_type", ""),
                 "standard_hours": standard_hours,
                 "is_holiday": 1 if is_holiday else 0,
-                "holiday_description": holiday_info.get("description") or ("جمعه" if is_friday else ""),
+                "holiday_description": holiday_info.get("description") or "",
                 "all_logs": all_logs_str,
                 "all_logs_json": all_logs_json,
                 "log_status": "",
@@ -642,7 +641,7 @@ def get_data(filters):
                 "break_hours": 0,
                 "working_hours": 0,
                 "break_details": "",
-                "time_off": 0 if (is_holiday or is_friday) else standard_hours,
+                "time_off": 0 if is_holiday else standard_hours,
                 "overtime": 0,
                 "holiday_work": 0,
                 "late_minutes": 0,
@@ -761,7 +760,7 @@ def get_data(filters):
                         calculate_night_hours(first_in_seconds, last_out_seconds), 2
                     )
 
-                if is_holiday or is_friday:
+                if is_holiday:
                     row["time_off"] = 0
                     row["overtime"] = flt(working_hours, 2)
                     row["holiday_work"] = flt(working_hours, 2)
@@ -801,7 +800,7 @@ def get_data(filters):
                 row["has_issue"] = True
 
             else:
-                if not is_holiday and not is_friday:
+                if not is_holiday:
                     row["can_mark_attendance"] = True
                     existing_attendance = attendance_lookup.get((employee, current_date))
                     if existing_attendance:
