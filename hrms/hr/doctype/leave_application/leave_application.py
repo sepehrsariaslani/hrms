@@ -1105,16 +1105,27 @@ def get_leaves_pending_approval_for_period(
         employee: str, leave_type: str, from_date: datetime.date, to_date: datetime.date
 ) -> float:
         """Returns leaves that are pending for approval"""
-        leaves = frappe.get_all(
-                "Leave Application",
-                filters={"employee": employee, "leave_type": leave_type, "status": "Open"},
-                or_filters={
-                        "from_date": ["between", (from_date, to_date)],
-                        "to_date": ["between", (from_date, to_date)],
+        leaves = frappe.db.sql(
+                """
+                SELECT IFNULL(SUM(total_leave_days), 0) AS leaves
+                FROM `tabLeave Application`
+                WHERE employee = %(employee)s
+                        AND leave_type = %(leave_type)s
+                        AND status = 'Open'
+                        AND (
+                                (from_date BETWEEN %(from_date)s AND %(to_date)s)
+                                OR (to_date BETWEEN %(from_date)s AND %(to_date)s)
+                        )
+                """,
+                {
+                        "employee": employee,
+                        "leave_type": leave_type,
+                        "from_date": from_date,
+                        "to_date": to_date,
                 },
-                fields=[{"sum": "total_leave_days", "as": "leaves"}],
-        )[0]
-        return leaves["leaves"] if leaves["leaves"] else 0.0
+                as_dict=True,
+        )
+        return leaves[0]["leaves"] if leaves else 0.0
 
 
 def get_remaining_leaves(
