@@ -97,7 +97,10 @@ frappe.query_reports["Smart Attendance Report"] = {
                 return "<span style='color:#e67e22;font-weight:bold'>" + hhmm + "</span>";
             }
             if (column.fieldname === "time_off" && raw > 0) {
-                return "<span style='color:red;font-weight:bold'>" + hhmm + "</span>";
+                const leaveBtn = `<span onclick="smart_attendance_hourly_leave('${data.employee}', '${data.work_date}', ${raw})"
+                                    style="cursor:pointer;color:#28a745;font-weight:bold;margin-left:6px"
+                                    title="ثبت مرخصی ساعتی (کسر از مرخصی استحقاقی)">🕐</span>`;
+                return "<span style='color:red;font-weight:bold'>" + hhmm + "</span>" + leaveBtn;
             }
             if (column.fieldname === "overtime" && raw > 0) {
                 return "<span style='color:green;font-weight:bold'>" + hhmm + "</span>";
@@ -557,6 +560,68 @@ window.smart_attendance_mark_day = function (employee, work_date, current_status
                         });
                         dialog.hide();
                         frappe.query_report.refresh();
+                    }
+                }
+            });
+        }
+    });
+
+    dialog.show();
+};
+
+// ===================== ثبت مرخصی ساعتی =====================
+window.smart_attendance_hourly_leave = function (employee, work_date, shortageHours) {
+    const dialog = new frappe.ui.Dialog({
+        title: __("ثبت مرخصی ساعتی"),
+        fields: [
+            {
+                fieldname: "info",
+                fieldtype: "HTML",
+                options: `<div style="margin-bottom:10px;">
+                    <strong>کارمند:</strong> ${employee}<br>
+                    <strong>تاریخ:</strong> ${work_date}<br>
+                    <strong>کسری این روز:</strong> ${shortageHours} ساعت
+                </div>`
+            },
+            {
+                fieldname: "hours",
+                label: __("تعداد ساعت مرخصی"),
+                fieldtype: "Float",
+                reqd: 1,
+                default: shortageHours || 1
+            },
+            {
+                fieldname: "leave_type",
+                label: __("نوع مرخصی"),
+                fieldtype: "Link",
+                options: "Leave Type",
+                description: __("در صورت خالی بودن، مرخصی استحقاقی به‌طور خودکار انتخاب می‌شود")
+            }
+        ],
+        primary_action_label: __("ثبت مرخصی"),
+        primary_action: function (values) {
+            frappe.call({
+                method: "hrms.hr.report.smart_attendance_report.smart_attendance_report.create_hourly_leave_from_shortage",
+                args: {
+                    employee: employee,
+                    work_date: work_date,
+                    hours: values.hours,
+                    leave_type: values.leave_type || ""
+                },
+                callback: function (r) {
+                    if (r.message && r.message.success) {
+                        frappe.show_alert({
+                            message: r.message.message || __("مرخصی ساعتی ثبت شد"),
+                            indicator: "green"
+                        });
+                        dialog.hide();
+                        frappe.query_report.refresh();
+                    } else {
+                        frappe.msgprint({
+                            title: __("خطا"),
+                            message: r.message && r.message.message ? r.message.message : __("خطا در ثبت مرخصی"),
+                            indicator: "red"
+                        });
                     }
                 }
             });

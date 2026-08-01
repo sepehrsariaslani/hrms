@@ -98,7 +98,7 @@
    "options": "Present\nAbsent"
   },
   {
-   "default": "0",
+   "default": "1",
    "fieldname": "show_leave_balances_in_salary_slip",
    "fieldtype": "Check",
    "label": "Show Leave Balances in Salary Slip"

@@ -2005,6 +2005,123 @@ def ensure_single_day_leave_application(employee, company, leave_type, leave_dat
     except Exception:
         return None, frappe.get_traceback()
 
+def get_earned_leave_type_for_employee(employee, date):
+    """Return an earned/paid (non-LWP) leave type the employee has balance for.
+
+    Prefers "استحقاقی" but falls back to any paid leave type with available balance.
+    Returns None if the employee has no usable paid leave.
+    """
+    target_date = getdate(date)
+    leave_allocations = frappe.get_all(
+        "Leave Allocation",
+        filters={
+            "employee": employee,
+            "docstatus": 1,
+            "from_date": ("<=", target_date),
+            "to_date": (">=", target_date),
+        },
+        fields=["name", "leave_type", "from_date", "to_date"],
+    )
+
+    preferred = None
+    fallback = None
+    for alloc in leave_allocations:
+        leave_type = alloc["leave_type"]
+        leave_type_doc = frappe.get_doc("Leave Type", leave_type)
+        if leave_type_doc.is_lwp or leave_type_doc.is_compensatory:
+            continue
+
+        try:
+            from hrms.hr.doctype.leave_application.leave_application import get_leave_balance_on
+
+            balance = get_leave_balance_on(
+                employee, leave_type, alloc["from_date"], target_date, consider_all_leaves_in_the_allocation_period=True
+            )
+        except Exception:
+            balance = 0
+
+        if flt(balance) <= 0:
+            continue
+
+        if leave_type == "استحقاقی":
+            return leave_type
+
+        if preferred is None and fallback is None:
+            fallback = leave_type
+
+    return preferred or fallback
+
+
+@frappe.whitelist()
+def create_hourly_leave_from_shortage(employee, work_date, hours, leave_type=None):
+    """Create an approved hourly Leave Application to cover a partial-day shortage.
+
+    Deducts the given hours from the employee's paid (استحقاقی) leave balance.
+    """
+    frappe.has_permission("Leave Application", "write", throw=True)
+
+    if not employee or not work_date:
+        frappe.throw(_("کارمند و تاریخ الزامی است"))
+
+    hours = flt(hours)
+    if hours <= 0:
+        frappe.throw(_("تعداد ساعت باید بزرگتر از صفر باشد"))
+
+    leave_date = getdate(work_date)
+    company = frappe.db.get_value("Employee", employee, "company")
+
+    if not leave_type:
+        leave_type = get_earned_leave_type_for_employee(employee, leave_date)
+
+    if not leave_type:
+        return {
+            "success": False,
+            "message": _("مرخصی استحقاقی (با حقوق) با موجودی برای این کارمند پیدا نشد"),
+        }
+
+    existing = frappe.db.get_value(
+        "Leave Application",
+        {
+            "employee": employee,
+            "leave_type": leave_type,
+            "hourly_date": leave_date,
+            "leave_duration_mode": "ساعتی",
+            "docstatus": 1,
+        },
+        "name",
+    )
+    if existing:
+        return {"success": True, "message": _("مرخصی ساعتی برای این روز قبلاً ثبت شده است"), "leave_application": existing}
+
+    from_time = "09:00:00"
+    to_time = (datetime.combine(leave_date, datetime.min.time()) + timedelta(hours=hours)).time().strftime("%H:%M:%S")
+
+    try:
+        leave_app = frappe.new_doc("Leave Application")
+        leave_app.employee = employee
+        leave_app.company = company
+        leave_app.leave_type = leave_type
+        leave_app.leave_duration_mode = "ساعتی"
+        leave_app.hourly_date = leave_date
+        leave_app.from_date = leave_date
+        leave_app.to_date = leave_date
+        leave_app.hourly_from_time = from_time
+        leave_app.hourly_to_time = to_time
+        leave_app.posting_date = nowdate()
+        leave_app.status = "Approved"
+        leave_app.description = _("ثبت مرخصی ساعتی از گزارش حضور و غیاب هوشمند")
+        leave_app.insert(ignore_permissions=True)
+        leave_app.submit()
+        return {
+            "success": True,
+            "leave_application": leave_app.name,
+            "hours": hours,
+            "message": _("مرخصی ساعتی {0} ثبت شد").format(leave_app.name),
+        }
+    except Exception:
+        return {"success": False, "message": frappe.get_traceback()}
+
+
 @frappe.whitelist()
 def add_manual_checkin(employee, log_type, time):
     """Create a manual Employee Checkin record."""
