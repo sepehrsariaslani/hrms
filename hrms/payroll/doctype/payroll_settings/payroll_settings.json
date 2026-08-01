@@ -17,6 +17,7 @@
   "column_break_rnoq",
   "disable_rounded_total",
   "column_break_gzpl",
+  "catch_all_leave_type",
   "show_leave_balances_in_salary_slip",
   "email_section",
   "email_salary_slip_to_employee",
@@ -102,6 +103,13 @@
    "fieldname": "show_leave_balances_in_salary_slip",
    "fieldtype": "Check",
    "label": "Show Leave Balances in Salary Slip"
+  },
+  {
+   "description": "Leave Type that absorbs the remaining shortage hours (کسر کار) in the Salary Slip after other leave types are applied. Leave blank to auto-detect استحقاقی or the first available paid leave type.",
+   "fieldname": "catch_all_leave_type",
+   "fieldtype": "Link",
+   "options": "Leave Type",
+   "label": "Catch-all Leave Type"
   },
   {
    "default": "0",

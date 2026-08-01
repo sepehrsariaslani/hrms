@@ -388,3 +388,37 @@ frappe.ui.form.on("Salary Detail", {
 		}
 	},
 });
+
+// Keep leave details (sala) in sync with the shortage when the user edits
+// the hourly leave amounts.
+frappe.ui.form.on("Salary Slip Leave", {
+	leave_hours: function (frm, cdt, cdn) {
+		var child = locals[cdt][cdn];
+		if (child.leave_hours && frappe.meta.has_field(cdt, "leave_days")) {
+			frappe.call({
+				method: "hrms.payroll.doctype.salary_slip.salary_slip.get_leave_days_for_hours",
+				args: { hours: child.leave_hours },
+				callback: function (r) {
+					if (r.message) {
+						frappe.model.set_value(cdt, cdn, "leave_days", r.message);
+						// recompute shortage as the sum of all leave_hours
+						var total = 0;
+						if (frm.doc.leave_details) {
+							frm.doc.leave_details.forEach(function (row) {
+								total += flt(row.leave_hours);
+							});
+						}
+						if (frappe.meta.has_field("Salary Slip", "shortage_hours_iran")) {
+							frappe.model.set_value(
+								"Salary Slip",
+								frm.doc.name,
+								"shortage_hours_iran",
+								total,
+							);
+						}
+					}
+				},
+			});
+		}
+	},
+});

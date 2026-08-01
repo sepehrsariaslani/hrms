@@ -3,7 +3,7 @@
 
 
 import unicodedata
-from datetime import date
+from datetime import date, datetime, timedelta
 
 import frappe
 from frappe import _, msgprint
@@ -224,6 +224,72 @@ class SalarySlip(TransactionBase):
 
 		self.update_payment_status_for_gratuity_and_leave_encashment()
 		self.create_benefits_ledger_entry()
+		self.create_leave_applications_from_details()
+
+	def create_leave_applications_from_details(self):
+		"""Create approved hourly Leave Applications for each leave_details row so
+		the employee's leave balance is actually consumed when the salary slip is
+		submitted."""
+		if not frappe.db.get_single_value("Payroll Settings", "show_leave_balances_in_salary_slip"):
+			return
+
+		for row in self.get("leave_details") or []:
+			hours = flt(row.get("leave_hours"))
+			leave_type = row.get("leave_type")
+			if not leave_type or hours <= 0:
+				continue
+
+			self.create_hourly_leave_application(leave_type, hours)
+
+	def create_hourly_leave_application(self, leave_type, hours):
+		leave_date = getdate(self.end_date)
+
+		existing = frappe.db.get_value(
+			"Leave Application",
+			{
+				"employee": self.employee,
+				"leave_type": leave_type,
+				"hourly_date": leave_date,
+				"leave_duration_mode": "ساعتی",
+				"salary_slip": self.name,
+				"docstatus": 1,
+			},
+			"name",
+		)
+		if existing:
+			return existing
+
+		# avoid a full working day of leave being treated as fractional
+		hours = min(hours, self.get_standard_working_hours())
+
+		from_time = "09:00:00"
+		start = datetime.combine(leave_date, datetime.min.time())
+		to_time = (start + timedelta(hours=hours)).strftime("%H:%M:%S")
+
+		try:
+			leave_app = frappe.new_doc("Leave Application")
+			leave_app.employee = self.employee
+			leave_app.company = self.company
+			leave_app.leave_type = leave_type
+			leave_app.leave_duration_mode = "ساعتی"
+			leave_app.hourly_date = leave_date
+			leave_app.from_date = leave_date
+			leave_app.to_date = leave_date
+			leave_app.hourly_from_time = from_time
+			leave_app.hourly_to_time = to_time
+			leave_app.posting_date = getdate()
+			leave_app.status = "Approved"
+			leave_app.salary_slip = self.name
+			leave_app.description = _("ثبت خودکار از فیش حقوقی")
+			leave_app.insert(ignore_permissions=True)
+			leave_app.submit()
+			return leave_app.name
+		except Exception:
+			frappe.log_error(
+				frappe.get_traceback(),
+				f"Unable to create hourly leave application for Salary Slip {self.name}",
+			)
+			return None
 
 	def update_payment_status_for_gratuity_and_leave_encashment(self):
 		additional_salary_docs = frappe.db.get_all(
@@ -2402,7 +2468,7 @@ class SalarySlip(TransactionBase):
 
 		from hrms.hr.doctype.leave_application.leave_application import get_leave_details
 
-		standard_hours = frappe.db.get_single_value("HR Settings", "standard_working_hours") or 8
+		standard_hours = self.get_standard_working_hours()
 
 		leave_details = get_leave_details(self.employee, self.end_date, True)
 		leave_allocation = leave_details.get("leave_allocation") or {}
@@ -2410,28 +2476,100 @@ class SalarySlip(TransactionBase):
 		# approved leave applications within this salary period, keyed by leave type
 		approved_leaves = self.get_approved_leave_hours_by_type()
 
+		# the leave type that absorbs the remaining shortage (کسر کار). Configurable
+		# via Payroll Settings -> Catch-all Leave Type, auto-detected otherwise.
+		catch_all_type = self.get_catch_all_leave_type(leave_allocation)
+
+		# build rows for every leave type the employee has an allocation for
+		rows = {}
 		for leave_type, leave_values in leave_allocation.items():
-			allocated = flt(leave_values.get("total_leaves"))
 			used = flt(leave_values.get("leaves_taken"))
-			# hours actually taken by approved leaves in this period (from the
-			# hourly/daily leave applications), defaulting to the standard "used"
-			# converted to hours when no explicit hourly breakdown exists
 			taken_hours = approved_leaves.get(leave_type)
 
-			row = self.append(
-				"leave_details",
-				{
-					"leave_type": leave_type,
-					"total_allocated_leaves": allocated,
-					"expired_leaves": flt(leave_values.get("expired_leaves")),
-					"used_leaves": used,
-					"pending_leaves": flt(leave_values.get("leaves_pending_approval")),
-					"available_leaves": flt(leave_values.get("remaining_leaves")),
-				},
-			)
+			if taken_hours is None:
+				taken_hours = flt(standard_hours) * max(used, 0)
+
+			rows[leave_type] = {
+				"leave_type": leave_type,
+				"leave_hours": flt(taken_hours, 2),
+				"total_allocated_leaves": flt(leave_values.get("total_leaves")),
+				"expired_leaves": flt(leave_values.get("expired_leaves")),
+				"used_leaves": used,
+				"pending_leaves": flt(leave_values.get("leaves_pending_approval")),
+				"available_leaves": flt(leave_values.get("remaining_leaves")),
+			}
+
+		# shortage to distribute — compute it directly from smart attendance so this
+		# method does not depend on before_save having run yet (validate runs first).
+		shortage = self.get_shortage_hours()
+
+		# sum of hours across all leave types except the catch-all
+		sum_others = sum(
+			flt(v["leave_hours"]) for k, v in rows.items() if k != catch_all_type
+		)
+
+		# the catch-all leave type absorbs whatever remains so that the total
+		# leave hours equal the shortage
+		catch_all_hours = max(shortage - sum_others, 0)
+		if catch_all_type in rows:
+			rows[catch_all_type]["leave_hours"] = flt(catch_all_hours, 2)
+
+		# append rows (only those with hours or an allocation) to the salary slip
+		for leave_type, values in rows.items():
+			if not values["leave_hours"] and not values["total_allocated_leaves"]:
+				continue
+
+			row = self.append("leave_details", values)
 			if row is not None and hasattr(row, "leave_hours"):
-				row.leave_hours = taken_hours if taken_hours is not None else (flt(standard_hours) * max(used, 0))
 				row.leave_days = row.get_leave_days()
+
+	def get_shortage_hours(self):
+		"""Compute the shortage (کسر کار) hours from smart attendance for this period."""
+		if flt(self.get("shortage_hours_iran")):
+			return flt(self.get("shortage_hours_iran"))
+
+		try:
+			from hrms.hr.report.smart_attendance_report.smart_attendance_report import get_data
+
+			rows = get_data(
+				{
+					"employee": self.employee,
+					"from_date": self.start_date,
+					"to_date": self.end_date,
+				}
+			)
+			shortage = 0
+			for row in rows or []:
+				if row.get("employee") == self.employee:
+					shortage += flt(row.get("time_off"))
+			return flt(shortage, 2)
+		except Exception:
+			return 0
+
+	def get_standard_working_hours(self):
+		return flt(frappe.db.get_single_value("HR Settings", "standard_working_hours")) or 8
+
+	def get_catch_all_leave_type(self, leave_allocation):
+		"""Return the leave type that absorbs the remaining shortage hours.
+
+		Uses the configured Payroll Settings value when set, otherwise falls back
+		to استحقاقی, then to the first available paid (non-LWP, non-compensatory)
+		leave type in the employee's allocation.
+		"""
+		configured = frappe.db.get_single_value("Payroll Settings", "catch_all_leave_type")
+		if configured:
+			return configured
+
+		if "استحقاقی" in leave_allocation:
+			return "استحقاقی"
+
+		# fall back to the first paid leave type
+		for leave_type in leave_allocation:
+			leave_type_doc = frappe.get_cached_doc("Leave Type", leave_type)
+			if not leave_type_doc.is_lwp and not leave_type_doc.is_compensatory:
+				return leave_type
+
+		return None
 
 	def get_approved_leave_hours_by_type(self):
 		"""Return {leave_type: hours} for approved leave applications in the salary period.
@@ -2789,6 +2927,15 @@ def _check_attributes(code: str) -> None:
 			raise SyntaxError(f"Operation not allowed: line {node.lineno} column {node.col_offset}")
 		if isinstance(node, ast.Attribute) and isinstance(node.attr, str) and node.attr in UNSAFE_ATTRIBUTES:
 			raise SyntaxError(f'Illegal rule {frappe.bold(code)}. Cannot use "{node.attr}"')
+
+
+@frappe.whitelist()
+def get_leave_days_for_hours(hours: float) -> float:
+	"""Convert leave hours to leave days using the HR Settings standard working hours."""
+	standard_hours = flt(frappe.db.get_single_value("HR Settings", "standard_working_hours")) or 8
+	if not standard_hours:
+		return 0
+	return flt(flt(hours) / standard_hours, 2)
 
 
 @frappe.whitelist()
