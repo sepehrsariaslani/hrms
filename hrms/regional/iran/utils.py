@@ -700,8 +700,10 @@ def apply_smart_attendance_summary(doc):
 
 	required_hours = 0
 	worked_hours = 0
-	overtime_hours = 0
-	shortage_hours = 0
+	holiday_hours = 0
+	late_minutes = 0
+	early_exit_minutes = 0
+	night_hours = 0
 
 	for row in rows or []:
 		if row.get("employee") != doc.employee:
@@ -709,21 +711,36 @@ def apply_smart_attendance_summary(doc):
 
 		required_hours += flt(row.get("standard_hours"))
 		worked_hours += flt(row.get("working_hours"))
-		overtime_hours += flt(row.get("overtime"))
-		shortage_hours += flt(row.get("time_off"))
+		holiday_hours += flt(row.get("holiday_work"))
+		late_minutes += flt(row.get("late_minutes"))
+		early_exit_minutes += flt(row.get("early_exit_minutes"))
+		night_hours += flt(row.get("night_hours"))
 
+	# Aggregate (standard ERP) semantics: overtime and shortage are derived from
+	# the *net* difference between total worked and total required hours, NOT by
+	# summing the per-day values (which double-count when some days have overtime
+	# and others have shortage).
 	required_hours = flt(required_hours, 2)
 	worked_hours = flt(worked_hours, 2)
-	overtime_hours = flt(overtime_hours, 2)
-	shortage_hours = flt(shortage_hours, 2)
+	overtime_hours = flt(max(worked_hours - required_hours, 0), 2)
+	shortage_hours = flt(max(required_hours - worked_hours, 0), 2)
 
+	# Single source of truth for the "worked hours" figure.
 	set_doc_field_if_exists(doc, "required_working_hours_iran", required_hours)
 	set_doc_field_if_exists(doc, "worked_hours_iran", worked_hours)
 	set_doc_field_if_exists(doc, "overtime_hours_iran", overtime_hours)
 	set_doc_field_if_exists(doc, "shortage_hours_iran", shortage_hours)
+	set_doc_field_if_exists(doc, "holiday_hours_iran", flt(holiday_hours, 2))
+	set_doc_field_if_exists(doc, "late_minutes_iran", flt(late_minutes, 2))
+	set_doc_field_if_exists(doc, "early_exit_minutes_iran", flt(early_exit_minutes, 2))
+	set_doc_field_if_exists(doc, "night_hours_iran", flt(night_hours, 2))
+
+	# Keep every "worked hours" flavour aligned on the same value so there is no
+	# drift between multiple fields describing the same quantity.
+	for field in ("employee_working_hours", "attendance_working_hours", "attendance_presence_hours"):
+		set_doc_field_if_exists(doc, field, worked_hours)
 
 	# Backward compatibility with existing custom print formats.
-	set_doc_field_if_exists(doc, "employee_working_hours", worked_hours)
 	set_doc_field_if_exists(doc, "overtime", overtime_hours)
 	set_doc_field_if_exists(doc, "absence", shortage_hours)
 

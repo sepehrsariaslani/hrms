@@ -645,6 +645,9 @@ def get_data(filters):
                 "time_off": 0 if (is_holiday or is_friday) else standard_hours,
                 "overtime": 0,
                 "holiday_work": 0,
+                "late_minutes": 0,
+                "early_exit_minutes": 0,
+                "night_hours": 0,
                 "issue_flag": "",
                 "has_issue": False,
                 "can_mark_attendance": False,
@@ -730,6 +733,33 @@ def get_data(filters):
                 row["break_hours"] = flt(break_hours, 2)
                 row["working_hours"] = flt(working_hours, 2)
                 row["break_details"] = " | ".join(break_details_parts) if break_details_parts else ""
+
+                # Late entry / early exit based on the assigned shift.
+                if session["first_in"] and shift.get("start_time"):
+                    late_min = (
+                        time_to_seconds(session["first_in"]) - time_to_seconds(shift.get("start_time"))
+                    ) / 60
+                    row["late_minutes"] = flt(max(late_min, 0), 2)
+
+                if session["last_out"] and shift.get("end_time"):
+                    last_out_seconds = time_to_seconds(session["last_out"])
+                    if session.get("last_out_date") and session["last_out_date"] != current_date:
+                        last_out_seconds += 24 * 3600
+                    shift_end_seconds = time_to_seconds(shift.get("end_time"))
+                    if shift_end_seconds <= time_to_seconds(shift.get("start_time")):
+                        shift_end_seconds += 24 * 3600
+                    early_min = (shift_end_seconds - last_out_seconds) / 60
+                    row["early_exit_minutes"] = flt(max(early_min, 0), 2)
+
+                # Night hours = intersection of the presence span with the night window.
+                if session["first_in"] and session["last_out"]:
+                    first_in_seconds = time_to_seconds(session["first_in"])
+                    last_out_seconds = time_to_seconds(session["last_out"])
+                    if session.get("last_out_date") and session["last_out_date"] != current_date:
+                        last_out_seconds += 24 * 3600
+                    row["night_hours"] = flt(
+                        calculate_night_hours(first_in_seconds, last_out_seconds), 2
+                    )
 
                 if is_holiday or is_friday:
                     row["time_off"] = 0
@@ -1029,6 +1059,35 @@ def calculate_break_hours(start_seconds, end_seconds, break_windows=None):
 
     break_seconds = min(break_seconds, span_seconds)
     return break_seconds / 3600
+
+
+NIGHT_WINDOW_START = 22 * 3600  # 22:00
+NIGHT_WINDOW_END = 6 * 3600  # 06:00
+
+
+def calculate_night_hours(start_seconds, end_seconds, night_start=NIGHT_WINDOW_START, night_end=NIGHT_WINDOW_END):
+    """Return the hours of the presence span that fall inside the night window.
+
+    The night window may wrap past midnight (e.g. 22:00 -> 06:00), so the span
+    is evaluated against both the base day window and its next-day projection.
+    """
+    if start_seconds is None or end_seconds is None:
+        return 0
+
+    if end_seconds <= start_seconds:
+        end_seconds += 24 * 3600
+
+    night_seconds = 0
+    span_seconds = max(0, end_seconds - start_seconds)
+
+    for offset in (0, 24 * 3600):
+        window_start = night_start + offset
+        window_end = night_end + offset
+        overlap = max(0, min(end_seconds, window_end) - max(start_seconds, window_start))
+        if overlap > 0:
+            night_seconds += overlap
+
+    return min(night_seconds, span_seconds) / 3600
 
 
 def get_chart_data(data, filters):
