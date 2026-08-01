@@ -11,6 +11,23 @@ from frappe.model.naming import append_number_if_name_exists
 from hrms.payroll.utils import sanitize_expression
 
 
+# fields that define how a Salary Component contributes to a Salary Structure row.
+# These are kept in sync on the linked Salary Detail rows whenever the component changes.
+SYNC_FIELDS = (
+	"amount",
+	"depends_on_payment_days",
+	"variable_based_on_taxable_salary",
+	"is_tax_applicable",
+	"is_flexible_benefit",
+	"statistical_component",
+	"do_not_include_in_total",
+	"do_not_include_in_accounts",
+	"exempted_from_income_tax",
+	"deduct_full_tax_on_selected_payroll_date",
+	"accrual_component",
+)
+
+
 class SalaryComponent(Document):
 	def before_validate(self):
 		self._condition, self.condition = self.condition, sanitize_expression(self.condition)
@@ -28,6 +45,51 @@ class SalaryComponent(Document):
 			self.db_set("condition", self._condition)
 		if self._formula != self.formula:
 			self.db_set("formula", self._formula)
+
+		# automatically propagate this component's configuration to every Salary
+		# Structure that uses it, so the structure (and hence the Salary Slip)
+		# always follows the latest component values without manual syncing.
+		self.sync_salary_structures()
+
+	def sync_salary_structures(self):
+		"""Sync this component's config to all linked (non-cancelled) Salary Structures."""
+		structures = self.get_structures_to_be_updated()
+		if not structures:
+			return
+
+		for structure in structures:
+			salary_structure = frappe.get_doc("Salary Structure", structure)
+			# only used for versioning; avoids separate db calls with load_doc_before_save
+			salary_structure._doc_before_save = copy.deepcopy(salary_structure)
+
+			salary_detail_row = next(
+				(
+					d
+					for d in salary_structure.get(f"{self.type.lower()}s")
+					if d.salary_component == self.name
+				),
+				None,
+			)
+			if not salary_detail_row:
+				continue
+
+			salary_detail_row.set("amount_based_on_formula", self.amount_based_on_formula)
+			salary_detail_row.set("formula", self._formula if self.amount_based_on_formula else None)
+			salary_detail_row.set("condition", self._condition)
+
+			for field in SYNC_FIELDS:
+				if hasattr(self, field):
+					salary_detail_row.set(field, self.get(field))
+
+			salary_structure.db_update_all()
+			# db_update_all() does not invalidate the cached Salary Structure,
+			# so clear the cache so new Salary Slips pick up the changes immediately.
+			salary_structure.clear_cache()
+			salary_structure.flags.updater_reference = {
+				"doctype": self.doctype,
+				"docname": self.name,
+				"label": _("via Salary Component sync"),
+			}
 
 	def clear_cache(self):
 		from hrms.payroll.doctype.salary_slip.salary_slip import (
@@ -124,18 +186,27 @@ class SalaryComponent(Document):
 			salary_structure._doc_before_save = copy.deepcopy(salary_structure)
 
 			salary_detail_row = next(
-				(d for d in salary_structure.get(f"{self.type.lower()}s") if d.salary_component == self.name),
+				(
+					d
+					for d in salary_structure.get(f"{self.type.lower()}s")
+					if d.salary_component == self.name
+				),
 				None,
 			)
+			if not salary_detail_row:
+				continue
+
 			if is_formula_related:
 				value = value if self.amount_based_on_formula else None
 				salary_detail_row.set("amount_based_on_formula", self.amount_based_on_formula)
 
 			salary_detail_row.set(field, value)
 			salary_structure.db_update_all()
+			# db_update_all() does not invalidate the cached Salary Structure,
+			# so clear the cache so new Salary Slips pick up the changes immediately.
+			salary_structure.clear_cache()
 			salary_structure.flags.updater_reference = {
 				"doctype": self.doctype,
 				"docname": self.name,
 				"label": _("via Salary Component sync"),
 			}
-			salary_structure.save_version()
