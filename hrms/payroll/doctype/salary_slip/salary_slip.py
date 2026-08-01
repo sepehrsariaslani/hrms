@@ -2397,23 +2397,79 @@ class SalarySlip(TransactionBase):
 	def add_leave_balances(self):
 		self.set("leave_details", [])
 
-		if frappe.db.get_single_value("Payroll Settings", "show_leave_balances_in_salary_slip"):
-			from hrms.hr.doctype.leave_application.leave_application import get_leave_details
+		if not frappe.db.get_single_value("Payroll Settings", "show_leave_balances_in_salary_slip"):
+			return
 
-			leave_details = get_leave_details(self.employee, self.end_date, True)
+		from hrms.hr.doctype.leave_application.leave_application import get_leave_details
 
-			for leave_type, leave_values in leave_details["leave_allocation"].items():
-				self.append(
-					"leave_details",
-					{
-						"leave_type": leave_type,
-						"total_allocated_leaves": flt(leave_values.get("total_leaves")),
-						"expired_leaves": flt(leave_values.get("expired_leaves")),
-						"used_leaves": flt(leave_values.get("leaves_taken")),
-						"pending_leaves": flt(leave_values.get("leaves_pending_approval")),
-						"available_leaves": flt(leave_values.get("remaining_leaves")),
-					},
-				)
+		standard_hours = frappe.db.get_single_value("HR Settings", "standard_working_hours") or 8
+
+		leave_details = get_leave_details(self.employee, self.end_date, True)
+		leave_allocation = leave_details.get("leave_allocation") or {}
+
+		# approved leave applications within this salary period, keyed by leave type
+		approved_leaves = self.get_approved_leave_hours_by_type()
+
+		for leave_type, leave_values in leave_allocation.items():
+			allocated = flt(leave_values.get("total_leaves"))
+			used = flt(leave_values.get("leaves_taken"))
+			# hours actually taken by approved leaves in this period (from the
+			# hourly/daily leave applications), defaulting to the standard "used"
+			# converted to hours when no explicit hourly breakdown exists
+			taken_hours = approved_leaves.get(leave_type)
+
+			row = self.append(
+				"leave_details",
+				{
+					"leave_type": leave_type,
+					"total_allocated_leaves": allocated,
+					"expired_leaves": flt(leave_values.get("expired_leaves")),
+					"used_leaves": used,
+					"pending_leaves": flt(leave_values.get("leaves_pending_approval")),
+					"available_leaves": flt(leave_values.get("remaining_leaves")),
+				},
+			)
+			if row is not None and hasattr(row, "leave_hours"):
+				row.leave_hours = taken_hours if taken_hours is not None else (flt(standard_hours) * max(used, 0))
+				row.leave_days = row.get_leave_days()
+
+	def get_approved_leave_hours_by_type(self):
+		"""Return {leave_type: hours} for approved leave applications in the salary period.
+
+		Uses leave_hours when the application is hourly, otherwise converts the
+		approved leave days to hours using standard_working_hours.
+		"""
+		if not (self.employee and self.start_date and self.end_date):
+			return {}
+
+		from_date = getdate(self.start_date)
+		to_date = getdate(self.end_date)
+		standard_hours = frappe.db.get_single_value("HR Settings", "standard_working_hours") or 8
+
+		applications = frappe.get_all(
+			"Leave Application",
+			filters={
+				"employee": self.employee,
+				"docstatus": 1,
+				"status": "Approved",
+			},
+			or_filters={
+				"from_date": ["between", (from_date, to_date)],
+				"to_date": ["between", (from_date, to_date)],
+			},
+			fields=["leave_type", "leave_duration_mode", "total_leave_days", "total_leave_hours"],
+		)
+
+		hours_by_type = {}
+		for app in applications:
+			leave_type = app["leave_type"]
+			if app.get("leave_duration_mode") == "ساعتی":
+				hours = flt(app.get("total_leave_hours"))
+			else:
+				hours = flt(app.get("total_leave_days")) * flt(standard_hours)
+			hours_by_type[leave_type] = flt(hours_by_type.get(leave_type, 0)) + hours
+
+		return hours_by_type
 
 	def on_discard(self):
 		self.db_set("status", "Cancelled")

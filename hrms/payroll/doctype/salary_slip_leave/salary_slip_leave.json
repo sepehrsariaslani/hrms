@@ -6,6 +6,8 @@
  "engine": "InnoDB",
  "field_order": [
   "leave_type",
+  "leave_hours",
+  "leave_days",
   "total_allocated_leaves",
   "expired_leaves",
   "used_leaves",
@@ -21,6 +23,22 @@
    "no_copy": 1,
    "options": "Leave Type",
    "read_only": 1
+  },
+  {
+   "fieldname": "leave_hours",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Leave Hours",
+   "description": "ساعت مرخصی برای این نوع (قابل ویرایش)",
+   "precision": 2
+  },
+  {
+   "fieldname": "leave_days",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Leave Days",
+   "read_only": 1,
+   "precision": 2
   },
   {
    "fieldname": "total_allocated_leaves",
