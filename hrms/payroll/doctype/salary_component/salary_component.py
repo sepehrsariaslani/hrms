@@ -51,6 +51,10 @@ class SalaryComponent(Document):
 		# always follows the latest component values without manual syncing.
 		self.sync_salary_structures()
 
+		# invalidate all cached reads of this component (e.g. get_salary_component_data
+		# with cache=True, get_cached_value) so the change is picked up instantly.
+		frappe.clear_cache(doctype="Salary Component")
+
 	def sync_salary_structures(self):
 		"""Sync this component's config to all linked (non-cancelled) Salary Structures."""
 		structures = self.get_structures_to_be_updated()
