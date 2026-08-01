@@ -36,6 +36,20 @@ class LeavePolicyAssignment(Document):
 	def on_submit(self):
 		self.grant_leave_alloc_for_employee()
 
+	def on_cancel(self):
+		# When the Leave Policy Assignment is cancelled, also cancel all the
+		# Leave Allocations it created, otherwise cancelling fails with
+		# LinkExistsError because those allocations still link back to it.
+		allocations = frappe.get_all(
+			"Leave Allocation",
+			filters={"leave_policy_assignment": self.name, "docstatus": 1},
+			pluck="name",
+		)
+		for allocation_name in allocations:
+			allocation = frappe.get_doc("Leave Allocation", allocation_name)
+			allocation.cancel()
+		self.db_set("leaves_allocated", 0)
+
 	def set_dates(self):
 		if self.assignment_based_on == "Leave Period":
 			self.effective_from, self.effective_to = frappe.db.get_value(
