@@ -1144,18 +1144,22 @@ def get_summary(data):
     """Generate summary data for the report"""
     if not data:
         return []
-    
+
     total_working = sum(flt(row.get("working_hours", 0)) for row in data)
     total_presence = sum(flt(row.get("presence_hours", 0)) for row in data)
     total_break = sum(flt(row.get("break_hours", 0)) for row in data)
-    total_time_off = sum(flt(row.get("time_off", 0)) for row in data)
-    total_overtime = sum(flt(row.get("overtime", 0)) for row in data)
     total_standard = sum(flt(row.get("standard_hours", 0)) for row in data)
-    
+
+    # Aggregate (standard ERP) semantics, matching the Salary Slip summary:
+    # overtime / shortage derive from the *net* difference between total worked
+    # and total required hours, NOT by summing per-day values.
+    total_overtime = max(total_working - total_standard, 0)
+    total_time_off = max(total_standard - total_working, 0)
+
     days_worked = len([r for r in data if flt(r.get("working_hours", 0)) > 0])
     days_with_issues = len([r for r in data if r.get("has_issue", False)])
     total_days = len(data)
-    
+
     return [
         {
             "value": days_worked,
