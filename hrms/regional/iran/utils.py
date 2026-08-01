@@ -25,6 +25,46 @@ DEDUCTION_COMPONENTS = {
 	"income_tax": "Income Tax (Iran)",
 }
 
+# Persian names used when the Iran regional setup creates the default Salary
+# Components for a new company/site. These are the actual component names users
+# see in their Salary Structures and Salary Slips (matched by abbreviation).
+IRAN_COMPONENT_NAMES = {
+	"housing": "حق مسکن",
+	"grocery": "بن خواربار",
+	"marriage": "حق تاهل",
+	"child": "حق اولاد",
+	"seniority": "پایه سنوات",
+	"technical": "کارانه",
+	"supervision": "حق سرپرستی",
+	"severance": "حق سنوات",
+	"eidi": "عیدی",
+}
+
+IRAN_DEDUCTION_COMPONENT_NAMES = {
+	"employee_insurance": "بیمه سهم کارمند",
+	"employer_insurance": "بیمه سهم کارفرما",
+	"income_tax": "مالیات بر درآمد",
+}
+
+# Maps the legacy hard-coded English component names to the abbreviations the
+# user configured in their own Salary Structure. This lets the Iran payroll
+# rules resolve the real (possibly Persian) component the user defined instead
+# of re-inserting the old hard-coded English component into every Salary Slip.
+IRAN_COMPONENT_ABBRS = {
+	EARNING_COMPONENTS["housing"]: {"HA"},
+	EARNING_COMPONENTS["grocery"]: {"GA"},
+	EARNING_COMPONENTS["marriage"]: {"MA"},
+	EARNING_COMPONENTS["child"]: {"CA"},
+	EARNING_COMPONENTS["seniority"]: {"SAB"},
+	EARNING_COMPONENTS["technical"]: {"TA"},
+	EARNING_COMPONENTS["supervision"]: {"SUP", "SA"},
+	EARNING_COMPONENTS["severance"]: {"SR"},
+	EARNING_COMPONENTS["eidi"]: {"ER"},
+	DEDUCTION_COMPONENTS["employee_insurance"]: {"EI"},
+	DEDUCTION_COMPONENTS["employer_insurance"]: {"ESI", "ERI"},
+	DEDUCTION_COMPONENTS["income_tax"]: {"IT"},
+}
+
 INSURANCE_EXEMPT_EARNINGS = {
 	EARNING_COMPONENTS["technical"],
 	EARNING_COMPONENTS["severance"],
@@ -524,9 +564,66 @@ def normalize_insurance_start_date(doc):
 		pass
 
 
-def upsert_component_row(doc, table_field: str, component_name: str, amount: float):
+def resolve_structure_component_name(
+	doc,
+	table_field: str,
+	legacy_component_name: str,
+) -> str | None:
+	"""Resolve Iran payroll components from the active Salary Structure by abbreviation."""
+	expected_abbrs = IRAN_COMPONENT_ABBRS.get(legacy_component_name)
+
+	if not expected_abbrs:
+		return legacy_component_name
+
+	component_rows = []
+
+	if doc.get("salary_structure"):
+		salary_structure = frappe.get_doc(
+			"Salary Structure",
+			doc.salary_structure,
+		)
+		component_rows.extend(salary_structure.get(table_field) or [])
+
+	component_rows.extend(doc.get(table_field) or [])
+
+	for row in component_rows:
+		abbr = (row.get("abbr") or "").strip().upper()
+
+		if abbr in expected_abbrs:
+			return row.salary_component
+
+	return None
+
+
+def upsert_component_row(
+	doc,
+	table_field: str,
+	component_name: str,
+	amount: float,
+):
 	rows = doc.get(table_field) or []
+	legacy_component_name = component_name
+
+	component_name = resolve_structure_component_name(
+		doc,
+		table_field,
+		legacy_component_name,
+	)
+
+	# Remove a previously inserted hard-coded English component.
+	for row in list(rows):
+		if (
+			row.salary_component == legacy_component_name
+			and row.salary_component != component_name
+		):
+			rows.remove(row)
+
+	# Do not add components that do not exist in the active Salary Structure.
+	if not component_name:
+		return
+
 	target = None
+
 	for row in rows:
 		if row.salary_component == component_name:
 			target = row
@@ -540,6 +637,11 @@ def upsert_component_row(doc, table_field: str, component_name: str, amount: flo
 	if not target:
 		target = doc.append(table_field, {})
 		target.salary_component = component_name
+		target.abbr = frappe.db.get_value(
+			"Salary Component",
+			component_name,
+			"salary_component_abbr",
+		)
 
 	target.amount = flt(amount)
 
@@ -700,11 +802,25 @@ def apply_iran_payroll_rules(doc, method=None):
 	upsert_component_row(doc, "earnings", EARNING_COMPONENTS["severance"], severance)
 	upsert_component_row(doc, "earnings", EARNING_COMPONENTS["eidi"], eidi)
 
-	total_earnings = sum(flt(row.amount) for row in doc.get("earnings") or [])
+	total_earnings = sum(
+		flt(row.amount)
+		for row in doc.get("earnings") or []
+	)
+
+	insurance_exempt_earnings = {
+		resolve_structure_component_name(
+			doc,
+			"earnings",
+			EARNING_COMPONENTS[key],
+		)
+		for key in ("technical", "severance", "eidi")
+	}
+	insurance_exempt_earnings.discard(None)
+
 	insurable_earnings = sum(
 		flt(row.amount)
 		for row in doc.get("earnings") or []
-		if row.salary_component not in INSURANCE_EXEMPT_EARNINGS
+		if row.salary_component not in insurance_exempt_earnings
 	)
 	employee_insurance = insurable_earnings * (flt(rule.insurance_employee_rate) / 100)
 	employer_insurance = insurable_earnings * (flt(rule.insurance_employer_rate) / 100)

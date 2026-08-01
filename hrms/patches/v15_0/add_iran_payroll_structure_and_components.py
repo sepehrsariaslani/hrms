@@ -1,7 +1,7 @@
 import frappe
 
 from hrms.overrides.company import make_salary_components, run_regional_setup
-from hrms.regional.iran.utils import DEDUCTION_COMPONENTS, EARNING_COMPONENTS
+from hrms.regional.iran.utils import IRAN_COMPONENT_NAMES, IRAN_DEDUCTION_COMPONENT_NAMES
 
 
 IRAN_COUNTRY_ALIASES = {
@@ -13,21 +13,21 @@ IRAN_COUNTRY_ALIASES = {
 
 DEFAULT_EARNINGS = [
 	"Basic",
-	EARNING_COMPONENTS["housing"],
-	EARNING_COMPONENTS["grocery"],
-	EARNING_COMPONENTS["marriage"],
-	EARNING_COMPONENTS["child"],
-	EARNING_COMPONENTS["seniority"],
-	EARNING_COMPONENTS["technical"],
-	EARNING_COMPONENTS["supervision"],
-	EARNING_COMPONENTS["severance"],
-	EARNING_COMPONENTS["eidi"],
+	IRAN_COMPONENT_NAMES["housing"],
+	IRAN_COMPONENT_NAMES["grocery"],
+	IRAN_COMPONENT_NAMES["marriage"],
+	IRAN_COMPONENT_NAMES["child"],
+	IRAN_COMPONENT_NAMES["seniority"],
+	IRAN_COMPONENT_NAMES["technical"],
+	IRAN_COMPONENT_NAMES["supervision"],
+	IRAN_COMPONENT_NAMES["severance"],
+	IRAN_COMPONENT_NAMES["eidi"],
 ]
 
 DEFAULT_DEDUCTIONS = [
-	DEDUCTION_COMPONENTS["employee_insurance"],
-	DEDUCTION_COMPONENTS["income_tax"],
-	DEDUCTION_COMPONENTS["employer_insurance"],
+	IRAN_DEDUCTION_COMPONENT_NAMES["employee_insurance"],
+	IRAN_DEDUCTION_COMPONENT_NAMES["income_tax"],
+	IRAN_DEDUCTION_COMPONENT_NAMES["employer_insurance"],
 ]
 
 
