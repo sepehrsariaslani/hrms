@@ -677,7 +677,7 @@ def normalize_localized_numeric_input(value):
 	)
 
 
-def apply_smart_attendance_summary(doc):
+def apply_smart_attendance_summary(doc, method=None):
 	if not (doc.employee and doc.start_date and doc.end_date):
 		return
 
