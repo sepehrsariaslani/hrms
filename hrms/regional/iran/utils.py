@@ -700,6 +700,8 @@ def apply_smart_attendance_summary(doc, method=None):
 
 	required_hours = 0
 	worked_hours = 0
+	overtime_hours = 0
+	shortage_hours = 0
 	holiday_hours = 0
 	late_minutes = 0
 	early_exit_minutes = 0
@@ -711,19 +713,17 @@ def apply_smart_attendance_summary(doc, method=None):
 
 		required_hours += flt(row.get("standard_hours"))
 		worked_hours += flt(row.get("working_hours"))
+		overtime_hours += flt(row.get("overtime"))
+		shortage_hours += flt(row.get("time_off"))
 		holiday_hours += flt(row.get("holiday_work"))
 		late_minutes += flt(row.get("late_minutes"))
 		early_exit_minutes += flt(row.get("early_exit_minutes"))
 		night_hours += flt(row.get("night_hours"))
 
-	# Aggregate (standard ERP) semantics: overtime and shortage are derived from
-	# the *net* difference between total worked and total required hours, NOT by
-	# summing the per-day values (which double-count when some days have overtime
-	# and others have shortage).
 	required_hours = flt(required_hours, 2)
 	worked_hours = flt(worked_hours, 2)
-	overtime_hours = flt(max(worked_hours - required_hours, 0), 2)
-	shortage_hours = flt(max(required_hours - worked_hours, 0), 2)
+	overtime_hours = flt(overtime_hours, 2)
+	shortage_hours = flt(shortage_hours, 2)
 
 	# Single source of truth for the "worked hours" figure.
 	set_doc_field_if_exists(doc, "required_working_hours_iran", required_hours)
