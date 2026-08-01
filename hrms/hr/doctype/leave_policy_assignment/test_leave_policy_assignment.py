@@ -251,7 +251,7 @@ class TestLeavePolicyAssignment(HRMSTestSuite):
 		# this upper cap is intentional, without that 36 leaves would be allocated correctly
 		self.assertEqual(earned_leave_allocation, 24)
 
-	def test_skip_zero_allocation_leaves(self):
+	def test_all_leave_types_allocated_including_zero(self):
 		today = getdate()
 		leave_period = create_leave_period(get_year_start(today), get_year_ending(today), "_Test Company")
 
@@ -295,26 +295,18 @@ class TestLeavePolicyAssignment(HRMSTestSuite):
 		)
 		assignment.submit()
 
-		comments = frappe.get_all(
-			"Comment",
-			filters={
-				"reference_doctype": "Leave Policy Assignment",
-				"reference_name": assignment.name,
-			},
-			fields=["content"],
-		)
-
-		self.assertEqual(len(comments), 2)
-		self.assertIn(casual.name, comments[0]["content"])
-		self.assertIn(sick.name, comments[1]["content"])
-
+		# every leave type in the policy gets a Leave Allocation record,
+		# even when the pro-rated amount rounds down to 0
 		allocations = frappe.get_all(
 			"Leave Allocation",
 			filters={"leave_policy_assignment": assignment.name},
 			fields=["leave_type", "new_leaves_allocated"],
 		)
 
-		self.assertEqual(allocations[0]["leave_type"], compoff.name)
-		self.assertEqual(allocations[0]["new_leaves_allocated"], 3)
-		self.assertEqual(allocations[1]["leave_type"], annual.name)
-		self.assertEqual(allocations[1]["new_leaves_allocated"], 3)
+		alloc_map = {a["leave_type"]: a["new_leaves_allocated"] for a in allocations}
+
+		self.assertEqual(len(allocations), 4)
+		self.assertEqual(alloc_map[sick.name], 0)
+		self.assertEqual(alloc_map[casual.name], 0)
+		self.assertEqual(alloc_map[annual.name], 3)
+		self.assertEqual(alloc_map[compoff.name], 3)

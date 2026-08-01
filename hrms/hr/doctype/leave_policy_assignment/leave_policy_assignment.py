@@ -126,21 +126,12 @@ class LeavePolicyAssignment(Document):
 			else []
 		)
 
-		if new_leaves_allocated == 0 and not leave_details.is_earned_leave:
-			text = _(
-				"Leave allocation is skipped for {0}, because number of leaves to be allocated is 0."
-			).format(frappe.bold(leave_details.name))
-
-			frappe.get_doc(
-				{
-					"doctype": "Comment",
-					"comment_type": "Comment",
-					"reference_doctype": "Leave Policy Assignment",
-					"reference_name": self.name,
-					"content": text,
-				}
-			).insert(ignore_permissions=True)
-			return None, 0
+		if earned_leave_schedule:
+			# Earned leaves are now allocated in full upfront, so every schedule row
+			# is treated as already allocated to avoid double-allocation by the scheduler.
+			for row in earned_leave_schedule:
+				row["is_allocated"] = 1
+				row["attempted"] = 1
 
 		allocation = frappe.get_doc(
 			doctype="Leave Allocation",
@@ -163,15 +154,13 @@ class LeavePolicyAssignment(Document):
 		from frappe.model.meta import get_field_precision
 
 		precision = get_field_precision(frappe.get_meta("Leave Allocation").get_field("new_leaves_allocated"))
-		current_date = getdate(frappe.flags.current_date) or getdate()
 		# Earned Leaves and Compensatory Leaves are allocated by scheduler, initially allocate 0
 		if leave_details.is_compensatory:
 			new_leaves_allocated = 0
-		# if earned leave is being allcated after the effective period, then let them be calculated pro-rata
-		elif leave_details.is_earned_leave and current_date < getdate(self.effective_to):
-			new_leaves_allocated = self.get_leaves_for_passed_period(
-				annual_allocation, leave_details, date_of_joining
-			)
+		elif leave_details.is_earned_leave:
+			# allocate the full annual entitlement upfront so the earned leave is
+			# available immediately instead of accruing gradually over the period
+			new_leaves_allocated = annual_allocation
 		else:
 			# calculate pro-rated leaves for other leave types
 			new_leaves_allocated = calculate_pro_rated_leaves(
