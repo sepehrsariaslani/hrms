@@ -9,10 +9,12 @@
   "section_main",
   "break_name",
   "is_active",
+  "calculation_type",
   "column_break_times",
   "break_start",
   "break_end",
   "deduction_hours",
+  "fixed_break_rules",
   "description"
  ],
  "fields": [
@@ -36,30 +38,49 @@
    "label": "Is Active"
   },
   {
+   "default": "Time Window",
+   "fieldname": "calculation_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Calculation Type",
+   "options": "Time Window\nFixed by Worked Hours",
+   "reqd": 1
+  },
+  {
    "fieldname": "column_break_times",
    "fieldtype": "Column Break"
   },
   {
+   "depends_on": "eval:doc.calculation_type != 'Fixed by Worked Hours'",
    "fieldname": "break_start",
    "fieldtype": "Time",
    "in_list_view": 1,
    "label": "Break Start",
-   "reqd": 1
+   "mandatory_depends_on": "eval:doc.calculation_type != 'Fixed by Worked Hours'"
   },
   {
+   "depends_on": "eval:doc.calculation_type != 'Fixed by Worked Hours'",
    "fieldname": "break_end",
    "fieldtype": "Time",
    "in_list_view": 1,
    "label": "Break End",
-   "reqd": 1
+   "mandatory_depends_on": "eval:doc.calculation_type != 'Fixed by Worked Hours'"
   },
   {
    "default": "1",
    "description": "Maximum deducted hours for this break window",
+   "depends_on": "eval:doc.calculation_type != 'Fixed by Worked Hours'",
    "fieldname": "deduction_hours",
    "fieldtype": "Float",
    "label": "Deduction Hours",
-   "reqd": 1
+   "mandatory_depends_on": "eval:doc.calculation_type != 'Fixed by Worked Hours'"
+  },
+  {
+   "depends_on": "eval:doc.calculation_type == 'Fixed by Worked Hours'",
+   "fieldname": "fixed_break_rules",
+   "fieldtype": "Table",
+   "label": "Fixed Break Rules",
+   "options": "Break Deduction Rule"
   },
   {
    "fieldname": "description",

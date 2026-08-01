@@ -1,0 +1,44 @@
+{
+ "actions": [],
+ "creation": "2026-08-01 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "minimum_work_hours",
+  "deduction_hours",
+  "description"
+ ],
+ "fields": [
+  {
+   "fieldname": "minimum_work_hours",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Minimum Work Hours",
+   "reqd": 1
+  },
+  {
+   "fieldname": "deduction_hours",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Deduction Hours",
+   "reqd": 1
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Small Text",
+   "label": "Description"
+  }
+ ],
+ "istable": 1,
+ "links": [],
+ "modified": "2026-08-01 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "HR",
+ "name": "Break Deduction Rule",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

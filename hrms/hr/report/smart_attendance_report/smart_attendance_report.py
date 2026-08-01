@@ -99,6 +99,18 @@ def get_columns():
             "width": 70
         },
         {
+            "fieldname": "is_holiday",
+            "label": _("تعطیل"),
+            "fieldtype": "Check",
+            "width": 60
+        },
+        {
+            "fieldname": "holiday_description",
+            "label": _("مناسبت تعطیلی"),
+            "fieldtype": "Data",
+            "width": 150
+        },
+        {
             "fieldname": "all_logs",
             "label": _("تمام لاگ‌ها"),
             "fieldtype": "Data",
@@ -546,7 +558,8 @@ def get_data(filters):
             all_logs = all_logs_lookup.get(key, [])
             shift = shifts.get(employee, {})
             break_windows_for_day = get_break_windows_for_date(employee_break_assignments, employee, current_date)
-            is_holiday = (employee, current_date) in holidays
+            holiday_info = holidays.get((employee, current_date), {})
+            is_holiday = bool(holiday_info)
             weekday = current_date.weekday()
             is_friday = weekday == 4
             is_thursday = weekday == 3
@@ -615,6 +628,8 @@ def get_data(filters):
                 "day_name": get_day_name_persian(weekday),
                 "shift_type": shift.get("shift_type", ""),
                 "standard_hours": standard_hours,
+                "is_holiday": 1 if is_holiday else 0,
+                "holiday_description": holiday_info.get("description") or ("جمعه" if is_friday else ""),
                 "all_logs": all_logs_str,
                 "all_logs_json": all_logs_json,
                 "log_status": "",
@@ -861,15 +876,21 @@ def get_employee_break_assignments(filters):
             placeholders.append(f"%({key})s")
         employee_filter = f"AND ba.employee IN ({', '.join(placeholders)})"
 
+    has_calculation_type = frappe.db.has_column("Break Hours", "calculation_type")
+    has_fixed_rules = frappe.db.exists("DocType", "Break Deduction Rule")
+    calculation_type_select = "bh.calculation_type" if has_calculation_type else "'Time Window' AS calculation_type"
+
     rows = frappe.db.sql(
-        """
+        f"""
         SELECT
+            bh.name AS break_hours_name,
             ba.employee,
             ba.from_date,
             ba.to_date,
             bh.break_start,
             bh.break_end,
-            bh.deduction_hours
+            bh.deduction_hours,
+            {calculation_type_select}
         FROM `tabBreak Assignment` ba
         JOIN `tabBreak Hours` bh ON bh.name = ba.break_hours
         WHERE ba.docstatus = 1
@@ -884,11 +905,46 @@ def get_employee_break_assignments(filters):
         as_dict=True,
     )
 
+    break_names = [row.break_hours_name for row in rows if row.get("break_hours_name")]
+    fixed_rules = {}
+    if has_fixed_rules and break_names:
+        rule_rows = frappe.get_all(
+            "Break Deduction Rule",
+            filters={"parent": ["in", break_names], "parenttype": "Break Hours"},
+            fields=["parent", "minimum_work_hours", "deduction_hours", "description"],
+            order_by="parent asc, minimum_work_hours asc",
+            limit_page_length=0,
+        )
+        for rule in rule_rows:
+            fixed_rules.setdefault(rule.parent, []).append(
+                {
+                    "minimum_work_hours": flt(rule.minimum_work_hours),
+                    "deduction_hours": flt(rule.deduction_hours),
+                    "description": rule.description or "",
+                }
+            )
+
     for row in rows:
+        calculation_type = row.get("calculation_type") or "Time Window"
+        if calculation_type == "Fixed by Worked Hours":
+            thresholds = fixed_rules.get(row.break_hours_name, [])
+            if not thresholds:
+                continue
+            assignment_map.setdefault(row.employee, []).append(
+                {
+                    "from_date": getdate(row.from_date),
+                    "to_date": getdate(row.to_date) if row.to_date else None,
+                    "calculation_type": calculation_type,
+                    "thresholds": thresholds,
+                }
+            )
+            continue
+
         assignment_map.setdefault(row.employee, []).append(
             {
                 "from_date": getdate(row.from_date),
                 "to_date": getdate(row.to_date) if row.to_date else None,
+                "calculation_type": "Time Window",
                 "start": time_to_seconds(row.break_start),
                 "end": time_to_seconds(row.break_end),
                 "deduction_seconds": int(flt(row.deduction_hours) * 3600),
@@ -902,13 +958,22 @@ def get_break_windows_for_date(assignment_map, employee, work_date):
     windows = []
     for row in assignment_map.get(employee, []):
         if row["from_date"] <= work_date and (row["to_date"] is None or row["to_date"] >= work_date):
-            windows.append(
-                {
-                    "start": row["start"],
-                    "end": row["end"],
-                    "deduction_seconds": row["deduction_seconds"],
-                }
-            )
+            if row.get("calculation_type") == "Fixed by Worked Hours":
+                windows.append(
+                    {
+                        "calculation_type": "Fixed by Worked Hours",
+                        "thresholds": row.get("thresholds") or [],
+                    }
+                )
+            else:
+                windows.append(
+                    {
+                        "calculation_type": "Time Window",
+                        "start": row["start"],
+                        "end": row["end"],
+                        "deduction_seconds": row["deduction_seconds"],
+                    }
+                )
     return windows
 
 
@@ -928,6 +993,18 @@ def calculate_break_hours(start_seconds, end_seconds, break_windows=None):
     span_seconds = max(0, end_seconds - start_seconds)
 
     for window in break_windows:
+        if window.get("calculation_type") == "Fixed by Worked Hours":
+            span_hours = span_seconds / 3600
+            matching_rules = [
+                rule for rule in window.get("thresholds", [])
+                if span_hours >= flt(rule.get("minimum_work_hours"))
+            ]
+            if not matching_rules:
+                continue
+            selected = max(matching_rules, key=lambda rule: flt(rule.get("minimum_work_hours")))
+            break_seconds += int(flt(selected.get("deduction_hours")) * 3600)
+            continue
+
         break_start = window.get("start")
         break_end = window.get("end")
         deduction_seconds = max(0, int(window.get("deduction_seconds") or 0))
@@ -1115,7 +1192,7 @@ def get_employee_shifts(filters):
 
 def get_holidays(filters):
     """Get holidays for employees"""
-    holidays = set()
+    holidays = {}
     employees_to_include = get_employees_to_include(filters)
 
     if filters.get("company") and not employees_to_include:
@@ -1138,6 +1215,8 @@ def get_holidays(filters):
     holiday_query = """
         SELECT
             h.holiday_date,
+            h.description,
+            h.weekly_off,
             e.name AS employee
         FROM `tabHoliday` h
         JOIN `tabHoliday List` hl ON hl.name = h.parent
@@ -1150,7 +1229,10 @@ def get_holidays(filters):
     holiday_data = frappe.db.sql(holiday_query, params, as_dict=True)
 
     for h in holiday_data:
-        holidays.add((h.employee, h.holiday_date))
+        holidays[(h.employee, h.holiday_date)] = {
+            "description": h.description or "",
+            "weekly_off": int(h.weekly_off or 0),
+        }
 
     return holidays
 
@@ -1656,11 +1738,17 @@ def get_break_deduction_details(employee, from_date, to_date=None):
                 i += 1
 
     # 3. Get Break Assignment records for this employee
+    has_calculation_type = frappe.db.has_column("Break Hours", "calculation_type")
+    has_fixed_rules = frappe.db.exists("DocType", "Break Deduction Rule")
+    calculation_type_select = "bh.calculation_type" if has_calculation_type else "'Time Window' AS calculation_type"
+
     break_rows = frappe.db.sql(
-        """
+        f"""
         SELECT
+            bh.name AS break_hours_name,
             ba.from_date, ba.to_date,
-            bh.break_name, bh.break_start, bh.break_end, bh.deduction_hours
+            bh.break_name, bh.break_start, bh.break_end, bh.deduction_hours,
+            {calculation_type_select}
         FROM `tabBreak Assignment` ba
         JOIN `tabBreak Hours` bh ON bh.name = ba.break_hours
         WHERE ba.employee = %(employee)s
@@ -1675,13 +1763,47 @@ def get_break_deduction_details(employee, from_date, to_date=None):
         as_dict=True,
     )
 
+    break_names = [row.break_hours_name for row in break_rows if row.get("break_hours_name")]
+    fixed_rules = {}
+    if has_fixed_rules and break_names:
+        rule_rows = frappe.get_all(
+            "Break Deduction Rule",
+            filters={"parent": ["in", break_names], "parenttype": "Break Hours"},
+            fields=["parent", "minimum_work_hours", "deduction_hours", "description"],
+            order_by="parent asc, minimum_work_hours asc",
+            limit_page_length=0,
+        )
+        for rule in rule_rows:
+            fixed_rules.setdefault(rule.parent, []).append(
+                {
+                    "minimum_work_hours": flt(rule.minimum_work_hours),
+                    "deduction_hours": flt(rule.deduction_hours),
+                    "description": rule.description or "",
+                }
+            )
+
     break_windows = []
     for row in break_rows:
+        calculation_type = row.get("calculation_type") or "Time Window"
+        if calculation_type == "Fixed by Worked Hours":
+            thresholds = fixed_rules.get(row.break_hours_name, [])
+            if not thresholds:
+                continue
+            break_windows.append({
+                "name": row.break_name,
+                "calculation_type": calculation_type,
+                "thresholds": thresholds,
+                "from_date": getdate(row.from_date),
+                "to_date": getdate(row.to_date) if row.to_date else None,
+            })
+            continue
+
         br_start = _time_to_seconds(row.break_start)
         br_end = _time_to_seconds(row.break_end)
         ded = flt(row.deduction_hours)
         break_windows.append({
             "name": row.break_name,
+            "calculation_type": "Time Window",
             "start": br_start,
             "end": br_end,
             "deduction_seconds": int(ded * 3600),
@@ -1733,6 +1855,24 @@ def get_break_deduction_details(employee, from_date, to_date=None):
         for bw in break_windows:
             # Check if this window applies to this date
             if bw["from_date"] > wd or (bw["to_date"] and bw["to_date"] < wd):
+                continue
+
+            if bw.get("calculation_type") == "Fixed by Worked Hours":
+                matching_rules = [
+                    rule for rule in bw.get("thresholds", [])
+                    if gross_hours >= flt(rule.get("minimum_work_hours"))
+                ]
+                if not matching_rules:
+                    continue
+                selected = max(matching_rules, key=lambda rule: flt(rule.get("minimum_work_hours")))
+                day_break_details.append({
+                    "break_name": bw["name"],
+                    "break_start": "",
+                    "break_end": "",
+                    "deduction_hours": flt(selected.get("deduction_hours"), 2),
+                    "overlap_minutes": 0,
+                    "minimum_work_hours": flt(selected.get("minimum_work_hours"), 2),
+                })
                 continue
 
             bs = bw["start"]

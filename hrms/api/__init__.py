@@ -2399,55 +2399,87 @@ def remove_rest_time_assignment(assignment: str | None = None, employee_id: str 
 
 
 @frappe.whitelist()
-def get_employee_rest_times(employee_id: str) -> list[dict]:
-	"""Get all active rest-time assignments for an employee.
+def get_employee_rest_times(employee_id: str | None = None, employee: str | None = None) -> list[dict]:
+	"""Return submitted break/rest assignments linked to an employee.
 
-	Args:
-		employee_id: The Employee ID.
-
-	Returns:
-		List of assignment records with rest time details.
+	Prefers the existing Break Assignment + Break Hours doctypes used by HRMS.
+	Accepts either `employee_id` or `employee` for compatibility with /api/method calls.
 	"""
-	_check_hr_manager_role()
+	frappe.only_for(("HR Manager", "System Manager"))
 
-	if not employee_id:
-		frappe.throw(_("employee_id is required."))
+	employee_name = (employee_id or employee or "").strip()
+	if not employee_name:
+		frappe.throw(_("شناسه کارمند الزامی است."))
 
-	if not frappe.db.exists("Employee", employee_id):
-		frappe.throw(_("Employee {0} not found.").format(employee_id))
+	if not frappe.db.exists("Employee", employee_name):
+		frappe.throw(_("کارمند موردنظر پیدا نشد."))
 
-	assignments = frappe.get_all(
-		"Rest Time Assignment",
-		filters={
-			"employee": employee_id,
-			"status": "Active",
-			"docstatus": 1,
-		},
-		fields=[
-			"name",
-			"employee",
-			"rest_time",
-			"status",
-			"from_date",
-			"to_date",
-			"creation",
-			"modified",
-		],
-		order_by="from_date desc",
-	)
-
-	# Enrich with rest time details
-	for assignment in assignments:
-		rt = frappe.get_cached_value(
-			"Rest Time",
-			assignment.rest_time,
-			["rest_name", "rest_start", "rest_end", "deduction_hours"],
+	if frappe.db.table_exists("tabBreak Assignment") and frappe.db.table_exists("tabBreak Hours"):
+		rows = frappe.db.sql(
+			"""
+			SELECT
+				ba.name AS assignment_name,
+				bh.break_name AS rest_time_name,
+				bh.deduction_hours AS deduction_amount,
+				bh.break_start AS start_time,
+				bh.break_end AS end_time,
+				ba.from_date,
+				ba.to_date,
+				ba.status
+			FROM `tabBreak Assignment` ba
+			INNER JOIN `tabBreak Hours` bh ON bh.name = ba.break_hours
+			WHERE ba.employee = %(employee)s
+				AND ba.docstatus = 1
+			ORDER BY ba.from_date DESC, bh.break_start ASC, ba.name DESC
+			""",
+			{"employee": employee_name},
 			as_dict=True,
 		)
-		if rt:
-			assignment["rest_time_label"] = rt.rest_name
-			assignment["rest_start"] = str(rt.rest_start) if rt.rest_start else None
-			assignment["rest_end"] = str(rt.rest_end) if rt.rest_end else None
-			assignment["deduction_hours"] = rt.deduction_hours
+		return [
+			{
+				"assignment_name": row.assignment_name,
+				"rest_time_name": row.rest_time_name,
+				"deduction_amount": flt(row.deduction_amount),
+				"start_time": str(row.start_time) if row.start_time is not None else None,
+				"end_time": str(row.end_time) if row.end_time is not None else None,
+				"from_date": str(row.from_date) if row.from_date else None,
+				"to_date": str(row.to_date) if row.to_date else None,
+				"status": row.status,
+			}
+			for row in rows
+		]
 
-	return assignments
+	if frappe.db.table_exists("tabRest Time Assignment") and frappe.db.table_exists("tabRest Time"):
+		assignments = frappe.get_all(
+			"Rest Time Assignment",
+			filters={
+				"employee": employee_name,
+				"status": "Active",
+				"docstatus": 1,
+			},
+			fields=["name", "rest_time", "status", "from_date", "to_date"],
+			order_by="from_date desc",
+		)
+		result = []
+		for assignment in assignments:
+			rt = frappe.get_cached_value(
+				"Rest Time",
+				assignment.rest_time,
+				["rest_name", "rest_start", "rest_end", "deduction_hours"],
+				as_dict=True,
+			)
+			result.append(
+				{
+					"assignment_name": assignment.name,
+					"rest_time_name": rt.rest_name if rt else assignment.rest_time,
+					"deduction_amount": flt(rt.deduction_hours) if rt and rt.deduction_hours is not None else 0.0,
+					"start_time": str(rt.rest_start) if rt and rt.rest_start else None,
+					"end_time": str(rt.rest_end) if rt and rt.rest_end else None,
+					"from_date": str(assignment.from_date) if assignment.from_date else None,
+					"to_date": str(assignment.to_date) if assignment.to_date else None,
+					"status": assignment.status,
+				}
+			)
+		return result
+
+	return []

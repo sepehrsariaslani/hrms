@@ -154,6 +154,7 @@ def get_custom_fields():
 				"label": _("عرض جغرافیایی محل مجاز QR"),
 				"description": _("عرض جغرافیایی محل مجاز برای ثبت حضور با QR شرکت"),
 				"insert_after": "qr_generated_on",
+				"precision": "8",
 			},
 			{
 				"fieldname": "qr_attendance_longitude",
@@ -161,6 +162,7 @@ def get_custom_fields():
 				"label": _("طول جغرافیایی محل مجاز QR"),
 				"description": _("طول جغرافیایی محل مجاز برای ثبت حضور با QR شرکت"),
 				"insert_after": "qr_attendance_latitude",
+				"precision": "8",
 			},
 			{
 				"fieldname": "qr_attendance_radius_meters",
