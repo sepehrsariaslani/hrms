@@ -98,16 +98,17 @@ class LeavePolicyAssignment(Document):
 			for leave_policy_detail in leave_policy.leave_policy_details:
 				leave_details = leave_type_details.get(leave_policy_detail.leave_type)
 
-				if not leave_details.is_lwp:
-					leave_allocation, new_leaves_allocated = self.create_leave_allocation(
-						leave_policy_detail.annual_allocation,
-						leave_details,
-						date_of_joining,
-					)
-					leave_allocations[leave_details.name] = {
-						"name": leave_allocation,
-						"leaves": new_leaves_allocated,
-					}
+				# allocate a record for every leave type in the policy, including
+				# LWP (without-pay) leaves, so nothing is silently skipped
+				leave_allocation, new_leaves_allocated = self.create_leave_allocation(
+					leave_policy_detail.annual_allocation,
+					leave_details,
+					date_of_joining,
+				)
+				leave_allocations[leave_details.name] = {
+					"name": leave_allocation,
+					"leaves": new_leaves_allocated,
+				}
 			self.db_set("leaves_allocated", 1)
 			return leave_allocations
 
