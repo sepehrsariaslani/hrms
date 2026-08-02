@@ -538,7 +538,7 @@ def get_data(filters):
     shifts = get_employee_shifts(filters)
     holidays = get_holidays(filters)
     attendance_lookup = get_attendance_map(filters)
-    leave_lookup = get_leave_map(filters)
+    leave_lookup = get_leave_map(filters, shifts)
 
     data = []
     from_date = getdate(filters.get("from_date"))
@@ -1360,11 +1360,12 @@ def get_holidays(filters):
 
     return holidays
 
-def get_leave_map(filters):
+def get_leave_map(filters, shifts=None):
     """Get approved Leave Applications for the period keyed by (employee, leave_date).
 
     Returns { (employee, date): {"hours": float, "leave_type": str, "names": [..]} }.
-    Hourly leaves contribute their hours; daily leaves contribute standard_working_hours.
+    Hourly leaves contribute their hours; daily leaves contribute the shift's
+    standard working hours for that day (falling back to HR Settings).
     """
     leave_map = {}
     employees_to_include = get_employees_to_include(filters)
@@ -1386,7 +1387,7 @@ def get_leave_map(filters):
             placeholders.append(f"%({key})s")
         employee_filter = f"AND employee IN ({', '.join(placeholders)})"
 
-    standard_hours = flt(frappe.db.get_single_value("HR Settings", "standard_working_hours")) or 8
+    hr_standard_hours = flt(frappe.db.get_single_value("HR Settings", "standard_working_hours")) or 8
 
     rows = frappe.db.sql(
         f"""
@@ -1418,22 +1419,26 @@ def get_leave_map(filters):
         if app.get("leave_duration_mode") == "ساعتی":
             hours = flt(app.get("total_leave_hours"))
             dates = [app["from_date"]]
+            per_day_by_date = {getdate(app["from_date"]): hours}
         else:
-            hours = flt(app.get("total_leave_days")) * standard_hours
-            # spread across the leave days (from_date .. to_date)
+            # spread across the leave days (from_date .. to_date); each day's hours
+            # equal that day's shift standard hours (fallback to HR Settings)
             dates = [
                 getdate(app["from_date"]) + timedelta(days=i)
                 for i in range((getdate(app["to_date"]) - getdate(app["from_date"])).days + 1)
             ]
-
-        per_day = hours / len(dates) if dates else 0
+            per_day_by_date = {}
+            for d in dates:
+                shift_info = (shifts or {}).get((app["employee"], d), {})
+                day_hours = shift_info.get("standard_working_hours") or hr_standard_hours
+                per_day_by_date[d] = flt(day_hours)
         for d in dates:
             key = (app["employee"], getdate(d))
             entry = leave_map.setdefault(
                 key,
                 {"hours": 0, "leave_type": leave_type, "names": [], "is_compensatory": is_compensatory},
             )
-            entry["hours"] = flt(entry["hours"], 2) + flt(per_day, 2)
+            entry["hours"] = flt(entry["hours"], 2) + flt(per_day_by_date.get(getdate(d), 0), 2)
             entry["names"].append(app["name"])
 
     return leave_map
