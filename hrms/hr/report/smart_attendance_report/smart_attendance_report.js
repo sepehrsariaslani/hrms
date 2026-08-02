@@ -123,6 +123,20 @@ frappe.query_reports["Smart Attendance Report"] = {
             return "<span style='color:#999;font-size:11px'>-</span>";
         }
 
+        // Leave type column: show the type name with edit/delete buttons
+        if (column.fieldname === "leave_type" && data) {
+            const leaveName = data.leave_application_name;
+            let typeText = data.leave_type || "";
+            if (leaveName) {
+                const editBtn = `<span onclick="smart_attendance_edit_leave('${leaveName}', '${data.employee}', '${data.work_date}')"
+                                    style="cursor:pointer;color:#f39c12;font-weight:bold;margin-left:4px" title="ویرایش مرخصی">✏️</span>`;
+                const delBtn = `<span onclick="smart_attendance_delete_leave('${leaveName}')"
+                                    style="cursor:pointer;color:#e74c3c;font-weight:bold;margin-left:4px" title="حذف مرخصی">🗑️</span>`;
+                return "<span style='color:#8e44ad;font-weight:bold'>" + typeText + "</span>" + editBtn + delBtn;
+            }
+            return "<span style='color:#8e44ad;font-weight:bold'>" + typeText + "</span>";
+        }
+
         value = default_formatter(value, row, column, data);
 
         if (!data) {
@@ -633,6 +647,84 @@ window.smart_attendance_hourly_leave = function (employee, work_date, shortageHo
                         frappe.msgprint({
                             title: __("خطا"),
                             message: r.message && r.message.message ? r.message.message : __("خطا در ثبت مرخصی"),
+                            indicator: "red"
+                        });
+                    }
+                }
+            });
+        }
+    });
+
+    dialog.show();
+};
+
+// ===================== ویرایش / حذف مرخصی =====================
+window.smart_attendance_delete_leave = function (leaveApplication) {
+    frappe.confirm(
+        __("آیا از حذف این مرخصی مطمئن هستید؟"),
+        function () {
+            frappe.call({
+                method: "hrms.hr.report.smart_attendance_report.smart_attendance_report.delete_leave_application_from_report",
+                args: { leave_application: leaveApplication },
+                callback: function (r) {
+                    if (r.message && r.message.success) {
+                        frappe.show_alert({ message: r.message.message, indicator: "green" });
+                        frappe.query_report.refresh();
+                    } else {
+                        frappe.msgprint({
+                            title: __("خطا"),
+                            message: r.message && r.message.message ? r.message.message : __("خطا در حذف مرخصی"),
+                            indicator: "red"
+                        });
+                    }
+                }
+            });
+        }
+    );
+};
+
+window.smart_attendance_edit_leave = function (leaveApplication, employee, workDate) {
+    const dialog = new frappe.ui.Dialog({
+        title: __("ویرایش مرخصی"),
+        fields: [
+            {
+                fieldname: "leave_type",
+                label: __("نوع مرخصی"),
+                fieldtype: "Link",
+                options: "Leave Type",
+                reqd: 1
+            },
+            {
+                fieldname: "hours",
+                label: __("تعداد ساعت مرخصی"),
+                fieldtype: "Float",
+                depends_on: "eval:true"
+            },
+            {
+                fieldname: "info",
+                fieldtype: "HTML",
+                options: `<div style="margin-bottom:6px;"><strong>کارمند:</strong> ${employee}<br><strong>تاریخ:</strong> ${workDate}</div>`
+            }
+        ],
+        primary_action_label: __("ذخیره"),
+        primary_action: function (values) {
+            frappe.call({
+                method: "hrms.hr.report.smart_attendance_report.smart_attendance_report.update_leave_application_from_report",
+                args: {
+                    leave_application: leaveApplication,
+                    leave_type: values.leave_type,
+                    hours: values.hours,
+                    work_date: workDate
+                },
+                callback: function (r) {
+                    if (r.message && r.message.success) {
+                        frappe.show_alert({ message: r.message.message, indicator: "green" });
+                        dialog.hide();
+                        frappe.query_report.refresh();
+                    } else {
+                        frappe.msgprint({
+                            title: __("خطا"),
+                            message: r.message && r.message.message ? r.message.message : __("خطا در ویرایش مرخصی"),
                             indicator: "red"
                         });
                     }

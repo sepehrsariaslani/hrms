@@ -653,6 +653,8 @@ def get_data(filters):
                 "time_off": 0 if is_holiday else standard_hours,
                 "leave_hours": flt(leave_info["hours"], 2) if leave_info else 0,
                 "leave_type": leave_info["leave_type"] if leave_info else "",
+                "leave_application_names": leave_info["names"] if leave_info else [],
+                "leave_application_name": (leave_info["names"] or [None])[0] if leave_info else None,
                 "overtime": 0,
                 "holiday_work": 0,
                 "late_minutes": 0,
@@ -2240,6 +2242,62 @@ def create_hourly_leave_from_shortage(employee, work_date, hours, leave_type=Non
         }
     except Exception:
         return {"success": False, "message": frappe.get_traceback()}
+
+
+@frappe.whitelist()
+def delete_leave_application_from_report(leave_application):
+    """Cancel + delete an approved Leave Application from the smart attendance report."""
+    frappe.has_permission("Leave Application", "write", throw=True)
+    if not leave_application:
+        return {"success": False, "message": _("مرخصی مشخص نشده است")}
+
+    doc = frappe.get_doc("Leave Application", leave_application)
+    if doc.docstatus == 1:
+        doc.cancel()
+    frappe.delete_doc("Leave Application", leave_application, ignore_permissions=True)
+    frappe.db.commit()
+
+    return {"success": True, "message": _("مرخصی {0} حذف شد").format(leave_application)}
+
+
+@frappe.whitelist()
+def update_leave_application_from_report(leave_application, leave_type, hours, work_date):
+    """Edit the leave type / hours of an approved Leave Application.
+
+    For hourly leaves, updates the time span. For daily leaves, only the type is
+    changed (a full day stays a full day).
+    """
+    frappe.has_permission("Leave Application", "write", throw=True)
+    if not leave_application or not leave_type:
+        return {"success": False, "message": _("نوع مرخصی الزامی است")}
+
+    doc = frappe.get_doc("Leave Application", leave_application)
+    if doc.leave_duration_mode == "ساعتی":
+        hours = flt(hours)
+        if hours <= 0:
+            return {"success": False, "message": _("تعداد ساعت باید بزرگتر از صفر باشد")}
+
+        min_hours = 1.0 / 60
+        hours = max(hours, min_hours)
+        leave_date = getdate(work_date or doc.hourly_date or doc.from_date)
+        start_dt = datetime.combine(leave_date, datetime.min.time()) + timedelta(hours=9)
+        to_dt = start_dt + timedelta(hours=hours)
+        end_of_day = datetime.combine(leave_date, datetime.min.time()) + timedelta(hours=24)
+        if to_dt >= end_of_day:
+            to_dt = end_of_day - timedelta(minutes=1)
+
+        doc.leave_type = leave_type
+        doc.hourly_date = leave_date
+        doc.from_date = leave_date
+        doc.to_date = leave_date
+        doc.hourly_from_time = "09:00:00"
+        doc.hourly_to_time = to_dt.strftime("%H:%M:%S")
+    else:
+        doc.leave_type = leave_type
+
+    doc.save(ignore_permissions=True)
+    frappe.db.commit()
+    return {"success": True, "message": _("مرخصی {0} ویرایش شد").format(leave_application)}
 
 
 @frappe.whitelist()
