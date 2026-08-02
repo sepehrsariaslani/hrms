@@ -176,6 +176,19 @@ def get_columns():
             "width": 60
         },
         {
+            "fieldname": "leave_hours",
+            "label": _("مرخصی (ساعت)"),
+            "fieldtype": "Float",
+            "precision": 2,
+            "width": 80
+        },
+        {
+            "fieldname": "leave_type",
+            "label": _("نوع مرخصی"),
+            "fieldtype": "Data",
+            "width": 140
+        },
+        {
             "fieldname": "overtime",
             "label": _("اضافه‌کار"),
             "fieldtype": "Float",
@@ -525,6 +538,7 @@ def get_data(filters):
     shifts = get_employee_shifts(filters)
     holidays = get_holidays(filters)
     attendance_lookup = get_attendance_map(filters)
+    leave_lookup = get_leave_map(filters)
 
     data = []
     from_date = getdate(filters.get("from_date"))
@@ -611,6 +625,9 @@ def get_data(filters):
                 if in_count != out_count:
                     log_issues.append(f"{in_count} ورود، {out_count} خروج")
 
+            # approved leave for this employee/day (if any)
+            leave_info = leave_lookup.get((employee, current_date))
+
             row = {
                 "employee": employee,
                 "employee_name": employee_names.get(employee, employee),
@@ -634,6 +651,8 @@ def get_data(filters):
                 "working_hours": 0,
                 "break_details": "",
                 "time_off": 0 if is_holiday else standard_hours,
+                "leave_hours": flt(leave_info["hours"], 2) if leave_info else 0,
+                "leave_type": leave_info["leave_type"] if leave_info else "",
                 "overtime": 0,
                 "holiday_work": 0,
                 "late_minutes": 0,
@@ -763,6 +782,11 @@ def get_data(filters):
                     else:
                         row["time_off"] = flt(standard_hours - working_hours, 2)
                         row["overtime"] = 0
+
+                # a portion of the shortage that is covered by an approved leave
+                # should not be counted as shortage (کسر کار), but as leave.
+                if row.get("leave_hours"):
+                    row["time_off"] = flt(max(row.get("time_off", 0) - row["leave_hours"], 0), 2)
 
             elif all_logs and len(all_logs) == 1:
                 single_log = all_logs[0]
@@ -1141,6 +1165,7 @@ def get_summary(data):
     total_presence = sum(flt(row.get("presence_hours", 0)) for row in data)
     total_break = sum(flt(row.get("break_hours", 0)) for row in data)
     total_time_off = sum(flt(row.get("time_off", 0)) for row in data)
+    total_leave = sum(flt(row.get("leave_hours", 0)) for row in data)
     total_overtime = sum(flt(row.get("overtime", 0)) for row in data)
     total_standard = sum(flt(row.get("standard_hours", 0)) for row in data)
 
@@ -1181,6 +1206,12 @@ def get_summary(data):
             "label": _("کسری"),
             "datatype": "Float",
             "indicator": "red"
+        },
+        {
+            "value": round(total_leave, 1),
+            "label": _("مرخصی (ساعت)"),
+            "datatype": "Float",
+            "indicator": "purple"
         }
     ]
 
@@ -1285,6 +1316,74 @@ def get_holidays(filters):
         }
 
     return holidays
+
+def get_leave_map(filters):
+    """Get approved Leave Applications for the period keyed by (employee, leave_date).
+
+    Returns { (employee, date): {"hours": float, "leave_type": str, "names": [..]} }.
+    Hourly leaves contribute their hours; daily leaves contribute standard_working_hours.
+    """
+    leave_map = {}
+    employees_to_include = get_employees_to_include(filters)
+
+    if filters.get("company") and not employees_to_include:
+        return leave_map
+
+    employee_filter = ""
+    params = {
+        "from_date": filters.get("from_date"),
+        "to_date": filters.get("to_date"),
+    }
+
+    if employees_to_include:
+        placeholders = []
+        for idx, emp in enumerate(employees_to_include):
+            key = f"employee_{idx}"
+            params[key] = emp
+            placeholders.append(f"%({key})s")
+        employee_filter = f"AND employee IN ({', '.join(placeholders)})"
+
+    standard_hours = flt(frappe.db.get_single_value("HR Settings", "standard_working_hours")) or 8
+
+    rows = frappe.db.sql(
+        f"""
+        SELECT
+            name, employee, leave_type, from_date, to_date,
+            leave_duration_mode, total_leave_days, total_leave_hours
+        FROM `tabLeave Application`
+        WHERE docstatus = 1
+          AND status = 'Approved'
+          AND from_date <= %(to_date)s
+          AND to_date >= %(from_date)s
+          {employee_filter}
+        """,
+        params,
+        as_dict=True,
+    )
+
+    for app in rows:
+        leave_type = app["leave_type"]
+        if app.get("leave_duration_mode") == "ساعتی":
+            hours = flt(app.get("total_leave_hours"))
+            dates = [app["from_date"]]
+        else:
+            hours = flt(app.get("total_leave_days")) * standard_hours
+            # spread across the leave days (from_date .. to_date)
+            dates = [
+                getdate(app["from_date"]) + timedelta(days=i)
+                for i in range((getdate(app["to_date"]) - getdate(app["from_date"])).days + 1)
+            ]
+
+        per_day = hours / len(dates) if dates else 0
+        for d in dates:
+            key = (app["employee"], getdate(d))
+            entry = leave_map.setdefault(
+                key, {"hours": 0, "leave_type": leave_type, "names": []}
+            )
+            entry["hours"] = flt(entry["hours"], 2) + flt(per_day, 2)
+            entry["names"].append(app["name"])
+
+    return leave_map
 
 def get_attendance_map(filters):
     """Get existing attendance records for the selected period."""

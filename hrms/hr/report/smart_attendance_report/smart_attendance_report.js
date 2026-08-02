@@ -86,7 +86,7 @@ frappe.query_reports["Smart Attendance Report"] = {
 
     "formatter": function (value, row, column, data, default_formatter) {
         // ستون‌های ساعتی که باید به فرمت HH:MM نمایش داده شوند
-        const HOUR_COLUMNS = ["standard_hours", "presence_hours", "gross_working_hours", "break_hours", "working_hours", "time_off", "overtime", "holiday_work"];
+        const HOUR_COLUMNS = ["standard_hours", "presence_hours", "gross_working_hours", "break_hours", "working_hours", "time_off", "leave_hours", "overtime", "holiday_work"];
         if (HOUR_COLUMNS.includes(column.fieldname) && data) {
             let raw = parseFloat(data[column.fieldname] || 0);
             let h = Math.floor(raw);
@@ -101,6 +101,9 @@ frappe.query_reports["Smart Attendance Report"] = {
                                     style="cursor:pointer;color:#28a745;font-weight:bold;margin-left:6px"
                                     title="ثبت مرخصی ساعتی (کسر از مرخصی استحقاقی)">🕐</span>`;
                 return "<span style='color:red;font-weight:bold'>" + hhmm + "</span>" + leaveBtn;
+            }
+            if (column.fieldname === "leave_hours" && raw > 0) {
+                return "<span style='color:#8e44ad;font-weight:bold'>" + hhmm + "</span>";
             }
             if (column.fieldname === "overtime" && raw > 0) {
                 return "<span style='color:green;font-weight:bold'>" + hhmm + "</span>";
