@@ -149,11 +149,21 @@ frappe.query_reports["Smart Attendance Report"] = {
                 value = "<span style='color:green'>" + value + "</span>";
             }
 
-            if (data.can_mark_attendance) {
-                const dayAction = `<span onclick="smart_attendance_mark_day('${data.employee}', '${data.work_date}', '${data.attendance_status || ""}')"
-                                    style="cursor:pointer;margin-left:6px;" title="ثبت غیبت/مرخصی">🗓️</span>`;
-                value = dayAction + value;
+            // When the employee has a shortage (time_off > 0), offer a quick
+            // button to allocate that short time as a leave from their balance.
+            let shortage = parseFloat(data.time_off) || 0;
+            if (shortage > 0) {
+                const leaveBtn = `<span onclick="smart_attendance_hourly_leave('${data.employee}', '${data.work_date}', ${shortage})"
+                                    style="cursor:pointer;color:#28a745;font-weight:bold;margin-left:8px;font-size:14px"
+                                    title="ثبت مرخصی ساعتی برای کسری (${shortage} ساعت)">🕐 مرخصی</span>`;
+                value = value + leaveBtn;
             }
+        }
+
+        if (data.can_mark_attendance) {
+            const dayAction = `<span onclick="smart_attendance_mark_day('${data.employee}', '${data.work_date}', '${data.attendance_status || ""}')"
+                                style="cursor:pointer;margin-left:6px;" title="ثبت غیبت/مرخصی">🗓️</span>`;
+            value = dayAction + value;
         }
 
         // Make all_logs interactive with edit icons + add icon
