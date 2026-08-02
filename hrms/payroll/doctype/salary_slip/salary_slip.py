@@ -2549,6 +2549,53 @@ class SalarySlip(TransactionBase):
 	def get_standard_working_hours(self):
 		return flt(frappe.db.get_single_value("HR Settings", "standard_working_hours")) or 8
 
+	@frappe.whitelist()
+	def refresh_from_smart_attendance(self):
+		"""Recompute all working-hours fields from smart attendance and rebuild the
+		salary slip earnings/deductions as if it were freshly created. Used by the
+		'Refresh' button on the draft salary slip so the user sees the latest
+		attendance/leave figures before submitting.
+		"""
+		if self.docstatus != 0:
+			frappe.throw(_("فیش حقوقی باید در وضعیت پیش‌نویس باشد"))
+
+		if not (self.employee and self.start_date and self.end_date):
+			frappe.throw(_("کارمند، تاریخ شروع و پایان الزامی است"))
+
+		# 1. recompute smart-attendance summary (required/worked/ot/shortage hours)
+		try:
+			from hrms.regional.iran.utils import apply_smart_attendance_summary
+
+			apply_smart_attendance_summary(self)
+		except Exception:
+			frappe.log_error(
+				frappe.get_traceback(),
+				f"Unable to refresh smart attendance summary for {self.name}",
+			)
+
+		# 2. recompute the earnings/deductions from the salary structure
+		try:
+			self.process_salary_structure()
+		except Exception:
+			frappe.log_error(
+				frappe.get_traceback(),
+				f"Unable to recompute salary structure for {self.name}",
+			)
+
+		# 3. rebuild leave balances table
+		try:
+			self.add_leave_balances()
+		except Exception:
+			frappe.log_error(
+				frappe.get_traceback(),
+				f"Unable to rebuild leave balances for {self.name}",
+			)
+
+		# 4. persist so the recalculated fields are saved
+		self.save(ignore_permissions=True)
+
+		return {"success": True, "message": _("فیش حقوقی رفرش شد")}
+
 	def get_catch_all_leave_type(self, leave_allocation):
 		"""Return the leave type that absorbs the remaining shortage hours.
 

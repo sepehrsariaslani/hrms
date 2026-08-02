@@ -218,6 +218,38 @@ frappe.ui.form.on("Salary Slip", {
 		frm.fields_dict["earnings"].grid.set_column_disp(salary_detail_fields, false);
 		frm.fields_dict["deductions"].grid.set_column_disp(salary_detail_fields, false);
 		frm.trigger("set_dynamic_labels");
+
+		// Refresh button — recomputes working hours & salary from smart attendance
+		// so the user sees the latest figures before submitting.
+		if (frm.doc.docstatus === 0 && frm.doc.employee) {
+			frm.add_custom_button(
+				__("رفرش از حضور و غیاب"),
+				function () {
+					frappe.dom.freeze(__("در حال محاسبه مجدد..."));
+					frappe.call({
+						method: "refresh_from_smart_attendance",
+						doc: frm.doc,
+						callback: function (r) {
+							frappe.dom.unfreeze();
+							if (r.message && r.message.success) {
+								frappe.show_alert({
+									message: __("فیش حقوقی از حضور و غیاب رفرش شد"),
+									indicator: "green",
+								});
+							} else {
+								frappe.msgprint({
+									title: __("خطا"),
+									message: __("خطا در رفرش فیش حقوقی"),
+									indicator: "red",
+								});
+							}
+							frm.reload_doc();
+						},
+					});
+				},
+				__("بیشتر"),
+			);
+		}
 	},
 
 	salary_slip_based_on_timesheet: function (frm) {
