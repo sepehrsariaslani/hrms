@@ -1315,7 +1315,12 @@ def get_employee_shifts(filters):
     return shifts
 
 def get_holidays(filters):
-    """Get holidays for employees"""
+    """Get holidays for employees, honoring Holiday List Assignment (date-based).
+
+    Uses frappe's get_holiday_list_for_employee logic (Holiday List Assignment
+    first, then employee.holiday_list, then company) so that per-employee or
+    per-period holiday lists are respected — not just employee.holiday_list.
+    """
     holidays = {}
     employees_to_include = get_employees_to_include(filters)
 
@@ -1336,27 +1341,59 @@ def get_holidays(filters):
             placeholders.append(f"%({key})s")
         employee_filter = f"AND e.name IN ({', '.join(placeholders)})"
 
-    holiday_query = """
-        SELECT
-            h.holiday_date,
-            h.description,
-            h.weekly_off,
-            e.name AS employee
-        FROM `tabHoliday` h
-        JOIN `tabHoliday List` hl ON hl.name = h.parent
-        JOIN `tabEmployee` e ON e.holiday_list = hl.name
-        WHERE h.holiday_date >= %(from_date)s
-          AND h.holiday_date <= %(to_date)s
+    # Build a per-employee holiday map by resolving each employee's holiday list
+    # via Holiday List Assignment (date-aware), then querying the Holiday rows.
+    employees = frappe.db.sql(
+        """
+        SELECT name, holiday_list
+        FROM `tabEmployee`
+        WHERE status = 'Active'
           {employee_filter}
-    """.format(employee_filter=employee_filter)
+        """.format(employee_filter=employee_filter),
+        params,
+        as_dict=True,
+    )
 
-    holiday_data = frappe.db.sql(holiday_query, params, as_dict=True)
+    for emp in employees:
+        from hrms.utils.holiday_list import get_holiday_dates_between_range
 
-    for h in holiday_data:
-        holidays[(h.employee, h.holiday_date)] = {
-            "description": h.description or "",
-            "weekly_off": int(h.weekly_off or 0),
-        }
+        holiday_dates = get_holiday_dates_between_range(
+            emp["name"],
+            filters.get("from_date"),
+            filters.get("to_date"),
+            select_weekly_offs=False,
+            raise_exception_for_holiday_list=False,
+        )
+        if not holiday_dates:
+            continue
+
+        # fetch holiday details (description, weekly_off) for the resolved list(s)
+        if holiday_dates:
+            details = frappe.db.sql(
+                """
+                SELECT holiday_date, description, weekly_off
+                FROM `tabHoliday`
+                WHERE holiday_date BETWEEN %(from_date)s AND %(to_date)s
+                  AND parent IN (
+                      SELECT DISTINCT hl.name
+                      FROM `tabHoliday List` hl
+                      JOIN `tabHoliday` h2 ON h2.parent = hl.name
+                      WHERE h2.holiday_date BETWEEN %(from_date)s AND %(to_date)s
+                  )
+                """,
+                params,
+                as_dict=True,
+            )
+            detail_map = {
+                getdate(r["holiday_date"]): r
+                for r in details
+            }
+            for d in holiday_dates:
+                r = detail_map.get(getdate(d), {})
+                holidays[(emp["name"], getdate(d))] = {
+                    "description": (r.get("description") if r else "") or "",
+                    "weekly_off": int((r.get("weekly_off") if r else 0) or 0),
+                }
 
     return holidays
 
