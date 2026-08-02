@@ -808,9 +808,9 @@ def apply_iran_payroll_rules(doc, method=None):
 	)
 	seniority = seniority_daily * salary_days if years_of_service >= 1 else 0
 
-	# Expose the seniority base as of the salary slip date on the slip itself so a
-	# historical slip shows the value in force at that time (not today's value).
-	set_doc_field_if_exists(doc, "seniority_daily_base_iran", seniority_daily)
+	# Expose the monthly seniority base as of the salary slip date on the slip
+	# itself, so a historical slip shows the value in force at that time (based on
+	# insurance_start_date vs the slip's start date and the seniority table).
 	set_doc_field_if_exists(doc, "seniority_monthly_base_iran", seniority_daily * STANDARD_MONTH_DAYS)
 	technical = flt(employee.get("karane")) + flt(employee.get("technical_allowance_monthly"))
 	supervision = flt(employee.get("supervision_allowance"))
