@@ -1773,10 +1773,15 @@ def upsert_attendance_from_report(employee, work_date, status, leave_type=None):
         attendance = frappe.get_doc("Attendance", attendance_name)
         if attendance.docstatus == 1:
             attendance.cancel()
-
+        # delete the (now cancelled/old) record and create a fresh one so we never
+        # try to edit a cancelled document
+        frappe.delete_doc("Attendance", attendance_name, force=1, ignore_permissions=True)
+        attendance = frappe.new_doc("Attendance")
+        attendance.employee = employee
+        attendance.attendance_date = attendance_date
         attendance.status = status
         attendance.company = company
-        attendance.save(ignore_permissions=True)
+        attendance.insert(ignore_permissions=True)
         attendance.submit()
     else:
         attendance = frappe.new_doc("Attendance")

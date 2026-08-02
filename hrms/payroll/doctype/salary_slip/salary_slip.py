@@ -738,30 +738,12 @@ class SalarySlip(TransactionBase):
 		return holiday_dates
 
 	def set_attendance_metrics(self):
-		"""Aggregate attendance metrics for the salary slip period."""
-		Attendance = frappe.qb.DocType("Attendance")
-		rows = (
-			frappe.qb.from_(Attendance)
-			.select(
-				Sum(Attendance.working_hours).as_("working_hours"),
-				Sum(Attendance.presence_hours).as_("presence_hours"),
-				Sum(Attendance.time_off).as_("time_off"),
-				Sum(Attendance.overtime).as_("overtime"),
-				Sum(Attendance.holiday_work).as_("holiday_work"),
-			)
-			.where(
-				(Attendance.employee == self.employee)
-				& (Attendance.docstatus == 1)
-				& (Attendance.attendance_date.between(self.actual_start_date, self.actual_end_date))
-			)
-		).run(as_dict=True)
-
-		row = rows[0] if rows else {}
-		self.attendance_working_hours = flt(row.get("working_hours"), 2)
-		self.attendance_presence_hours = flt(row.get("presence_hours"), 2)
-		self.attendance_time_off = flt(row.get("time_off"), 2)
-		self.attendance_overtime = flt(row.get("overtime"), 2)
-		self.attendance_holiday_work = flt(row.get("holiday_work"), 2)
+		# These fields (attendance_working_hours, attendance_presence_hours,
+		# attendance_time_off, attendance_overtime, attendance_holiday_work) were
+		# sourced from the Attendance table, which is not used in this workflow.
+		# All working-hour figures come from Smart Attendance instead, so we do
+		# not compute/override these fields here.
+		pass
 
 	def calculate_lwp_or_ppl_based_on_leave_application(
 		self, holidays, working_days_list, daily_wages_fraction_for_half_day
