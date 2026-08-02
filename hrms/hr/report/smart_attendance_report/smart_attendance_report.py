@@ -579,9 +579,15 @@ def get_data(filters):
             is_holiday = bool(holiday_info)
             weekday = current_date.weekday()
 
-            # Standard working hours for a normal working day always come from the
+            # Standard working hours for a normal working day: use the assigned
+            # shift's own standard_working_hours if set, otherwise fall back to the
             # "standard_working_hours" field in HR Settings. Holidays are 0.
-            standard_hours = 0 if is_holiday else hr_standard_hours
+            if is_holiday:
+                standard_hours = 0
+            elif shift.get("standard_working_hours"):
+                standard_hours = flt(shift.get("standard_working_hours"))
+            else:
+                standard_hours = hr_standard_hours
 
             all_logs_str = ""
             all_logs_json = []
@@ -1265,6 +1271,7 @@ def get_employee_shifts(filters):
             st.name AS shift_type,
             st.start_time,
             st.end_time,
+            st.standard_working_hours,
             (
                 CASE
                     WHEN TIME(st.end_time) > TIME(st.start_time)
@@ -1288,6 +1295,8 @@ def get_employee_shifts(filters):
             "start_time": s.start_time,
             "end_time": s.end_time,
             "shift_duration": s.shift_duration,
+            # per-shift standard working hours (may be None -> fall back to HR Settings)
+            "standard_working_hours": flt(s.get("standard_working_hours")) or None,
         }
 
     return shifts

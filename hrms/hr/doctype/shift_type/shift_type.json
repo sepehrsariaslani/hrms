@@ -8,6 +8,7 @@
  "engine": "InnoDB",
  "field_order": [
   "start_time",
+  "standard_working_hours",
   "end_time",
   "column_break_3",
   "holiday_list",
@@ -42,6 +43,14 @@
    "in_list_view": 1,
    "label": "Start Time",
    "reqd": 1
+  },
+  {
+   "fieldname": "standard_working_hours",
+   "fieldtype": "Float",
+   "label": "Standard Working Hours",
+   "description": "ساعت کاری استاندارد برای این شیفت (ساعت). اگر خالی باشد از تنظیمات منابع انسانی استفاده می‌شود.",
+   "precision": 2,
+   "insert_after": "start_time"
   },
   {
    "fieldname": "end_time",
