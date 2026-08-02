@@ -783,10 +783,10 @@ def get_data(filters):
                         row["time_off"] = flt(standard_hours - working_hours, 2)
                         row["overtime"] = 0
 
-                # a portion of the shortage that is covered by an approved leave
-                # should not be counted as shortage (کسر کار), but as leave.
+                # if the employee has an approved leave for this day, that day is
+                # no longer counted as shortage (کسر کار) — it is a leave day.
                 if row.get("leave_hours"):
-                    row["time_off"] = flt(max(row.get("time_off", 0) - row["leave_hours"], 0), 2)
+                    row["time_off"] = 0
 
             elif all_logs and len(all_logs) == 1:
                 single_log = all_logs[0]
@@ -2192,8 +2192,21 @@ def create_hourly_leave_from_shortage(employee, work_date, hours, leave_type=Non
     if existing:
         return {"success": True, "message": _("مرخصی ساعتی برای این روز قبلاً ثبت شده است"), "leave_application": existing}
 
+    # Hourly leave must span at least 1 minute so that to_time is strictly after
+    # from_time (a tiny shortage like 0.04h would otherwise round to equal times
+    # and trigger "To Time should be after From Time").
     from_time = "09:00:00"
-    to_time = (datetime.combine(leave_date, datetime.min.time()) + timedelta(hours=hours)).time().strftime("%H:%M:%S")
+    min_hours = 1.0 / 60  # 1 minute
+    hours = max(flt(hours), min_hours)
+
+    start_dt = datetime.combine(leave_date, datetime.min.time()) + timedelta(hours=9)
+    to_dt = start_dt + timedelta(hours=hours)
+    # never allow the span to spill past midnight
+    end_of_day = datetime.combine(leave_date, datetime.min.time()) + timedelta(hours=24)
+    if to_dt >= end_of_day:
+        to_dt = end_of_day - timedelta(minutes=1)
+
+    to_time = to_dt.strftime("%H:%M:%S")
 
     try:
         leave_app = frappe.new_doc("Leave Application")
