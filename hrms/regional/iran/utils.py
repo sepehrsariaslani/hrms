@@ -797,13 +797,21 @@ def apply_iran_payroll_rules(doc, method=None):
 	grocery = flt(rule.grocery_allowance)
 	marriage = flt(rule.marriage_allowance) if is_married else 0
 	child = flt(rule.child_allowance_per_child) * children_count
-	seniority_daily = flt(employee.get("employee_seniority_daily_base")) or get_seniority_daily_base(
+	# Compute the seniority daily base as of the salary slip date (not today), so
+	# that a historical salary slip uses the seniority table value in force at that
+	# time rather than the employee's currently-stored value.
+	seniority_daily = get_seniority_daily_base(
 		seniority_reference_date,
 		salary_date=salary_date,
 		settings=settings,
 		rule=rule,
 	)
 	seniority = seniority_daily * salary_days if years_of_service >= 1 else 0
+
+	# Expose the seniority base as of the salary slip date on the slip itself so a
+	# historical slip shows the value in force at that time (not today's value).
+	set_doc_field_if_exists(doc, "seniority_daily_base_iran", seniority_daily)
+	set_doc_field_if_exists(doc, "seniority_monthly_base_iran", seniority_daily * STANDARD_MONTH_DAYS)
 	technical = flt(employee.get("karane")) + flt(employee.get("technical_allowance_monthly"))
 	supervision = flt(employee.get("supervision_allowance"))
 

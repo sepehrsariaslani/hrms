@@ -364,5 +364,21 @@ def get_custom_fields():
 				"read_only": 1,
 				"default": "0",
 			},
+			{
+				"fieldname": "seniority_daily_base_iran",
+				"fieldtype": "Currency",
+				"label": "پایه سنوات روزانه (طبق تاریخ فیش)",
+				"insert_after": "night_hours_iran",
+				"read_only": 1,
+				"default": "0",
+			},
+			{
+				"fieldname": "seniority_monthly_base_iran",
+				"fieldtype": "Currency",
+				"label": "پایه سنوات ماهانه (طبق تاریخ فیش)",
+				"insert_after": "seniority_daily_base_iran",
+				"read_only": 1,
+				"default": "0",
+			},
 		],
 	}

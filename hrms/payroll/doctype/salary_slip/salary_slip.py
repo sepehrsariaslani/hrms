@@ -2555,6 +2555,18 @@ class SalarySlip(TransactionBase):
 				f"Unable to refresh smart attendance summary for {self.name}",
 			)
 
+		# 1b. recompute Iran payroll rules (seniority bases, insurance, tax, ...)
+		# as of this slip's date
+		try:
+			from hrms.regional.iran.utils import apply_iran_payroll_rules
+
+			apply_iran_payroll_rules(self)
+		except Exception:
+			frappe.log_error(
+				frappe.get_traceback(),
+				f"Unable to refresh Iran payroll rules for {self.name}",
+			)
+
 		# 2. recompute the earnings/deductions from the salary structure
 		try:
 			self.process_salary_structure()
