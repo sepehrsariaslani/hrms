@@ -817,23 +817,31 @@ def get_data(filters):
 
             else:
                 if not is_holiday:
-                    row["can_mark_attendance"] = True
-                    existing_attendance = attendance_lookup.get((employee, current_date))
-                    if existing_attendance:
-                        row["attendance_status"] = existing_attendance.get("status")
-                        row["attendance_name"] = existing_attendance.get("name")
-
-                        if row["attendance_status"] == "On Leave":
-                            row["log_status"] = "🟣 مرخصی ثبت شده"
-                        elif row["attendance_status"] == "Absent":
-                            row["log_status"] = "⚫ غیبت ثبت شده"
-                        else:
-                            row["log_status"] = f"ℹ️ {row['attendance_status']}"
+                    # if the employee has an approved leave for this day, treat the
+                    # whole day as leave (no shortage) and show the leave type
+                    if row.get("leave_hours"):
+                        row["time_off"] = 0
+                        row["log_status"] = f"🟣 مرخصی ثبت شده ({row['leave_type']})" if row.get("leave_type") else "🟣 مرخصی ثبت شده"
+                        row["issue_flag"] = ""
+                        row["has_issue"] = False
                     else:
-                        row["log_status"] = "🔴 غیبت / بدون لاگ"
+                        row["can_mark_attendance"] = True
+                        existing_attendance = attendance_lookup.get((employee, current_date))
+                        if existing_attendance:
+                            row["attendance_status"] = existing_attendance.get("status")
+                            row["attendance_name"] = existing_attendance.get("name")
 
-                    row["issue_flag"] = ""
-                    row["has_issue"] = False
+                            if row["attendance_status"] == "On Leave":
+                                row["log_status"] = "🟣 مرخصی ثبت شده"
+                            elif row["attendance_status"] == "Absent":
+                                row["log_status"] = "⚫ غیبت ثبت شده"
+                            else:
+                                row["log_status"] = f"ℹ️ {row['attendance_status']}"
+                        else:
+                            row["log_status"] = "🔴 غیبت / بدون لاگ"
+
+                        row["issue_flag"] = ""
+                        row["has_issue"] = False
                 else:
                     row["log_status"] = "تعطیل"
                     row["issue_flag"] = ""
