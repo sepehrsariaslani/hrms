@@ -550,7 +550,8 @@ def get_data(filters):
         employees_to_report = list(employees_to_include)
     else:
         employees_to_report = list(set(employees_in_checkins))
-        for emp in shifts.keys():
+        for key in shifts.keys():
+            emp = key[0] if isinstance(key, tuple) else key
             if emp not in employees_to_report:
                 employees_to_report.append(emp)
 
@@ -570,7 +571,7 @@ def get_data(filters):
             key = (employee, current_date)
             session = work_sessions.get(key)
             all_logs = all_logs_lookup.get(key, [])
-            shift = shifts.get(employee, {})
+            shift = shifts.get((employee, current_date), {})
             break_windows_for_day = get_break_windows_for_date(employee_break_assignments, employee, current_date)
             holiday_info = holidays.get((employee, current_date), {})
             # A day is a holiday only if it is present in the employee's assigned
@@ -1244,7 +1245,11 @@ def get_summary(data):
 
 
 def get_employee_shifts(filters):
-    """Get shift assignments for employees"""
+    """Get shift assignments for employees keyed by (employee, date).
+
+    Returns { (employee, work_date): {shift info} } so that each day uses the shift
+    active on that specific date.
+    """
     shifts = {}
     employees_to_include = get_employees_to_include(filters)
 
@@ -1268,6 +1273,8 @@ def get_employee_shifts(filters):
     shift_query = """
         SELECT 
             sa.employee,
+            sa.start_date,
+            sa.end_date,
             st.name AS shift_type,
             st.start_time,
             st.end_time,
@@ -1290,7 +1297,9 @@ def get_employee_shifts(filters):
     shift_data = frappe.db.sql(shift_query, params, as_dict=True)
 
     for s in shift_data:
-        shifts[s.employee] = {
+        start = getdate(s.get("start_date") or filters.get("from_date"))
+        end = getdate(s.get("end_date") or filters.get("to_date"))
+        info = {
             "shift_type": s.shift_type,
             "start_time": s.start_time,
             "end_time": s.end_time,
@@ -1298,6 +1307,10 @@ def get_employee_shifts(filters):
             # per-shift standard working hours (may be None -> fall back to HR Settings)
             "standard_working_hours": flt(s.get("standard_working_hours")) or None,
         }
+        # map every active day of this assignment to this shift
+        for i in range((end - start).days + 1):
+            d = start + timedelta(days=i)
+            shifts[(s.employee, d)] = info
 
     return shifts
 
