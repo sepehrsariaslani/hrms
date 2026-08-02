@@ -1345,9 +1345,9 @@ def get_holidays(filters):
     # via Holiday List Assignment (date-aware), then querying the Holiday rows.
     employees = frappe.db.sql(
         """
-        SELECT name, holiday_list
-        FROM `tabEmployee`
-        WHERE status = 'Active'
+        SELECT e.name, e.holiday_list
+        FROM `tabEmployee` e
+        WHERE e.status = 'Active'
           {employee_filter}
         """.format(employee_filter=employee_filter),
         params,
