@@ -2246,18 +2246,56 @@ def create_hourly_leave_from_shortage(employee, work_date, hours, leave_type=Non
 
 @frappe.whitelist()
 def delete_leave_application_from_report(leave_application):
-    """Cancel + delete an approved Leave Application from the smart attendance report."""
+    """Cancel + delete an approved Leave Application from the smart attendance report.
+
+    A leave application for a full day creates a linked Attendance record. That
+    attendance must be cancelled/deleted first, otherwise deleting the leave fails
+    with LinkExistsError.
+    """
     frappe.has_permission("Leave Application", "write", throw=True)
     if not leave_application:
         return {"success": False, "message": _("مرخصی مشخص نشده است")}
 
     doc = frappe.get_doc("Leave Application", leave_application)
+
+    # cancel + delete linked attendance records first
+    linked_attendance = frappe.get_all(
+        "Attendance",
+        filters={"leave_application": leave_application, "docstatus": ("<", 2)},
+        pluck="name",
+    )
+    for att_name in linked_attendance:
+        att = frappe.get_doc("Attendance", att_name)
+        if att.docstatus == 1:
+            att.cancel()
+        frappe.delete_doc("Attendance", att_name, force=1, ignore_permissions=True)
+
+    # also clean up any attendance on the leave days regardless of the link,
+    # matching the behaviour of LeaveApplication.cancel_attendance()
+    leave_days = (getdate(doc.to_date) - getdate(doc.from_date)).days + 1
+    for i in range(leave_days):
+        att_date = getdate(doc.from_date) + timedelta(days=i)
+        att_name = frappe.db.exists(
+            "Attendance",
+            {
+                "employee": doc.employee,
+                "attendance_date": att_date,
+                "status": ["in", ["On Leave", "Half Day"]],
+                "docstatus": ("<", 2),
+            },
+        )
+        if att_name:
+            att = frappe.get_doc("Attendance", att_name)
+            if att.docstatus == 1:
+                att.cancel()
+            frappe.delete_doc("Attendance", att_name, force=1, ignore_permissions=True)
+
     if doc.docstatus == 1:
         doc.cancel()
-    frappe.delete_doc("Leave Application", leave_application, ignore_permissions=True)
+    frappe.delete_doc("Leave Application", leave_application, force=1, ignore_permissions=True)
     frappe.db.commit()
 
-    return {"success": True, "message": _("مرخصی {0} حذف شد").format(leave_application)}
+    return {"success": True, "message": _("مرخصی {0} و حضور و غیاب مرتبط حذف شد").format(leave_application)}
 
 
 @frappe.whitelist()
