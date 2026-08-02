@@ -88,3 +88,4 @@ hrms.patches.v16_0.replace_monthly_technical_bonus_with_karane #2026-05-06
 hrms.patches.v16_0.add_insurance_seniority_report_to_payroll_workspace #2026-05-06
 hrms.patches.v16_0.create_shift_allocator_role #2026-06-05
 hrms.patches.v16_0.add_iran_salary_slip_seniority_field #2026-08-02
+hrms.patches.v16_0.add_standard_working_hours_to_shift_type #2026-08-02
