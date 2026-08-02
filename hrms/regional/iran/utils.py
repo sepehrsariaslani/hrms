@@ -725,18 +725,11 @@ def apply_smart_attendance_summary(doc, method=None):
 	overtime_hours = flt(overtime_hours, 2)
 	shortage_hours = flt(shortage_hours, 2)
 
-	# If the user has allocated leave hours in the salary slip's leave details
-	# table, the total shortage is reconciled with those hours (so that the
-	# sum of leave hours equals the shortage). Otherwise fall back to the
-	# smart-attendance shortage.
-	total_leave_hours = 0
-	if hasattr(doc, "leave_details"):
-		for row in doc.get("leave_details") or []:
-			if hasattr(row, "leave_hours"):
-				total_leave_hours += flt(row.get("leave_hours"))
-
-	if total_leave_hours:
-		shortage_hours = flt(total_leave_hours, 2)
+	# The smart-attendance report already deducts approved leave hours from the
+	# shortage (کسر کار), so `time_off` here is the precise shortage figure that
+	# matches what the user sees in the report. Use it directly as the source of
+	# truth so the salary slip lines up with the report.
+	# (leave_details is a separate, human-editable breakdown of the same hours.)
 
 	# Single source of truth for the "worked hours" figure.
 	set_doc_field_if_exists(doc, "required_working_hours_iran", required_hours)
