@@ -653,6 +653,7 @@ def get_data(filters):
                 "time_off": 0 if is_holiday else standard_hours,
                 "leave_hours": flt(leave_info["hours"], 2) if leave_info else 0,
                 "leave_type": leave_info["leave_type"] if leave_info else "",
+                "is_compensatory_leave": bool(leave_info and leave_info.get("is_compensatory")),
                 "leave_application_names": leave_info["names"] if leave_info else [],
                 "leave_application_name": (leave_info["names"] or [None])[0] if leave_info else None,
                 "overtime": 0,
@@ -777,6 +778,16 @@ def get_data(filters):
                     row["time_off"] = 0
                     row["overtime"] = flt(working_hours, 2)
                     row["holiday_work"] = flt(working_hours, 2)
+                elif row.get("is_compensatory_leave") and row.get("leave_hours"):
+                    # Compensatory (جبرانی) leave special semantics:
+                    # the leave hours replace the required working hours for that day,
+                    # so any presence beyond the *remaining* shift is overtime.
+                    #  - full-day comp leave (>= standard) -> all presence is overtime
+                    #  - partial comp leave -> presence fills remaining shift as normal
+                    #    work, and anything beyond it is overtime.
+                    effective_standard = max(standard_hours - flt(row.get("leave_hours")), 0)
+                    row["time_off"] = 0
+                    row["overtime"] = flt(max(working_hours - effective_standard, 0), 2)
                 else:
                     if working_hours >= standard_hours:
                         row["time_off"] = 0
@@ -1373,6 +1384,15 @@ def get_leave_map(filters):
 
     for app in rows:
         leave_type = app["leave_type"]
+        # check whether this leave type is compensatory (جبرانی) — it has special
+        # overtime semantics (presence on a comp-leave day counts as overtime)
+        is_compensatory = 0
+        lt_doc = frappe.db.get_value(
+            "Leave Type", leave_type, "is_compensatory", cache=True
+        )
+        if lt_doc:
+            is_compensatory = 1
+
         if app.get("leave_duration_mode") == "ساعتی":
             hours = flt(app.get("total_leave_hours"))
             dates = [app["from_date"]]
@@ -1388,7 +1408,8 @@ def get_leave_map(filters):
         for d in dates:
             key = (app["employee"], getdate(d))
             entry = leave_map.setdefault(
-                key, {"hours": 0, "leave_type": leave_type, "names": []}
+                key,
+                {"hours": 0, "leave_type": leave_type, "names": [], "is_compensatory": is_compensatory},
             )
             entry["hours"] = flt(entry["hours"], 2) + flt(per_day, 2)
             entry["names"].append(app["name"])
