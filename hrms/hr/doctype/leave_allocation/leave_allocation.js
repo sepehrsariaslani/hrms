@@ -207,12 +207,13 @@ frappe.ui.form.on("Leave Allocation", {
 			frm.doc.name,
 		);
 		df.formatter = function (value, df, options, row) {
+			const formattedValue = formatScheduleAllocationDate(value);
 			if (row.attempted && row.failed) {
-				return `<span class="indicator red">${value}</span>`;
+				return `<span class="indicator red">${formattedValue}</span>`;
 			} else if (row.attempted && row.is_allocated) {
-				return `<span class="indicator green">${value}</span>`;
+				return `<span class="indicator green">${formattedValue}</span>`;
 			} else {
-				return value;
+				return formattedValue;
 			}
 		};
 		frm.refresh_field("earned_leave_schedule");
@@ -253,6 +254,15 @@ function normalizeAdjustmentPostingDate(value) {
 	if (year >= 1300 && year <= 1600 && typeof window.persianToGregorian === "function") {
 		const converted = window.persianToGregorian(normalized);
 		return converted ? converted.split(" ")[0] : null;
+	}
+	return value;
+}
+
+function formatScheduleAllocationDate(value) {
+	if (!value) return value;
+	if (typeof window.gregorianToPersian === "function") {
+		const converted = window.gregorianToPersian(value);
+		if (converted) return converted;
 	}
 	return value;
 }
