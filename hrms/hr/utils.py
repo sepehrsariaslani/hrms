@@ -41,6 +41,12 @@ from erpnext.setup.doctype.employee.employee import (
 from hrms.hr.doctype.leave_policy_assignment.leave_policy_assignment import (
 	calculate_pro_rated_leaves,
 )
+from hrms.regional.iran.utils import is_iran_company
+from hrms.utils.jalali_helper import (
+	add_jalali_months,
+	get_jalali_month_start_end,
+	get_same_jalali_day_in_month,
+)
 
 DateTimeLikeObject = str | datetime.date | datetime.datetime
 
@@ -411,6 +417,7 @@ def calculate_upcoming_earned_leave(allocation, e_leave_type, date_of_joining):
 		annual_allocation,
 		e_leave_type.earned_leave_frequency,
 		e_leave_type.rounding,
+		company=allocation.company,
 	)
 	return earned_leave
 
@@ -506,6 +513,7 @@ def get_monthly_earned_leave(
 	period_start_date=None,
 	period_end_date=None,
 	pro_rated=True,
+	company=None,
 ):
 	earned_leaves = 0.0
 	divide_by_frequency = {"Yearly": 1, "Half-Yearly": 2, "Quarterly": 4, "Monthly": 12}
@@ -515,7 +523,9 @@ def get_monthly_earned_leave(
 		if pro_rated:
 			if not (period_start_date or period_end_date):
 				today_date = frappe.flags.current_date or getdate()
-				period_start_date, period_end_date = get_sub_period_start_and_end(today_date, frequency)
+				period_start_date, period_end_date = get_sub_period_start_and_end(
+					today_date, frequency, company=company
+				)
 
 			earned_leaves = calculate_pro_rated_leaves(
 				earned_leaves, date_of_joining, period_start_date, period_end_date, is_earned_leave=True
@@ -526,7 +536,12 @@ def get_monthly_earned_leave(
 	return earned_leaves
 
 
-def get_sub_period_start_and_end(date, frequency):
+def get_sub_period_start_and_end(date, frequency, company=None):
+	if frequency == "Monthly" and is_iran_company(company):
+		start_date, end_date = get_jalali_month_start_end(getdate(date))
+		if start_date and end_date:
+			return start_date, end_date
+
 	return {
 		"Monthly": (get_first_day(date), get_last_day(date)),
 		"Quarterly": (get_quarter_start(date), get_quarter_ending(date)),
@@ -605,7 +620,25 @@ def create_additional_leave_ledger_entry(allocation, leaves, date):
 	allocation.create_leave_ledger_entry()
 
 
-def get_expected_allocation_date_for_period(frequency, allocate_on_day, date, date_of_joining=None):
+def get_expected_allocation_date_for_period(
+	frequency, allocate_on_day, date, date_of_joining=None, company=None
+):
+	date = getdate(date)
+	date_of_joining = getdate(date_of_joining) if date_of_joining else None
+
+	if frequency == "Monthly" and is_iran_company(company):
+		period_start_date, period_end_date = get_sub_period_start_and_end(date, frequency, company=company)
+		doj = (
+			get_same_jalali_day_in_month(date_of_joining, date)
+			if allocate_on_day == "Date of Joining" and date_of_joining
+			else date_of_joining
+		)
+		return {
+			"First Day": period_start_date,
+			"Last Day": period_end_date,
+			"Date of Joining": doj,
+		}[allocate_on_day]
+
 	try:
 		doj = date_of_joining.replace(month=date.month, year=date.year)
 	except ValueError:

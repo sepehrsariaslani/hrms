@@ -7,6 +7,7 @@ from frappe.utils import cint, flt, get_link_to_form
 
 from hrms.hr.doctype.leave_application.leave_application import get_leave_balance_on
 from hrms.hr.doctype.leave_ledger_entry.leave_ledger_entry import create_leave_ledger_entry
+from hrms.utils.jalali_helper import jalali_to_gregorian
 
 
 class LeaveAdjustment(Document):
@@ -14,6 +15,7 @@ class LeaveAdjustment(Document):
 		system_precision = cint(frappe.db.get_single_value("System Settings", "float_precision")) or 3
 		precision = self.precision("leaves_to_adjust") or system_precision
 		self.leaves_to_adjust = flt(self.leaves_to_adjust, precision)
+		self.posting_date = normalize_adjustment_posting_date(self.posting_date)
 
 	def before_save(self):
 		self.set_leaves_after_adjustment()
@@ -102,6 +104,7 @@ def get_leave_allocation_for_posting_date(employee, leave_type, posting_date):
 	"""
 	Returns the leave allocation for the given employee, leave type and posting date.
 	"""
+	posting_date = normalize_adjustment_posting_date(posting_date)
 	return frappe.get_all(
 		"Leave Allocation",
 		{
@@ -133,3 +136,36 @@ def get_allocated_leave_types(doctype, txt, searchfield, start, page_len, filter
 		],
 		as_list=1,
 	)
+
+
+def normalize_adjustment_posting_date(posting_date):
+	if not posting_date:
+		return posting_date
+
+	text = normalize_localized_date_text(posting_date)
+	if not text:
+		return posting_date
+
+	date_part = text.split(" ", 1)[0]
+	parts = date_part.replace("-", "/").split("/")
+	if len(parts) != 3:
+		return text
+
+	try:
+		year = int(parts[0])
+	except ValueError:
+		return text
+
+	if 1300 <= year <= 1600:
+		return jalali_to_gregorian(text)
+
+	return text
+
+
+def normalize_localized_date_text(value):
+	text = str(value).strip()
+	if not text:
+		return text
+
+	translation = str.maketrans("۰۱۲۳۴۵۶۷۸۹٠١٢٣٤٥٦٧٨٩", "01234567890123456789")
+	return text.translate(translation).replace("٫", ".").strip()

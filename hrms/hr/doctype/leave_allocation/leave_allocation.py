@@ -7,6 +7,7 @@ from frappe import _
 from frappe.model.document import Document
 from frappe.utils import add_days, date_diff, flt, formatdate, get_link_to_form, getdate
 
+from hrms.hr.doctype.leave_adjustment.leave_adjustment import normalize_adjustment_posting_date
 from hrms.hr.doctype.leave_application.leave_application import get_approved_leaves_for_period
 from hrms.hr.doctype.leave_ledger_entry.leave_ledger_entry import (
 	create_leave_ledger_entry,
@@ -393,10 +394,15 @@ class LeaveAllocation(Document):
 			],
 		)
 
-		return _get_monthly_earned_leave(doj, annual_allocation, frequency, rounding)
+		return _get_monthly_earned_leave(
+			doj, annual_allocation, frequency, rounding, company=self.company
+		)
 
 	@frappe.whitelist()
-	def create_leave_adjustment(self, adjustment_type, leaves_to_adjust, posting_date, reason_for_adjustment):
+	def create_leave_adjustment(
+		self, adjustment_type, leaves_to_adjust, posting_date, reason_for_adjustment=""
+	):
+		posting_date = normalize_adjustment_posting_date(posting_date)
 		leave_adjustment = frappe.new_doc(
 			"Leave Adjustment",
 			employee=self.employee,

@@ -1,5 +1,10 @@
 import calendar
-from datetime import date
+from datetime import date, timedelta
+
+try:
+	import jdatetime
+except ImportError:
+	jdatetime = None
 
 import frappe
 from frappe.utils import add_months, get_first_day, get_last_day, get_year_ending, get_year_start, getdate
@@ -13,6 +18,7 @@ class TestLeaveAllocation(HRMSTestSuite):
 	def setUp(self):
 		employee = frappe.get_doc("Employee", {"first_name": "_Test Employee"})
 		self.original_doj = employee.date_of_joining
+		self.original_company_country = frappe.db.get_value("Company", "_Test Company", "country")
 
 		employee.date_of_joining = add_months(getdate(), -24)
 		employee.save()
@@ -24,6 +30,12 @@ class TestLeaveAllocation(HRMSTestSuite):
 		to_date = get_year_ending(getdate())
 		self.holiday_list = make_holiday_list(from_date=from_date, to_date=to_date)
 		frappe.db.set_value("Email Account", "_Test Email Account 1", "default_outgoing", 1)
+
+	def tearDown(self):
+		self.employee.date_of_joining = self.original_doj
+		self.employee.save()
+		frappe.db.set_value("Company", "_Test Company", "country", self.original_company_country)
+		super().tearDown()
 
 	def test_schedule_for_monthly_earned_leave_allocated_on_first_day(self):
 		frappe.flags.current_date = get_year_start(getdate())
@@ -70,6 +82,33 @@ class TestLeaveAllocation(HRMSTestSuite):
 			"Monthly",
 			"Last Day",
 		)
+		self.assertEqual(earned_leave_schedule[0].attempted, 0)
+		self.assertEqual(earned_leave_schedule[0].is_allocated, 0)
+		self.assertIsNone(earned_leave_schedule[0].allocated_via)
+
+	def test_schedule_for_monthly_earned_leave_allocated_on_last_jalali_day_for_iran(self):
+		if not jdatetime:
+			self.skipTest("jdatetime is required for Jalali schedule tests")
+
+		frappe.db.set_value("Company", "_Test Company", "country", "Iran")
+		frappe.flags.current_date = date(2026, 3, 21)
+		earned_leave_schedule = create_earned_leave_schedule(
+			self.employee,
+			allocate_on_day="Last Day",
+			earned_leave_frequency="Monthly",
+			annual_allocation=24,
+			assignment_based_on="Leave Period",
+			start_date=date(2026, 3, 21),
+			end_date=date(2027, 3, 20),
+		)
+
+		allocation_dates = [allocation.allocation_date for allocation in earned_leave_schedule]
+		expected_dates = []
+		for month in range(1, 13):
+			next_month_start = jdatetime.date(1406, 1, 1) if month == 12 else jdatetime.date(1405, month + 1, 1)
+			expected_dates.append(next_month_start.togregorian() - timedelta(days=1))
+
+		self.assertEqual(allocation_dates, expected_dates)
 
 	def test_schedule_for_monthly_earned_leave_allocated_on_doj(self):
 		frappe.flags.current_date = get_year_start(getdate())

@@ -1,4 +1,8 @@
 import frappe
+try:
+	import jdatetime
+except ImportError:
+	jdatetime = None
 from frappe.utils import (
 	add_days,
 	add_months,
@@ -32,6 +36,7 @@ class TestLeaveAllocation(HRMSTestSuite):
 	def setUp(self):
 		employee = frappe.get_doc("Employee", {"first_name": "_Test Employee"})
 		self.original_doj = employee.date_of_joining
+		self.original_company_country = frappe.db.get_value("Company", "_Test Company", "country")
 		employee.date_of_joining = add_months(getdate(), -24)
 		employee.save()
 
@@ -48,6 +53,12 @@ class TestLeaveAllocation(HRMSTestSuite):
 		to_date = get_year_ending(getdate())
 		self.holiday_list = make_holiday_list(from_date=from_date, to_date=to_date)
 		frappe.db.set_value("Email Account", "_Test Email Account 1", "default_outgoing", 1)
+
+	def tearDown(self):
+		self.employee.date_of_joining = self.original_doj
+		self.employee.save()
+		frappe.db.set_value("Company", "_Test Company", "country", self.original_company_country)
+		super().tearDown()
 
 	def test_earned_leave_allocation(self):
 		"""Tests if Earned Leave allocation is 0 initially as it happens via scheduler"""
@@ -94,6 +105,27 @@ class TestLeaveAllocation(HRMSTestSuite):
 
 		leaves_allocated = get_allocated_leaves(leave_policy_assignments[0])
 		self.assertEqual(leaves_allocated, 3)
+
+	def test_alloc_on_last_jalali_month_end_based_on_leave_period_for_iran(self):
+		if not jdatetime:
+			self.skipTest("jdatetime is required for Jalali earned leave tests")
+
+		frappe.db.set_value("Company", "_Test Company", "country", "Iran")
+		frappe.flags.current_date = date(2026, 8, 8)
+		self.employee.date_of_joining = date(2026, 3, 21)
+		self.employee.save()
+
+		leave_policy_assignments = make_policy_assignment(
+			self.employee,
+			allocate_on_day="Last Day",
+			earned_leave_frequency="Monthly",
+			start_date=date(2026, 3, 21),
+			end_date=date(2027, 3, 20),
+			annual_allocation=30,
+		)
+
+		leaves_allocated = get_allocated_leaves(leave_policy_assignments[0])
+		self.assertEqual(leaves_allocated, 10)
 
 	def test_alloc_based_on_leave_period_with_cf_leaves(self):
 		"""Case 3: Tests assignment created on the leave period's latter month with carry forwarding"""

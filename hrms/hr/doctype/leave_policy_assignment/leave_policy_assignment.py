@@ -25,6 +25,8 @@ from frappe.utils import (
 	getdate,
 	rounded,
 )
+from hrms.regional.iran.utils import is_iran_company
+from hrms.utils.jalali_helper import add_jalali_months, get_jalali_month_start_end, gregorian_to_jalali_date
 
 
 class LeavePolicyAssignment(Document):
@@ -142,13 +144,6 @@ class LeavePolicyAssignment(Document):
 			else []
 		)
 
-		if earned_leave_schedule:
-			# Earned leaves are now allocated in full upfront, so every schedule row
-			# is treated as already allocated to avoid double-allocation by the scheduler.
-			for row in earned_leave_schedule:
-				row["is_allocated"] = 1
-				row["attempted"] = 1
-
 		allocation = frappe.get_doc(
 			doctype="Leave Allocation",
 			employee=self.employee,
@@ -174,9 +169,9 @@ class LeavePolicyAssignment(Document):
 		if leave_details.is_compensatory:
 			new_leaves_allocated = 0
 		elif leave_details.is_earned_leave:
-			# allocate the full annual entitlement upfront so the earned leave is
-			# available immediately instead of accruing gradually over the period
-			new_leaves_allocated = annual_allocation
+			new_leaves_allocated = self.get_leaves_for_passed_period(
+				annual_allocation, leave_details, date_of_joining
+			)
 		else:
 			# calculate pro-rated leaves for other leave types
 			new_leaves_allocated = calculate_pro_rated_leaves(
@@ -196,7 +191,10 @@ class LeavePolicyAssignment(Document):
 
 	def get_leaves_for_passed_period(self, annual_allocation, leave_details, date_of_joining):
 		consider_current_period = is_earned_leave_applicable_for_current_period(
-			date_of_joining, leave_details.allocate_on_day, leave_details.earned_leave_frequency
+			date_of_joining,
+			leave_details.allocate_on_day,
+			leave_details.earned_leave_frequency,
+			self.company,
 		)
 		current_date, from_date = self.get_current_and_from_date(date_of_joining)
 		periods_passed = self.get_periods_passed(
@@ -223,6 +221,16 @@ class LeavePolicyAssignment(Document):
 		return current_date, from_date
 
 	def get_periods_passed(self, earned_leave_frequency, current_date, from_date, consider_current_period):
+		if earned_leave_frequency == "Monthly" and is_iran_company(self.company):
+			from_jalali = gregorian_to_jalali_date(from_date)
+			current_jalali = gregorian_to_jalali_date(current_date)
+			periods_passed = ((current_jalali.year * 12) + current_jalali.month) - (
+				(from_jalali.year * 12) + from_jalali.month
+			)
+			if consider_current_period:
+				periods_passed += 1
+			return periods_passed
+
 		periods_per_year, months_per_period = {
 			"Monthly": (12, 1),
 			"Quarterly": (4, 3),
@@ -248,15 +256,18 @@ class LeavePolicyAssignment(Document):
 			leave_details.earned_leave_frequency,
 			leave_details.rounding,
 			pro_rated=False,
+			company=self.company,
 		)
 
-		period_end_date = get_pro_rata_period_end_date(consider_current_period)
+		period_end_date = get_pro_rata_period_end_date(
+			consider_current_period, leave_details.earned_leave_frequency, self.company
+		)
 		if getdate(self.effective_from) <= date_of_joining <= period_end_date:
 			# if the employee joined within the allocation period in some previous month,
 			# calculate pro-rated leave for that month
 			# and normal monthly earned leave for remaining passed months
 			start_date, end_date = get_sub_period_start_and_end(
-				date_of_joining, leave_details.earned_leave_frequency
+				date_of_joining, leave_details.earned_leave_frequency, company=self.company
 			)
 			leaves = get_periodically_earned_leave(
 				date_of_joining,
@@ -265,6 +276,7 @@ class LeavePolicyAssignment(Document):
 				leave_details.rounding,
 				start_date,
 				end_date,
+				company=self.company,
 			)
 			leaves += periodically_earned_leave * (periods_passed - 1)
 		else:
@@ -293,12 +305,14 @@ class LeavePolicyAssignment(Document):
 			leave_details.earned_leave_frequency,
 			leave_details.rounding,
 			pro_rated=False,
+			company=self.company,
 		)
 		date = get_expected_allocation_date_for_period(
 			leave_details.earned_leave_frequency,
 			leave_details.allocate_on_day,
 			from_date,
 			date_of_joining,
+			self.company,
 		)
 		schedule = []
 		if new_leaves_allocated:
@@ -311,7 +325,9 @@ class LeavePolicyAssignment(Document):
 					"attempted": 1,
 				}
 			)
-			last_allocated_date = get_sub_period_start_and_end(today, leave_details.earned_leave_frequency)[1]
+			last_allocated_date = get_sub_period_start_and_end(
+				today, leave_details.earned_leave_frequency, company=self.company
+			)[1]
 
 		while date <= to_date:
 			date_already_passed = today > date
@@ -324,15 +340,21 @@ class LeavePolicyAssignment(Document):
 					"attempted": 1 if date_already_passed else 0,
 				}
 				schedule.append(row)
+			next_period_date = (
+				add_jalali_months(date, months_to_add)
+				if leave_details.earned_leave_frequency == "Monthly" and is_iran_company(self.company)
+				else add_to_date(date, months=months_to_add)
+			)
 			date = get_expected_allocation_date_for_period(
 				leave_details.earned_leave_frequency,
 				leave_details.allocate_on_day,
-				add_to_date(date, months=months_to_add),
+				next_period_date,
 				date_of_joining,
+				self.company,
 			)
 		if from_date < getdate(date_of_joining):
 			pro_rated_period_start, pro_rated_period_end = get_sub_period_start_and_end(
-				date_of_joining, leave_details.earned_leave_frequency
+				date_of_joining, leave_details.earned_leave_frequency, company=self.company
 			)
 			pro_rated_earned_leave = get_monthly_earned_leave(
 				date_of_joining,
@@ -341,16 +363,23 @@ class LeavePolicyAssignment(Document):
 				leave_details.rounding,
 				pro_rated_period_start,
 				pro_rated_period_end,
+				company=self.company,
 			)
 			schedule[0]["number_of_leaves"] = pro_rated_earned_leave
 		return schedule
 
 
-def get_pro_rata_period_end_date(consider_current_month):
+def get_pro_rata_period_end_date(consider_current_month, earned_leave_frequency=None, company=None):
 	# for earned leave, pro-rata period ends on the last day of the month
 	# pro rata period end date is different for different periods
 
 	date = getdate(frappe.flags.current_date) or getdate()
+	if earned_leave_frequency == "Monthly" and is_iran_company(company):
+		if consider_current_month:
+			return get_jalali_month_start_end(date)[1]
+
+		return get_jalali_month_start_end(add_jalali_months(date, -1))[1]
+
 	if consider_current_month:
 		period_end_date = get_last_day(date)
 	else:
@@ -374,10 +403,22 @@ def calculate_periods_passed(
 	return periods_passed
 
 
-def is_earned_leave_applicable_for_current_period(date_of_joining, allocate_on_day, earned_leave_frequency):
+def is_earned_leave_applicable_for_current_period(
+	date_of_joining, allocate_on_day, earned_leave_frequency, company=None
+):
 	from hrms.hr.utils import get_semester_end, get_semester_start
 
 	date = getdate(frappe.flags.current_date) or getdate()
+	date_of_joining = getdate(date_of_joining)
+	if earned_leave_frequency == "Monthly" and is_iran_company(company):
+		period_start_date, period_end_date = get_jalali_month_start_end(date)
+		doj_in_current_month = add_jalali_months(date, 0, day=gregorian_to_jalali_date(date_of_joining).day)
+		return (
+			(allocate_on_day == "Date of Joining" and date >= doj_in_current_month)
+			or (allocate_on_day == "First Day" and date >= period_start_date)
+			or (allocate_on_day == "Last Day" and date == period_end_date)
+		)
+
 	# If the date of assignment creation is >= the leave type's "Allocate On" date,
 	# then the current month should be considered
 	# because the employee is already entitled for the leave of that month

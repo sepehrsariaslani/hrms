@@ -12,6 +12,7 @@ from hrms.hr.doctype.leave_application.leave_application import get_leave_balanc
 from hrms.hr.doctype.leave_type.test_leave_type import create_leave_type
 from hrms.payroll.doctype.salary_slip.test_salary_slip import make_leave_application
 from hrms.tests.utils import HRMSTestSuite
+from hrms.utils.jalali_helper import gregorian_to_jalali
 
 
 class TestLeaveAdjustment(HRMSTestSuite):
@@ -79,6 +80,30 @@ class TestLeaveAdjustment(HRMSTestSuite):
 
 	def test_decrease_balance_with_adjustment(self):
 		create_leave_adjustment(self.leave_allocation, adjustment_type="Reduce", leaves_to_adjust=3).submit()
+		leave_balance = get_leave_balance_on(
+			employee=self.employee.name, leave_type="_Test Leave Type", date=getdate()
+		)
+		self.assertEqual(leave_balance, 7)
+
+	def test_create_leave_adjustment_doc_method_without_reason(self):
+		self.leave_allocation.create_leave_adjustment("Reduce", 1, getdate())
+		adjustment_name = frappe.db.get_value(
+			"Leave Adjustment", {"leave_allocation": self.leave_allocation.name}, "name"
+		)
+		self.assertTrue(adjustment_name)
+		adjustment = frappe.get_doc("Leave Adjustment", adjustment_name)
+		self.assertEqual(adjustment.reason_for_adjustment or "", "")
+
+	def test_jalali_posting_date_is_normalized(self):
+		jalali_date = gregorian_to_jalali(getdate())
+		create_leave_adjustment(
+			self.leave_allocation,
+			adjustment_type="Reduce",
+			leaves_to_adjust=3,
+			posting_date=jalali_date,
+		).submit()
+		adjustment = frappe.get_doc("Leave Adjustment", {"leave_allocation": self.leave_allocation.name})
+		self.assertEqual(str(adjustment.posting_date), str(getdate()))
 		leave_balance = get_leave_balance_on(
 			employee=self.employee.name, leave_type="_Test Leave Type", date=getdate()
 		)

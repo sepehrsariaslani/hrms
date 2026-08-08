@@ -67,11 +67,11 @@ frappe.ui.form.on("Leave Allocation", {
 									reqd: 1,
 								},
 								{
-									label: "Posting Date",
+									label: "Posting Date (Jalali or Gregorian)",
 									fieldname: "posting_date",
-									fieldtype: "Date",
+									fieldtype: "Data",
 									reqd: 1,
-									default: frappe.datetime.get_today(),
+									default: getAdjustmentPostingDateDefault(),
 								},
 								{
 									label: "Reason for Adjustment",
@@ -81,6 +81,10 @@ frappe.ui.form.on("Leave Allocation", {
 							],
 							primary_action_label: "Adjust Leaves",
 							primary_action(values) {
+								values.posting_date =
+									normalizeAdjustmentPostingDate(values.posting_date) ||
+									values.posting_date;
+								values.reason_for_adjustment = values.reason_for_adjustment || "";
 								frappe.call({
 									method: "create_leave_adjustment",
 									doc: frm.doc,
@@ -229,6 +233,29 @@ frappe.ui.form.on("Leave Allocation", {
 		}
 	},
 });
+
+function getAdjustmentPostingDateDefault() {
+	const today = frappe.datetime.get_today();
+	if (typeof window.gregorianToPersian === "function") {
+		return window.gregorianToPersian(today);
+	}
+	return today;
+}
+
+function normalizeAdjustmentPostingDate(value) {
+	if (!value) return null;
+	const normalized = String(value)
+		.trim()
+		.replace(/[۰-۹]/g, (digit) => "۰۱۲۳۴۵۶۷۸۹".indexOf(digit))
+		.replace(/[٠-٩]/g, (digit) => "٠١٢٣٤٥٦٧٨٩".indexOf(digit))
+		.replace(/-/g, "/");
+	const year = cint((normalized.split("/")[0] || "").trim());
+	if (year >= 1300 && year <= 1600 && typeof window.persianToGregorian === "function") {
+		const converted = window.persianToGregorian(normalized);
+		return converted ? converted.split(" ")[0] : null;
+	}
+	return value;
+}
 
 frappe.tour["Leave Allocation"] = [
 	{
