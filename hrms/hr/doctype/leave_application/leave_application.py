@@ -445,14 +445,15 @@ class LeaveApplication(Document, PWANotificationsMixin):
                                         self.show_insufficient_balance_message(leave_balance_for_consumption)
 
         def set_total_leave_metrics(self, precision: int):
-                standard_hours = self.get_standard_working_hours()
                 if self.leave_duration_mode == "ساعتی":
+                        standard_hours = self.get_standard_working_hours(self.hourly_date or self.from_date)
                         total_hours = self.get_hourly_leave_hours()
                         self.total_leave_hours = flt(total_hours, precision)
                         self.total_leave_days = flt(total_hours / standard_hours, precision)
                         return
 
                 self.total_leave_days = flt(self.total_leave_days, precision)
+                standard_hours = self.get_standard_working_hours(self.from_date)
                 self.total_leave_hours = flt(self.total_leave_days * standard_hours, precision)
 
         def get_hourly_leave_hours(self) -> float:
@@ -461,9 +462,43 @@ class LeaveApplication(Document, PWANotificationsMixin):
                 end_datetime = datetime.datetime.combine(getdate(leave_date), get_time(cstr(self.hourly_to_time)))
                 return (end_datetime - start_datetime).total_seconds() / 3600
 
-        def get_standard_working_hours(self) -> float:
+        def get_standard_working_hours(self, target_date=None) -> float:
+                shift_hours = self.get_shift_standard_working_hours(target_date)
+                if shift_hours:
+                        return shift_hours
+
                 standard_hours = frappe.db.get_single_value("HR Settings", "standard_working_hours")
                 return flt(standard_hours) or LEAVE_DAY_HOURS
+
+        def get_shift_standard_working_hours(self, target_date=None) -> float:
+                if not self.employee or not target_date:
+                        return 0
+
+                shift_type_name = frappe.db.sql(
+                        """
+                        SELECT sa.shift_type
+                        FROM `tabShift Assignment` sa
+                        WHERE sa.employee = %s
+                          AND sa.docstatus = 1
+                          AND sa.status = 'Active'
+                          AND sa.start_date <= %s
+                          AND (sa.end_date IS NULL OR sa.end_date >= %s)
+                        ORDER BY sa.start_date DESC, sa.creation DESC
+                        LIMIT 1
+                        """,
+                        (self.employee, target_date, target_date),
+                )
+
+                if shift_type_name:
+                        shift_type_name = shift_type_name[0][0]
+                else:
+                        shift_type_name = frappe.db.get_value("Employee", self.employee, "default_shift", cache=True)
+
+                if not shift_type_name:
+                        return 0
+
+                shift_hours = frappe.db.get_value("Shift Type", shift_type_name, "standard_working_hours", cache=True)
+                return flt(shift_hours)
 
         def show_insufficient_balance_message(self, leave_balance_for_consumption: float) -> None:
                 alloc_on_from_date, alloc_on_to_date = self.get_allocation_based_on_application_dates()

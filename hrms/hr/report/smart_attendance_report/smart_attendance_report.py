@@ -1248,7 +1248,8 @@ def get_employee_shifts(filters):
     """Get shift assignments for employees keyed by (employee, date).
 
     Returns { (employee, work_date): {shift info} } so that each day uses the shift
-    active on that specific date.
+    active on that specific date. Falls back to the employee's default shift when
+    there is no submitted Shift Assignment for that day.
     """
     shifts = {}
     employees_to_include = get_employees_to_include(filters)
@@ -1311,6 +1312,44 @@ def get_employee_shifts(filters):
         for i in range((end - start).days + 1):
             d = start + timedelta(days=i)
             shifts[(s.employee, d)] = info
+
+    default_shift_query = """
+        SELECT
+            e.name AS employee,
+            st.name AS shift_type,
+            st.start_time,
+            st.end_time,
+            st.standard_working_hours,
+            (
+                CASE
+                    WHEN TIME(st.end_time) > TIME(st.start_time)
+                        THEN TIME_TO_SEC(TIMEDIFF(st.end_time, st.start_time))
+                    ELSE (86400 - TIME_TO_SEC(st.start_time) + TIME_TO_SEC(st.end_time))
+                END
+            ) / 3600 AS shift_duration
+        FROM `tabEmployee` e
+        JOIN `tabShift Type` st ON e.default_shift = st.name
+        WHERE e.status = 'Active'
+          AND e.default_shift IS NOT NULL
+          AND e.default_shift != ''
+          {employee_filter}
+    """.format(employee_filter=employee_filter.replace("sa.employee", "e.name"))
+
+    default_shifts = frappe.db.sql(default_shift_query, params, as_dict=True)
+    start_date = getdate(filters.get("from_date"))
+    end_date = getdate(filters.get("to_date"))
+
+    for s in default_shifts:
+        info = {
+            "shift_type": s.shift_type,
+            "start_time": s.start_time,
+            "end_time": s.end_time,
+            "shift_duration": s.shift_duration,
+            "standard_working_hours": flt(s.get("standard_working_hours")) or None,
+        }
+        for i in range((end_date - start_date).days + 1):
+            d = start_date + timedelta(days=i)
+            shifts.setdefault((s.employee, d), info)
 
     return shifts
 

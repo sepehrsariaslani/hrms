@@ -34,6 +34,7 @@ from hrms.hr.doctype.leave_application.leave_application import (
 	get_leave_details,
 	get_new_and_cf_leaves_taken,
 )
+from hrms.hr.doctype.shift_type.test_shift_type import make_shift_assignment, setup_shift_type
 from hrms.hr.doctype.leave_ledger_entry.leave_ledger_entry import expire_allocation
 from hrms.hr.doctype.leave_policy_assignment.leave_policy_assignment import (
 	create_assignment_for_multiple_employees,
@@ -1463,6 +1464,70 @@ class TestLeaveApplication(HRMSTestSuite):
 			hourly_application.set_total_leave_metrics(2)
 			self.assertEqual(hourly_application.total_leave_hours, 3.67)
 			self.assertEqual(hourly_application.total_leave_days, 0.5)
+		finally:
+			frappe.db.set_single_value(
+				"HR Settings", "standard_working_hours", flt(previous_standard_hours) or 0
+			)
+
+	def test_leave_metrics_use_shift_standard_working_hours(self):
+		previous_standard_hours = frappe.db.get_single_value("HR Settings", "standard_working_hours")
+		frappe.db.set_single_value("HR Settings", "standard_working_hours", 7.33)
+
+		try:
+			shift = setup_shift_type(
+				shift_type="Leave Application Shift Hours",
+				start_time="08:00:00",
+				end_time="17:00:00",
+				standard_working_hours=8.8,
+			)
+			employee = make_employee(
+				"leave.shift.hours@example.com",
+				company="_Test Company",
+				default_shift=shift.name,
+			)
+
+			daily_application = frappe.get_doc(
+				{
+					"doctype": "Leave Application",
+					"employee": employee,
+					"leave_type": "_Test Leave Type",
+					"from_date": getdate(),
+					"to_date": getdate(),
+					"company": "_Test Company",
+					"status": "Open",
+					"leave_duration_mode": "روزانه",
+					"total_leave_days": 1,
+				}
+			)
+			daily_application.set_total_leave_metrics(2)
+			self.assertEqual(8.8, daily_application.total_leave_hours)
+
+			override_shift = setup_shift_type(
+				shift_type="Leave Application Shift Override",
+				start_time="08:00:00",
+				end_time="16:00:00",
+				standard_working_hours=6.5,
+			)
+			make_shift_assignment(override_shift.name, employee, getdate(), getdate())
+
+			hourly_application = frappe.get_doc(
+				{
+					"doctype": "Leave Application",
+					"employee": employee,
+					"leave_type": "_Test Leave Type",
+					"from_date": getdate(),
+					"to_date": getdate(),
+					"company": "_Test Company",
+					"status": "Open",
+					"leave_duration_mode": "ساعتی",
+					"hourly_date": getdate(),
+					"hourly_from_time": "08:00:00",
+					"hourly_to_time": "11:15:00",
+				}
+			)
+			hourly_application.set_total_leave_metrics(2)
+			self.assertEqual(3.25, hourly_application.total_leave_hours)
+			self.assertEqual(0.5, hourly_application.total_leave_days)
 		finally:
 			frappe.db.set_single_value(
 				"HR Settings", "standard_working_hours", flt(previous_standard_hours) or 0
