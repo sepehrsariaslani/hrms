@@ -6,6 +6,7 @@ from frappe.permissions import clear_user_permissions_for_doctype
 from frappe.utils import (
 	add_days,
 	add_months,
+	flt,
 	get_first_day,
 	get_last_day,
 	get_year_ending,
@@ -1422,6 +1423,50 @@ class TestLeaveApplication(HRMSTestSuite):
 		application.discard()
 		application.reload()
 		self.assertEqual(application.status, "Cancelled")
+
+	def test_leave_metrics_use_standard_working_hours_from_hr_settings(self):
+		previous_standard_hours = frappe.db.get_single_value("HR Settings", "standard_working_hours")
+		frappe.db.set_single_value("HR Settings", "standard_working_hours", 7.33)
+
+		try:
+			daily_application = frappe.get_doc(
+				{
+					"doctype": "Leave Application",
+					"employee": get_employee().name,
+					"leave_type": "_Test Leave Type",
+					"from_date": getdate(),
+					"to_date": getdate(),
+					"company": "_Test Company",
+					"status": "Open",
+					"leave_duration_mode": "روزانه",
+					"total_leave_days": 2.5,
+				}
+			)
+			daily_application.set_total_leave_metrics(2)
+			self.assertEqual(daily_application.total_leave_hours, 18.32)
+
+			hourly_application = frappe.get_doc(
+				{
+					"doctype": "Leave Application",
+					"employee": get_employee().name,
+					"leave_type": "_Test Leave Type",
+					"from_date": getdate(),
+					"to_date": getdate(),
+					"company": "_Test Company",
+					"status": "Open",
+					"leave_duration_mode": "ساعتی",
+					"hourly_date": getdate(),
+					"hourly_from_time": "08:00:00",
+					"hourly_to_time": "11:40:00",
+				}
+			)
+			hourly_application.set_total_leave_metrics(2)
+			self.assertEqual(hourly_application.total_leave_hours, 3.67)
+			self.assertEqual(hourly_application.total_leave_days, 0.5)
+		finally:
+			frappe.db.set_single_value(
+				"HR Settings", "standard_working_hours", flt(previous_standard_hours) or 0
+			)
 
 
 def create_carry_forwarded_allocation(employee, leave_type, date=None):

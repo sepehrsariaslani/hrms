@@ -462,8 +462,8 @@ class LeaveApplication(Document, PWANotificationsMixin):
                 return (end_datetime - start_datetime).total_seconds() / 3600
 
         def get_standard_working_hours(self) -> float:
-                # Per business rule, one full leave day equals 7 hours and 20 minutes.
-                return LEAVE_DAY_HOURS
+                standard_hours = frappe.db.get_single_value("HR Settings", "standard_working_hours")
+                return flt(standard_hours) or LEAVE_DAY_HOURS
 
         def show_insufficient_balance_message(self, leave_balance_for_consumption: float) -> None:
                 alloc_on_from_date, alloc_on_to_date = self.get_allocation_based_on_application_dates()
