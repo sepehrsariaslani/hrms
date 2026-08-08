@@ -8,6 +8,7 @@ from erpnext.setup.doctype.employee.test_employee import make_employee
 from hrms.hr.doctype.leave_allocation.test_leave_allocation import create_leave_allocation
 from hrms.hr.doctype.shift_type.test_shift_type import make_shift_assignment, setup_shift_type
 from hrms.hr.report.smart_attendance_report.smart_attendance_report import (
+	ensure_single_day_leave_application,
 	get_employee_shifts,
 	get_leave_map,
 )
@@ -87,3 +88,35 @@ class TestSmartAttendanceReport(HRMSTestSuite):
 		shifts = get_employee_shifts(filters)
 		self.assertEqual("Smart Attendance Override Shift", shifts[(employee, date(2026, 8, 5))]["shift_type"])
 		self.assertEqual(6.5, flt(shifts[(employee, date(2026, 8, 5))]["standard_working_hours"], 2))
+
+	def test_smart_attendance_daily_leave_uses_normalized_leave_days(self):
+		shift = setup_shift_type(
+			shift_type="Smart Attendance Normalized Shift",
+			start_time="08:00:00",
+			end_time="17:00:00",
+			standard_working_hours=8.88,
+		)
+		employee = make_employee(
+			"smart.attendance.normalized.leave@example.com",
+			company="_Test Company",
+			default_shift=shift.name,
+		)
+		create_leave_allocation(
+			employee=employee,
+			leave_type="_Test Leave Type",
+			from_date=date(2026, 8, 1),
+			to_date=date(2026, 8, 31),
+			new_leaves_allocated=15,
+		).insert().submit()
+
+		leave_application, error = ensure_single_day_leave_application(
+			employee,
+			"_Test Company",
+			"_Test Leave Type",
+			date(2026, 8, 5),
+		)
+		self.assertIsNone(error)
+
+		doc = frappe.get_doc("Leave Application", leave_application)
+		self.assertEqual(8.88, flt(doc.total_leave_hours, 2))
+		self.assertEqual(1.21, flt(doc.total_leave_days, 2))

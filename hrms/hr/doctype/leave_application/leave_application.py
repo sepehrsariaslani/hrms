@@ -445,16 +445,17 @@ class LeaveApplication(Document, PWANotificationsMixin):
                                         self.show_insufficient_balance_message(leave_balance_for_consumption)
 
         def set_total_leave_metrics(self, precision: int):
+                base_standard_hours = self.get_base_standard_working_hours()
+
                 if self.leave_duration_mode == "ساعتی":
-                        standard_hours = self.get_standard_working_hours(self.hourly_date or self.from_date)
                         total_hours = self.get_hourly_leave_hours()
                         self.total_leave_hours = flt(total_hours, precision)
-                        self.total_leave_days = flt(total_hours / standard_hours, precision)
+                        self.total_leave_days = flt(total_hours / base_standard_hours, precision)
                         return
 
-                self.total_leave_days = flt(self.total_leave_days, precision)
-                standard_hours = self.get_standard_working_hours(self.from_date)
-                self.total_leave_hours = flt(self.total_leave_days * standard_hours, precision)
+                total_hours = self.get_daily_leave_hours()
+                self.total_leave_hours = flt(total_hours, precision)
+                self.total_leave_days = flt(total_hours / base_standard_hours, precision)
 
         def get_hourly_leave_hours(self) -> float:
                 leave_date = self.hourly_date or self.from_date
@@ -462,13 +463,44 @@ class LeaveApplication(Document, PWANotificationsMixin):
                 end_datetime = datetime.datetime.combine(getdate(leave_date), get_time(cstr(self.hourly_to_time)))
                 return (end_datetime - start_datetime).total_seconds() / 3600
 
+        def get_base_standard_working_hours(self) -> float:
+                standard_hours = frappe.db.get_single_value("HR Settings", "standard_working_hours")
+                return flt(standard_hours) or LEAVE_DAY_HOURS
+
         def get_standard_working_hours(self, target_date=None) -> float:
                 shift_hours = self.get_shift_standard_working_hours(target_date)
                 if shift_hours:
                         return shift_hours
 
-                standard_hours = frappe.db.get_single_value("HR Settings", "standard_working_hours")
-                return flt(standard_hours) or LEAVE_DAY_HOURS
+                return self.get_base_standard_working_hours()
+
+        def get_daily_leave_hours(self, from_date=None, to_date=None) -> float:
+                total_hours = 0
+
+                for leave_date, fraction in self.get_leave_date_fractions(from_date, to_date):
+                        day_hours = self.get_standard_working_hours(leave_date)
+                        total_hours += flt(day_hours) * flt(fraction)
+
+                return total_hours
+
+        def get_leave_date_fractions(self, from_date=None, to_date=None) -> list[tuple[datetime.date, float]]:
+                from_date = getdate(from_date or self.from_date)
+                to_date = getdate(to_date or self.to_date)
+                leave_dates = []
+
+                holiday_dates = set()
+                if not frappe.db.get_value("Leave Type", self.leave_type, "include_holiday"):
+                        holiday_dates = set(get_holiday_dates_for_employee(self.employee, from_date, to_date) or [])
+
+                for leave_date in daterange(from_date, to_date):
+                        leave_date = getdate(leave_date)
+                        if leave_date in holiday_dates:
+                                continue
+
+                        fraction = 0.5 if cint(self.half_day) and getdate(self.half_day_date) == leave_date else 1.0
+                        leave_dates.append((leave_date, fraction))
+
+                return leave_dates
 
         def get_shift_standard_working_hours(self, target_date=None) -> float:
                 if not self.employee or not target_date:
@@ -873,14 +905,24 @@ class LeaveApplication(Document, PWANotificationsMixin):
                 )
 
                 if leaves_in_first_alloc:
+                        first_alloc_hours = self.get_daily_leave_hours(self.from_date, first_alloc_end)
                         args.update(
-                                dict(from_date=self.from_date, to_date=first_alloc_end, leaves=leaves_in_first_alloc * -1)
+                                dict(
+                                        from_date=self.from_date,
+                                        to_date=first_alloc_end,
+                                        leaves=(first_alloc_hours / self.get_base_standard_working_hours()) * -1,
+                                )
                         )
                         create_leave_ledger_entry(self, args, submit)
 
                 if leaves_in_second_alloc:
+                        second_alloc_hours = self.get_daily_leave_hours(second_alloc_start, self.to_date)
                         args.update(
-                                dict(from_date=second_alloc_start, to_date=self.to_date, leaves=leaves_in_second_alloc * -1)
+                                dict(
+                                        from_date=second_alloc_start,
+                                        to_date=self.to_date,
+                                        leaves=(second_alloc_hours / self.get_base_standard_working_hours()) * -1,
+                                )
                         )
                         create_leave_ledger_entry(self, args, submit)
 
@@ -893,10 +935,11 @@ class LeaveApplication(Document, PWANotificationsMixin):
                 )
 
                 if leaves:
+                        first_segment_hours = self.get_daily_leave_hours(self.from_date, expiry_date)
                         args = dict(
                                 from_date=self.from_date,
                                 to_date=expiry_date,
-                                leaves=leaves * -1,
+                                leaves=(first_segment_hours / self.get_base_standard_working_hours()) * -1,
                                 is_lwp=lwp,
                                 holiday_list=get_holiday_list_for_employee(self.employee, raise_exception=raise_exception)
                                 or "",
@@ -910,7 +953,14 @@ class LeaveApplication(Document, PWANotificationsMixin):
                         )
 
                         if leaves:
-                                args.update(dict(from_date=start_date, to_date=self.to_date, leaves=leaves * -1))
+                                second_segment_hours = self.get_daily_leave_hours(start_date, self.to_date)
+                                args.update(
+                                        dict(
+                                                from_date=start_date,
+                                                to_date=self.to_date,
+                                                leaves=(second_segment_hours / self.get_base_standard_working_hours()) * -1,
+                                        )
+                                )
                                 create_leave_ledger_entry(self, args, submit)
 
         def validate_for_self_approval(self):

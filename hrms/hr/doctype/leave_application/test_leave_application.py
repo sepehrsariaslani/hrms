@@ -1501,6 +1501,7 @@ class TestLeaveApplication(HRMSTestSuite):
 			)
 			daily_application.set_total_leave_metrics(2)
 			self.assertEqual(8.8, daily_application.total_leave_hours)
+			self.assertEqual(1.2, daily_application.total_leave_days)
 
 			override_shift = setup_shift_type(
 				shift_type="Leave Application Shift Override",
@@ -1527,7 +1528,7 @@ class TestLeaveApplication(HRMSTestSuite):
 			)
 			hourly_application.set_total_leave_metrics(2)
 			self.assertEqual(3.25, hourly_application.total_leave_hours)
-			self.assertEqual(0.5, hourly_application.total_leave_days)
+			self.assertEqual(0.44, hourly_application.total_leave_days)
 		finally:
 			frappe.db.set_single_value(
 				"HR Settings", "standard_working_hours", flt(previous_standard_hours) or 0
