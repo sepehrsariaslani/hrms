@@ -1,0 +1,90 @@
+{
+ "creation": "2026-04-11 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "work_date",
+  "slot_code",
+  "shift_type",
+  "duty_role",
+  "column_break_uqyy",
+  "start_time",
+  "end_time",
+  "hours",
+  "assignment"
+ ],
+ "fields": [
+  {
+   "fieldname": "work_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Work Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "slot_code",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Slot",
+   "options": "Morning\nEvening",
+   "reqd": 1
+  },
+  {
+   "fieldname": "shift_type",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Shift Type",
+   "options": "Shift Type",
+   "reqd": 1
+  },
+  {
+   "fieldname": "duty_role",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Duty Role",
+   "options": "Shift Duty Role",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_uqyy",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "start_time",
+   "fieldtype": "Time",
+   "label": "Start Time",
+   "reqd": 1
+  },
+  {
+   "fieldname": "end_time",
+   "fieldtype": "Time",
+   "label": "End Time",
+   "reqd": 1
+  },
+  {
+   "fieldname": "hours",
+   "fieldtype": "Float",
+   "label": "Hours",
+   "precision": "2",
+   "read_only": 1
+  },
+  {
+   "fieldname": "assignment",
+   "fieldtype": "Link",
+   "label": "Generated Shift Assignment",
+   "options": "Shift Assignment",
+   "read_only": 1
+  }
+ ],
+ "istable": 1,
+ "modified": "2026-04-11 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "HR",
+ "name": "Weekly Shift Plan Slot",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "track_changes": 1
+}

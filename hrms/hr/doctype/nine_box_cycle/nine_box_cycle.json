@@ -1,0 +1,153 @@
+{
+ "actions": [],
+ "allow_import": 1,
+ "allow_rename": 1,
+ "autoname": "field:cycle_name",
+ "creation": "2026-04-14 00:00:00.000000",
+ "doctype": "DocType",
+ "document_type": "Setup",
+ "engine": "InnoDB",
+ "field_order": [
+  "cycle_name",
+  "company",
+  "column_break_1",
+  "is_active",
+  "start_date",
+  "end_date",
+  "scale_section",
+  "score_scale_max",
+  "column_break_2",
+  "performance_low_max",
+  "performance_medium_max",
+  "column_break_3",
+  "potential_low_max",
+  "potential_medium_max",
+  "description"
+ ],
+ "fields": [
+  {
+   "fieldname": "cycle_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "عنوان دوره ۹ خانه",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "شرکت",
+   "options": "Company"
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "1",
+   "fieldname": "is_active",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "فعال"
+  },
+  {
+   "fieldname": "start_date",
+   "fieldtype": "Date",
+   "label": "از تاریخ"
+  },
+  {
+   "fieldname": "end_date",
+   "fieldtype": "Date",
+   "label": "تا تاریخ"
+  },
+  {
+   "fieldname": "scale_section",
+   "fieldtype": "Section Break",
+   "label": "تنظیمات آستانه‌های ماتریس"
+  },
+  {
+   "default": "100",
+   "fieldname": "score_scale_max",
+   "fieldtype": "Float",
+   "label": "حداکثر مقیاس امتیاز"
+  },
+  {
+   "fieldname": "column_break_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "40",
+   "fieldname": "performance_low_max",
+   "fieldtype": "Float",
+   "label": "مرز عملکرد پایین (حداکثر)"
+  },
+  {
+   "default": "70",
+   "fieldname": "performance_medium_max",
+   "fieldtype": "Float",
+   "label": "مرز عملکرد متوسط (حداکثر)"
+  },
+  {
+   "fieldname": "column_break_3",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "40",
+   "fieldname": "potential_low_max",
+   "fieldtype": "Float",
+   "label": "مرز پتانسیل پایین (حداکثر)"
+  },
+  {
+   "default": "70",
+   "fieldname": "potential_medium_max",
+   "fieldtype": "Float",
+   "label": "مرز پتانسیل متوسط (حداکثر)"
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Text",
+   "label": "توضیحات"
+  }
+ ],
+ "icon": "fa fa-th",
+ "modified": "2026-04-14 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "HR",
+ "name": "Nine Box Cycle",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "HR User",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "import": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "HR Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "quick_entry": 1,
+ "show_name_in_global_search": 1,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "cycle_name",
+ "translated_doctype": 1
+}

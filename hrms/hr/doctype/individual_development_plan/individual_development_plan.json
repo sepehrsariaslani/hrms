@@ -1,0 +1,269 @@
+{
+ "actions": [],
+ "allow_import": 1,
+ "autoname": "naming_series:",
+ "creation": "2026-04-14 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "naming_series",
+  "employee",
+  "employee_name",
+  "column_break_emp",
+  "company",
+  "department",
+  "current_designation",
+  "plan_section",
+  "start_date",
+  "target_date",
+  "status",
+  "column_break_plan",
+  "target_transition",
+  "target_designation",
+  "target_transition_type",
+  "nine_box_assessment",
+  "context_section",
+  "current_job_family",
+  "current_job_grade",
+  "overall_progress",
+  "transition_readiness",
+  "competency_section",
+  "competency_goals",
+  "action_section",
+  "development_actions",
+  "milestone_section",
+  "milestones",
+  "review_section",
+  "reviews",
+  "notes"
+ ],
+ "fields": [
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "سری نام‌گذاری",
+   "options": "IDP-.YYYY.-.####",
+   "reqd": 1
+  },
+  {
+   "fieldname": "employee",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "کارمند",
+   "options": "Employee",
+   "reqd": 1
+  },
+  {
+   "fieldname": "employee_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "نام کارمند",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_emp",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "شرکت",
+   "options": "Company",
+   "read_only": 1
+  },
+  {
+   "fieldname": "department",
+   "fieldtype": "Link",
+   "label": "دپارتمان",
+   "options": "Department",
+   "read_only": 1
+  },
+  {
+   "fieldname": "current_designation",
+   "fieldtype": "Link",
+   "label": "سمت فعلی",
+   "options": "Designation",
+   "read_only": 1
+  },
+  {
+   "fieldname": "plan_section",
+   "fieldtype": "Section Break",
+   "label": "اطلاعات برنامه توسعه"
+  },
+  {
+   "default": "Today",
+   "fieldname": "start_date",
+   "fieldtype": "Date",
+   "label": "تاریخ شروع"
+  },
+  {
+   "fieldname": "target_date",
+   "fieldtype": "Date",
+   "label": "تاریخ هدف"
+  },
+  {
+   "default": "پیش‌نویس",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "وضعیت",
+   "options": "پیش‌نویس\nدر حال انجام\nمتوقف\nتکمیل شده\nلغو شده"
+  },
+  {
+   "fieldname": "column_break_plan",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "target_transition",
+   "fieldtype": "Link",
+   "label": "مسیر شغلی هدف",
+   "options": "Career Path Transition"
+  },
+  {
+   "fieldname": "target_designation",
+   "fieldtype": "Link",
+   "label": "سمت هدف",
+   "options": "Designation",
+   "read_only": 1
+  },
+  {
+   "fieldname": "target_transition_type",
+   "fieldtype": "Data",
+   "label": "نوع مسیر هدف",
+   "read_only": 1
+  },
+  {
+   "fieldname": "nine_box_assessment",
+   "fieldtype": "Link",
+   "label": "نتیجه ۹ خانه",
+   "options": "Nine Box Assessment"
+  },
+  {
+   "fieldname": "context_section",
+   "fieldtype": "Section Break",
+   "label": "زمینه تصمیم‌گیری"
+  },
+  {
+   "fieldname": "current_job_family",
+   "fieldtype": "Link",
+   "label": "خانواده شغلی فعلی",
+   "options": "Job Family",
+   "read_only": 1
+  },
+  {
+   "fieldname": "current_job_grade",
+   "fieldtype": "Link",
+   "label": "گرید فعلی",
+   "options": "Job Grade",
+   "read_only": 1
+  },
+  {
+   "fieldname": "overall_progress",
+   "fieldtype": "Percent",
+   "in_list_view": 1,
+   "label": "پیشرفت کل",
+   "read_only": 1
+  },
+  {
+   "fieldname": "transition_readiness",
+   "fieldtype": "Long Text",
+   "label": "نتیجه بررسی شروط عبور",
+   "read_only": 1
+  },
+  {
+   "fieldname": "competency_section",
+   "fieldtype": "Section Break",
+   "label": "اهداف شایستگی"
+  },
+  {
+   "fieldname": "competency_goals",
+   "fieldtype": "Table",
+   "label": "شایستگی‌های هدف",
+   "options": "IDP Competency Goal"
+  },
+  {
+   "fieldname": "action_section",
+   "fieldtype": "Section Break",
+   "label": "اقدامات توسعه‌ای"
+  },
+  {
+   "fieldname": "development_actions",
+   "fieldtype": "Table",
+   "label": "اقدامات",
+   "options": "IDP Development Action"
+  },
+  {
+   "fieldname": "milestone_section",
+   "fieldtype": "Section Break",
+   "label": "مایلستون‌ها"
+  },
+  {
+   "fieldname": "milestones",
+   "fieldtype": "Table",
+   "label": "مایلستون‌ها",
+   "options": "IDP Milestone"
+  },
+  {
+   "fieldname": "review_section",
+   "fieldtype": "Section Break",
+   "label": "بازبینی‌های دوره‌ای"
+  },
+  {
+   "fieldname": "reviews",
+   "fieldtype": "Table",
+   "label": "بازبینی‌ها",
+   "options": "IDP Review"
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Text",
+   "label": "توضیحات"
+  }
+ ],
+ "icon": "fa fa-road",
+ "modified": "2026-04-14 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "HR",
+ "name": "Individual Development Plan",
+ "naming_rule": "By \"Naming Series\" field",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Employee",
+   "share": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "HR User",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "import": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "HR Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "quick_entry": 1,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "title_field": "employee_name",
+ "translated_doctype": 1
+}

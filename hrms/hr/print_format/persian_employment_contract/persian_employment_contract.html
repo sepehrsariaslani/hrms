@@ -1,0 +1,386 @@
+<style>
+    @media print {
+        @page {
+            size: A4;
+            margin: 8mm;
+        }
+
+        * {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+        }
+    }
+
+    .print-format {
+        direction: rtl;
+        font-family: 'Peyda', Tahoma, Arial, sans-serif;
+        color: #222;
+        font-size: 13px;
+        line-height: 1.9;
+    }
+
+    .top-header {
+        background-color: #4A2522 !important;
+        color: #fff !important;
+        border-radius: 8px;
+        padding: 14px 16px;
+        margin-bottom: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    .top-header * {
+        color: #fff !important;
+    }
+
+    .header-right {
+        min-width: 180px;
+        text-align: right;
+        font-size: 12px;
+        line-height: 1.8;
+    }
+
+    .header-center {
+        flex: 1;
+        text-align: center;
+    }
+
+    .header-center .contract-title {
+        font-size: 22px;
+        font-weight: bold;
+        margin: 0;
+    }
+
+    .header-center .subtitle {
+        font-size: 12px;
+        margin-top: 4px;
+    }
+
+    .header-left {
+        min-width: 72px;
+        max-width: 72px;
+        height: 72px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: visible;
+    }
+
+    .qr-box {
+        width: 64px;
+        height: 64px;
+        background: #fff;
+        border: 1px solid #d8d8d8;
+        border-radius: 0;
+        padding: 4px;
+        box-sizing: border-box;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: visible;
+        line-height: 0;
+        font-size: 0;
+    }
+
+    .qr-box svg,
+    .qr-box img,
+    .qr-box > * {
+        display: block !important;
+        width: 100% !important;
+        height: 100% !important;
+        max-width: 100% !important;
+        max-height: 100% !important;
+        object-fit: contain !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        position: static !important;
+        float: none !important;
+        vertical-align: top !important;
+    }
+
+    .salary-section {
+        page-break-inside: avoid;
+        break-inside: avoid-page;
+    }
+
+    .salary-table-wrap {
+        page-break-inside: avoid;
+        break-inside: avoid-page;
+    }
+
+    .salary-table thead,
+    .salary-table tbody,
+    .salary-table tr {
+        page-break-inside: avoid;
+        break-inside: avoid;
+    }
+
+    @media print {
+        .salary-section {
+            page-break-inside: avoid;
+            break-inside: avoid-page;
+        }
+
+        .salary-table-wrap {
+            page-break-inside: avoid;
+            break-inside: avoid-page;
+        }
+
+        .salary-table thead,
+        .salary-table tbody,
+        .salary-table tr {
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+        }
+    }
+
+    .section-title {
+        font-weight: bold;
+        margin-top: 12px;
+    }
+
+    .box {
+        border: 1px solid #bbb;
+        border-radius: 6px;
+        padding: 10px;
+        margin: 10px 0;
+    }
+
+    .signatures {
+        margin-top: 90px;
+        display: flex;
+        justify-content: space-between;
+        gap: 20px;
+        page-break-inside: avoid;
+    }
+
+    .sign-box {
+        width: 48%;
+    }
+
+    .sign-space {
+        height: 120px;
+        border: 1px dashed #888;
+        border-radius: 6px;
+    }
+
+    .sign-label {
+        text-align: center;
+        margin-top: 8px;
+        font-weight: bold;
+    }
+
+    .salary-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 10px;
+        font-size: 12px;
+    }
+
+    .salary-table th,
+    .salary-table td {
+        border: 1px solid #999;
+        padding: 6px;
+        text-align: center;
+        vertical-align: middle;
+    }
+
+    .salary-table th {
+        background: #f5f5f5;
+        font-weight: bold;
+    }
+
+    .salary-table td.desc {
+        text-align: right;
+    }
+</style>
+
+{% set settings_exists = frappe.db.exists("DocType", "Employment Contract Settings") %}
+{% set employer_name = frappe.db.get_single_value("Employment Contract Settings", "employer_name") if settings_exists else "" %}
+{% set employer_representative = frappe.db.get_single_value("Employment Contract Settings", "employer_representative") if settings_exists else "" %}
+{% set employer_company_name = frappe.db.get_single_value("Employment Contract Settings", "employer_company_name") if settings_exists else "" %}
+{% set employer_phone = frappe.db.get_single_value("Employment Contract Settings", "employer_phone") if settings_exists else "" %}
+{% set employer_address = frappe.db.get_single_value("Employment Contract Settings", "employer_address") if settings_exists else "" %}
+{% set issue_date_text = doc.issue_date_jalali or (frappe.utils.formatdate(doc.issue_date, "yyyy/mm/dd") if doc.issue_date else "") %}
+{% set start_jalali = doc.start_date_jalali or (frappe.utils.formatdate(doc.start_date, "yyyy/mm/dd") if doc.start_date else "") %}
+{% set end_jalali = doc.end_date_jalali or (frappe.utils.formatdate(doc.end_date, "yyyy/mm/dd") if doc.end_date else "") %}
+{% set issue_date_text = issue_date_text.split(" ")[0] if issue_date_text else "" %}
+{% set start_jalali = start_jalali.split(" ")[0] if start_jalali else "" %}
+{% set end_jalali = end_jalali.split(" ")[0] if end_jalali else "" %}
+{% set qr_url = frappe.utils.get_url_to_form(doc.doctype, doc.name) %}
+{% set salary_rows = [] %}
+{% if doc.salary_items %}
+    {% for row in doc.salary_items %}
+        {% set amount31 = (row.amount_31_days or 0) | float %}
+        {% set amount30 = (row.amount_30_days or 0) | float %}
+        {% if amount31 > 0 or amount30 > 0 %}
+            {% set _ = salary_rows.append(row) %}
+        {% endif %}
+    {% endfor %}
+{% endif %}
+{% set totals = namespace(amount_31=0, amount_30=0) %}
+{% for row in salary_rows %}
+    {% set totals.amount_31 = totals.amount_31 + ((row.amount_31_days or 0) | float) %}
+    {% set totals.amount_30 = totals.amount_30 + ((row.amount_30_days or 0) | float) %}
+{% endfor %}
+
+<div class="print-format">
+    <div class="top-header">
+        <div class="header-right">
+            <div>شماره قرارداد: {{ doc.name }}</div>
+            <div>تاریخ صدور: {{ issue_date_text or "" }}</div>
+            {% if doc.employee_name %}
+            <div>همکار: {{ doc.employee_name }}</div>
+            {% endif %}
+        </div>
+        <div class="header-center">
+            <h1 class="contract-title">قرارداد کار موقت</h1>
+            <div class="subtitle">{{ employer_company_name or employer_name or "" }}</div>
+        </div>
+        <div class="header-left">
+            <div class="qr-box">
+                {{ get_qr_code(qr_url, "#000000") }}
+            </div>
+        </div>
+    </div>
+
+    <div>
+        این قرارداد به موجب ماده ۱۰ قانون کار جمهوری اسلامی ایران فیمابین کارفرما و همکار به شرح ذیل منعقد می‌گردد.
+    </div>
+
+    <div class="section-title">الف: مشخصات کارفرما</div>
+    <div class="box">
+        {{ employer_name }}
+        {% if employer_representative %}
+        فرزند {{ employer_representative }}
+        {% endif %}
+        {% if employer_company_name %}
+        به نمایندگی {{ employer_company_name }}
+        {% endif %}
+        {% if employer_phone %}
+        - تلفن: {{ employer_phone }}
+        {% endif %}
+        {% if employer_address %}
+        <br>
+        آدرس: {{ employer_address }}
+        {% endif %}
+    </div>
+
+    <div class="section-title">ب: مشخصات همکار</div>
+    <div class="box">
+        نام و نام خانوادگی: {{ doc.employee_name or "" }}
+        {% if doc.father_name %} - فرزند {{ doc.father_name }}{% endif %}
+        {% if doc.national_id %} - کد ملی: {{ doc.national_id }}{% endif %}
+        {% if doc.id_number %} - شماره شناسنامه: {{ doc.id_number }}{% endif %}
+        {% if doc.id_issue_place %} - محل صدور: {{ doc.id_issue_place }}{% endif %}
+        {% if doc.employee_phone %}<br>تلفن: {{ doc.employee_phone }}{% endif %}
+        {% if doc.employee_address %}<br>آدرس: {{ doc.employee_address }}{% endif %}
+    </div>
+
+    <div class="section-title">۱- نوع قرارداد</div>
+    <div>{{ doc.contract_type or "قرارداد کار موقت" }}</div>
+
+    <div class="section-title">۲- مدت قرارداد</div>
+    <div>
+        از تاریخ {{ start_jalali if doc.start_date else "" }}
+        لغایت {{ end_jalali if doc.end_date else "" }}
+        به مدت {{ doc.duration_months or 0 }} ماه تعیین می‌گردد که پس از انقضاء مدت مذکور قابل تمدید یا فسخ خواهد بود.
+    </div>
+
+    <div class="section-title">۳- مدت زمان کار</div>
+    <div>
+        مدت زمان کار بر اساس قانون کار نظام جمهوری اسلامی ایران هفته‌ای {{ doc.work_hours_per_week or 44 }} ساعت می‌باشد.
+    </div>
+
+    <div class="section-title">۴- محل کار</div>
+    <div>
+        {% if doc.work_locations %}
+            {% for row in doc.work_locations %}
+                {% set branch_address = frappe.db.get_value("Branch", row.branch, "address_line") %}
+                {{ loop.index }}- {{ row.branch }}{% if branch_address %} - {{ branch_address }}{% endif %}{% if not loop.last %}<br>{% endif %}
+            {% endfor %}
+        {% else %}
+            {{ doc.workplace_details or "بر اساس نیاز کارفرما تعیین می‌گردد." }}
+        {% endif %}
+    </div>
+    <div style="margin-top:6px;">
+        تبصره ۱- محل کار بر اساس نیاز توسط کارفرما تعیین و مشخص می‌گردد که اجرای این موضوع از سوی همکار الزامی است.
+    </div>
+
+    <div class="section-title">۵- موضوع قرارداد (عنوان شغل)</div>
+    <div>{{ doc.job_title or doc.designation or "" }}</div>
+
+    <div class="salary-section">
+        <div class="section-title">۶- حقوق و مزایا</div>
+        <div class="salary-table-wrap">
+            <table class="salary-table">
+            <thead>
+                <tr>
+                    <th>ردیف</th>
+                    <th>شرح</th>
+                    <th>ماه ۳۱ روزه</th>
+                    <th>ماه ۳۰ روزه</th>
+                    <th>ملاحظات</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if salary_rows %}
+                    {% for row in salary_rows %}
+                    <tr>
+                        <td>{{ loop.index }}</td>
+                        <td class="desc">{{ row.salary_component_label or "" }}</td>
+                        <td>{{ frappe.format_value(row.amount_31_days, {"fieldtype": "Currency"}) if row.amount_31_days is not none else "-" }}</td>
+                        <td>{{ frappe.format_value(row.amount_30_days, {"fieldtype": "Currency"}) if row.amount_30_days is not none else "-" }}</td>
+                        <td>{{ row.remarks or "" }}</td>
+                    </tr>
+                    {% endfor %}
+                    <tr>
+                        <td>{{ (salary_rows | length) + 1 }}</td>
+                        <td class="desc"><strong>جمع کل</strong></td>
+                        <td><strong>{{ frappe.format_value(totals.amount_31, {"fieldtype": "Currency"}) }}</strong></td>
+                        <td><strong>{{ frappe.format_value(totals.amount_30, {"fieldtype": "Currency"}) }}</strong></td>
+                        <td></td>
+                    </tr>
+                {% else %}
+                    <tr>
+                        <td>1</td>
+                        <td class="desc">آیتمی ثبت نشده است</td>
+                        <td>-</td>
+                        <td>-</td>
+                        <td></td>
+                    </tr>
+                {% endif %}
+            </tbody>
+            </table>
+            <div style="margin-top:8px;">
+                پس از کسر کسورات قانونی به شماره حساب {{ doc.employee_bank_account or "" }}
+                {% if doc.payment_bank_name %} نزد بانک {{ doc.payment_bank_name }}{% endif %}
+                در وجه همکار پرداخت می‌گردد.
+            </div>
+        </div>
+    </div>
+
+    <div class="section-title">تبصره‌ها</div>
+    <div>
+        تبصره ۲- مزایای قانونی از قبیل عیدی، پاداش، سنوات خدمت و باقیمانده مرخصی استحقاقی طبق دستورالعمل وزارت کار محاسبه و پرداخت می‌گردد.
+        <br>
+        تبصره ۳- همکار به ازای هر ماه کارکرد می‌تواند به میزان ۲.۵ روز از مرخصی استحقاقی استفاده نماید.
+        <br>
+        این قرارداد در ۲ نسخه و ۶ ماده و ۳ تبصره تنظیم گردیده و پس از امضای طرفین دارای اعتبار واحد خواهد بود.
+    </div>
+
+    <div class="signatures">
+        <div class="sign-box">
+            <div class="sign-space"></div>
+            <div class="sign-label">امضاء و اثر انگشت همکار</div>
+        </div>
+        <div class="sign-box">
+            <div class="sign-space"></div>
+            <div class="sign-label">مهر و امضاء کارفرما</div>
+        </div>
+    </div>
+</div>

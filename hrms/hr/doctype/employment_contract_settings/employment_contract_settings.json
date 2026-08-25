@@ -1,0 +1,169 @@
+{
+ "actions": [],
+ "creation": "2026-05-04 09:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "employer_section",
+  "employer_name",
+  "employer_company_name",
+  "column_break_employer_1",
+  "employer_representative",
+  "employer_phone",
+  "employer_address",
+  "default_contract_section",
+  "default_contract_type",
+  "default_work_hours_per_week",
+  "column_break_contract_1",
+  "default_job_title",
+  "default_workplace_details",
+  "workplaces",
+  "payment_section",
+  "employee_payment_bank",
+  "employer_bank_name",
+  "column_break_payment_1",
+  "employer_bank_account",
+  "employer_iban",
+  "print_section",
+  "letterhead_title"
+ ],
+ "fields": [
+  {
+   "fieldname": "employer_section",
+   "fieldtype": "Section Break",
+   "label": "اطلاعات کارفرما"
+  },
+  {
+   "fieldname": "employer_name",
+   "fieldtype": "Data",
+   "label": "نام کارفرما",
+   "reqd": 1
+  },
+  {
+   "fieldname": "employer_company_name",
+   "fieldtype": "Data",
+   "label": "نام شرکت/مجموعه"
+  },
+  {
+   "fieldname": "column_break_employer_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "employer_representative",
+   "fieldtype": "Data",
+   "label": "نماینده قانونی"
+  },
+  {
+   "fieldname": "employer_phone",
+   "fieldtype": "Data",
+   "label": "تلفن کارفرما"
+  },
+  {
+   "fieldname": "employer_address",
+   "fieldtype": "Small Text",
+   "label": "آدرس کارفرما"
+  },
+  {
+   "fieldname": "default_contract_section",
+   "fieldtype": "Section Break",
+   "label": "مقادیر پیش‌فرض قرارداد"
+  },
+  {
+   "default": "قرارداد کار موقت",
+   "fieldname": "default_contract_type",
+   "fieldtype": "Select",
+   "label": "نوع پیش‌فرض قرارداد",
+   "options": "قرارداد کار موقت\nقرارداد کار دائم\nقرارداد پاره‌وقت"
+  },
+  {
+   "default": "44",
+   "fieldname": "default_work_hours_per_week",
+   "fieldtype": "Float",
+   "label": "ساعت کار هفتگی پیش‌فرض"
+  },
+  {
+   "fieldname": "column_break_contract_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "default_job_title",
+   "fieldtype": "Data",
+   "label": "عنوان شغل پیش‌فرض"
+  },
+  {
+   "fieldname": "default_workplace_details",
+   "fieldtype": "Text",
+   "label": "متن پیش‌فرض محل کار"
+  },
+  {
+   "fieldname": "workplaces",
+   "fieldtype": "Table",
+   "label": "محل‌های کار",
+   "options": "Employment Contract Workplace"
+  },
+  {
+   "fieldname": "payment_section",
+   "fieldtype": "Section Break",
+   "label": "اطلاعات بانکی پیش‌فرض"
+  },
+  {
+   "fieldname": "employee_payment_bank",
+   "fieldtype": "Data",
+   "label": "بانک پرداختی به همکار"
+  },
+  {
+   "fieldname": "employer_bank_name",
+   "fieldtype": "Data",
+   "label": "نام بانک کارفرما"
+  },
+  {
+   "fieldname": "column_break_payment_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "employer_bank_account",
+   "fieldtype": "Data",
+   "label": "شماره حساب/کارت کارفرما"
+  },
+  {
+   "fieldname": "employer_iban",
+   "fieldtype": "Data",
+   "label": "شماره شبای کارفرما"
+  },
+  {
+   "fieldname": "print_section",
+   "fieldtype": "Section Break",
+   "label": "تنظیمات چاپ"
+  },
+  {
+   "default": "به نام یزدان پاک",
+   "fieldname": "letterhead_title",
+   "fieldtype": "Data",
+   "label": "تیتر بالای قرارداد"
+  }
+ ],
+ "issingle": 1,
+ "links": [],
+ "modified": "2026-05-04 09:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "HR",
+ "name": "Employment Contract Settings",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "read": 1,
+   "role": "System Manager",
+   "write": 1
+  },
+  {
+   "read": 1,
+   "role": "HR Manager",
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

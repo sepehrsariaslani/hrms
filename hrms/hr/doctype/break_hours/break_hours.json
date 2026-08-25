@@ -1,0 +1,128 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "field:break_name",
+ "creation": "2026-04-24 23:30:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "section_main",
+  "break_name",
+  "is_active",
+  "calculation_type",
+  "column_break_times",
+  "break_start",
+  "break_end",
+  "deduction_hours",
+  "fixed_break_rules",
+  "description"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_main",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "break_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Break Name",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "default": "1",
+   "fieldname": "is_active",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Is Active"
+  },
+  {
+   "default": "Time Window",
+   "fieldname": "calculation_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Calculation Type",
+   "options": "Time Window\nFixed by Worked Hours",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_times",
+   "fieldtype": "Column Break"
+  },
+  {
+   "depends_on": "eval:doc.calculation_type != 'Fixed by Worked Hours'",
+   "fieldname": "break_start",
+   "fieldtype": "Time",
+   "in_list_view": 1,
+   "label": "Break Start",
+   "mandatory_depends_on": "eval:doc.calculation_type != 'Fixed by Worked Hours'"
+  },
+  {
+   "depends_on": "eval:doc.calculation_type != 'Fixed by Worked Hours'",
+   "fieldname": "break_end",
+   "fieldtype": "Time",
+   "in_list_view": 1,
+   "label": "Break End",
+   "mandatory_depends_on": "eval:doc.calculation_type != 'Fixed by Worked Hours'"
+  },
+  {
+   "default": "1",
+   "description": "Maximum deducted hours for this break window",
+   "depends_on": "eval:doc.calculation_type != 'Fixed by Worked Hours'",
+   "fieldname": "deduction_hours",
+   "fieldtype": "Float",
+   "label": "Deduction Hours",
+   "mandatory_depends_on": "eval:doc.calculation_type != 'Fixed by Worked Hours'"
+  },
+  {
+   "depends_on": "eval:doc.calculation_type == 'Fixed by Worked Hours'",
+   "fieldname": "fixed_break_rules",
+   "fieldtype": "Table",
+   "label": "Fixed Break Rules",
+   "options": "Break Deduction Rule"
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Small Text",
+   "label": "Description"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-04-24 23:30:00.000000",
+ "modified_by": "Administrator",
+ "module": "HR",
+ "name": "Break Hours",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "HR Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

@@ -1,0 +1,55 @@
+{
+ "actions": [],
+ "creation": "2026-04-14 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "transition",
+  "from_designation",
+  "to_designation",
+  "transition_type"
+ ],
+ "fields": [
+  {
+   "fieldname": "transition",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "مسیر",
+   "options": "Career Path Transition",
+   "reqd": 1
+  },
+  {
+   "fetch_from": "transition.from_designation",
+   "fieldname": "from_designation",
+   "fieldtype": "Read Only",
+   "in_list_view": 1,
+   "label": "مبدا"
+  },
+  {
+   "fetch_from": "transition.to_designation",
+   "fieldname": "to_designation",
+   "fieldtype": "Read Only",
+   "in_list_view": 1,
+   "label": "مقصد"
+  },
+  {
+   "fetch_from": "transition.transition_type",
+   "fieldname": "transition_type",
+   "fieldtype": "Read Only",
+   "in_list_view": 1,
+   "label": "نوع مسیر"
+  }
+ ],
+ "istable": 1,
+ "modified": "2026-04-14 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "HR",
+ "name": "Career Path Transition Link",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "translated_doctype": 1
+}
+

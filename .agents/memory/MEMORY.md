@@ -1,0 +1,1 @@
+- [Frappe HR setup](frappe-hr-setup.md) — Frappe HR is a Frappe Framework app; only the Vue/Vite frontend can run standalone in Replit without a full bench stack.

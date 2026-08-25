@@ -1,0 +1,28 @@
+{
+ "actions": [],
+ "creation": "2026-04-14 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "responsibility"
+ ],
+ "fields": [
+  {
+   "fieldname": "responsibility",
+   "fieldtype": "Small Text",
+   "in_list_view": 1,
+   "label": "مسئولیت",
+   "reqd": 1
+  }
+ ],
+ "istable": 1,
+ "modified": "2026-04-14 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "HR",
+ "name": "Designation Responsibility",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC"
+}

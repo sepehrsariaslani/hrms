@@ -1,0 +1,57 @@
+{
+ "actions": [],
+ "creation": "2026-04-14 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "review_date",
+  "reviewer",
+  "progress_percent",
+  "remarks",
+  "next_steps"
+ ],
+ "fields": [
+  {
+   "default": "Today",
+   "fieldname": "review_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "تاریخ بازبینی"
+  },
+  {
+   "fieldname": "reviewer",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "بازبین",
+   "options": "User"
+  },
+  {
+   "fieldname": "progress_percent",
+   "fieldtype": "Percent",
+   "in_list_view": 1,
+   "label": "درصد پیشرفت"
+  },
+  {
+   "fieldname": "remarks",
+   "fieldtype": "Small Text",
+   "label": "جمع‌بندی بازبینی"
+  },
+  {
+   "fieldname": "next_steps",
+   "fieldtype": "Small Text",
+   "label": "گام‌های بعدی"
+  }
+ ],
+ "istable": 1,
+ "modified": "2026-04-14 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "HR",
+ "name": "IDP Review",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "translated_doctype": 1
+}
+

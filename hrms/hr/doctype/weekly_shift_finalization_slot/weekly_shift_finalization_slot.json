@@ -1,0 +1,131 @@
+{
+ "actions": [],
+ "creation": "2026-04-11 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "employee",
+  "employee_name",
+  "work_date",
+  "slot_code",
+  "shift_type",
+  "column_break_1",
+  "start_time",
+  "end_time",
+  "hours",
+  "duty_role",
+  "is_manual",
+  "source_plan",
+  "source_slot",
+  "was_requested"
+ ],
+ "fields": [
+  {
+   "fieldname": "employee",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Employee",
+   "options": "Employee",
+   "reqd": 1
+  },
+  {
+   "fetch_from": "employee.employee_name",
+   "fieldname": "employee_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Employee Name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "work_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Work Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "slot_code",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Slot",
+   "options": "Morning\nEvening",
+   "reqd": 1
+  },
+  {
+   "fieldname": "shift_type",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Shift Type",
+   "options": "Shift Type",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "start_time",
+   "fieldtype": "Time",
+   "label": "Start Time",
+   "reqd": 1
+  },
+  {
+   "fieldname": "end_time",
+   "fieldtype": "Time",
+   "label": "End Time",
+   "reqd": 1
+  },
+  {
+   "fieldname": "hours",
+   "fieldtype": "Float",
+   "label": "Hours",
+   "precision": "2",
+   "read_only": 1
+  },
+  {
+   "fieldname": "duty_role",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Final Duty Role",
+   "options": "Shift Duty Role",
+   "reqd": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "is_manual",
+   "fieldtype": "Check",
+   "label": "Assigned Manually"
+  },
+  {
+   "fieldname": "source_plan",
+   "fieldtype": "Link",
+   "label": "Source Weekly Plan",
+   "options": "Weekly Shift Plan",
+   "read_only": 1
+  },
+  {
+   "fieldname": "source_slot",
+   "fieldtype": "Data",
+   "label": "Source Slot",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "was_requested",
+   "fieldtype": "Check",
+   "label": "Requested by Employee",
+   "read_only": 1
+  }
+ ],
+ "istable": 1,
+ "modified": "2026-04-11 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "HR",
+ "name": "Weekly Shift Finalization Slot",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "track_changes": 1
+}

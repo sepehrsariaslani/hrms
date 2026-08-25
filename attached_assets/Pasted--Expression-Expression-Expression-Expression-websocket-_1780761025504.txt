@@ -1,0 +1,125 @@
+
+
+Expression
+
+Expression
+
+Expression
+
+Expression
+﻿
+websocket.js:122 WebSocket connection to 'ws://dehati:9000/socket.io/?EIO=4&transport=websocket&sid=AGKyjvdciR-6dJPsAAAK' failed: WebSocket is closed before the connection is established.
+main.js:289 Service worker not enabled/supported by the browser
+6
+[Intervention] Slow network is detected. See <URL> for more details. Fallback font will be used while loading: <URL>
+:8000/api/method/fra….get_single_value:1 
+ Failed to load resource: the server responded with a status of 403 (FORBIDDEN)
+frappeRequest.js:67 Traceback (most recent call last):
+  File "apps/frappe/frappe/app.py", line 153, in application
+    response = frappe.api.handle(request)
+  File "apps/frappe/frappe/api/__init__.py", line 63, in handle
+    data = endpoint(**arguments)
+  File "apps/frappe/frappe/api/v1.py", line 40, in handle_rpc_call
+    return frappe.handler.handle()
+           ~~~~~~~~~~~~~~~~~~~~~^^
+  File "apps/frappe/frappe/handler.py", line 53, in handle
+    data = execute_cmd(cmd)
+  File "apps/frappe/frappe/handler.py", line 86, in execute_cmd
+    return frappe.call(method, **frappe.form_dict)
+           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "apps/frappe/frappe/__init__.py", line 1129, in call
+    return fn(*args, **newargs)
+  File "apps/frappe/frappe/utils/typing_validations.py", line 36, in wrapper
+    return func(*args, **kwargs)
+  File "apps/frappe/frappe/client.py", line 161, in get_single_value
+    frappe.throw(_("No permission for {0}").format(_(doctype)), frappe.PermissionError)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "apps/frappe/frappe/utils/messages.py", line 159, in throw
+    msgprint(
+    ~~~~~~~~^
+    	msg,
+     ^^^^
+    ...<7 lines>...
+    	allow_dangerous_html=allow_dangerous_html,
+     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "apps/frappe/frappe/utils/messages.py", line 118, in msgprint
+    _raise_exception()
+    ~~~~~~~~~~~~~~~~^^
+  File "apps/frappe/frappe/utils/messages.py", line 59, in _raise_exception
+    raise exc
+frappe.exceptions.PermissionError: بدون مجوز برای تنظیمات سیستم
+frappeRequest.js:71 Uncaught (in promise) Error: /api/method/frappe.client.get_single_value PermissionError
+    at s (frappe-ui-CMFbIPas.js:1:668)
+Peyda-Bold.ttf:1 
+ Failed to load resource: the server responded with a status of 404 (NOT FOUND)
+attendance:1 Blocked aria-hidden on an element because its descendant retained focus. The focus must not be hidden from assistive technology users. Avoid using aria-hidden on a focused element or its ancestor. Consider using the inert attribute instead, which will also prevent focus. For more details, see the aria-hidden section of the WAI-ARIA specification at https://w3c.github.io/aria/#aria-hidden.
+Element with focus: <a.router-link-active router-link-exact-active flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition bg-amber-50 text-amber-700>
+Ancestor with aria-hidden: <div.ion-page ion-page-hidden> 
+Peyda-Medium.ttf:1 
+ Failed to load resource: the server responded with a status of 404 (NOT FOUND)
+:8000/api/method/frappe.client.insert:1 
+ Failed to load resource: the server responded with a status of 417 (EXPECTATION FAILED)
+frappeRequest.js:67 Traceback (most recent call last):
+  File "apps/frappe/frappe/app.py", line 153, in application
+    response = frappe.api.handle(request)
+  File "apps/frappe/frappe/api/__init__.py", line 63, in handle
+    data = endpoint(**arguments)
+  File "apps/frappe/frappe/api/v1.py", line 40, in handle_rpc_call
+    return frappe.handler.handle()
+           ~~~~~~~~~~~~~~~~~~~~~^^
+  File "apps/frappe/frappe/handler.py", line 53, in handle
+    data = execute_cmd(cmd)
+  File "apps/frappe/frappe/handler.py", line 86, in execute_cmd
+    return frappe.call(method, **frappe.form_dict)
+           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "apps/frappe/frappe/__init__.py", line 1129, in call
+    return fn(*args, **newargs)
+  File "apps/frappe/frappe/utils/typing_validations.py", line 36, in wrapper
+    return func(*args, **kwargs)
+  File "apps/frappe/frappe/client.py", line 211, in insert
+    return insert_doc(doc).as_dict()
+           ~~~~~~~~~~^^^^^
+  File "apps/frappe/frappe/client.py", line 527, in insert_doc
+    return frappe.get_doc(doc).insert()
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "apps/frappe/frappe/model/document.py", line 447, in insert
+    self.run_before_save_methods()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "apps/frappe/frappe/model/document.py", line 1335, in run_before_save_methods
+    self.run_method("validate")
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^
+  File "apps/frappe/frappe/model/document.py", line 1184, in run_method
+    out = Document.hook(fn)(self, *args, **kwargs)
+  File "apps/frappe/frappe/model/document.py", line 1581, in composer
+    return composed(self, method, *args, **kwargs)
+  File "apps/frappe/frappe/model/document.py", line 1559, in runner
+    add_to_return_value(self, fn(self, *args, **kwargs))
+                              ~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "apps/frappe/frappe/model/document.py", line 1181, in fn
+    return method_object(*args, **kwargs)
+  File "apps/hrms/hrms/hr/doctype/attendance_request/attendance_request.py", line 33, in validate
+    self.validate_checkin_request()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "apps/hrms/hrms/hr/doctype/attendance_request/attendance_request.py", line 91, in validate_checkin_request
+    frappe.throw(_("Only the assigned shift approver can edit reviewed values."))
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "apps/frappe/frappe/utils/messages.py", line 159, in throw
+    msgprint(
+    ~~~~~~~~^
+    	msg,
+     ^^^^
+    ...<7 lines>...
+    	allow_dangerous_html=allow_dangerous_html,
+     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "apps/frappe/frappe/utils/messages.py", line 118, in msgprint
+    _raise_exception()
+    ~~~~~~~~~~~~~~~~^^
+  File "apps/frappe/frappe/utils/messages.py", line 59, in _raise_exception
+    raise exc
+frappe.exceptions.ValidationError: Only the assigned shift approver can edit reviewed values.
+frappeRequest.js:71 Uncaught (in promise) Error: /api/method/frappe.client.insert ValidationError
+    at s (frappe-ui-CMFbIPas.js:1:668)

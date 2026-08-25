@@ -1,0 +1,51 @@
+{
+ "actions": [],
+ "creation": "2026-04-14 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "job_grade",
+  "level_title",
+  "typical_scope",
+  "notes"
+ ],
+ "fields": [
+  {
+   "fieldname": "job_grade",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "گرید",
+   "options": "Job Grade",
+   "reqd": 1
+  },
+  {
+   "fieldname": "level_title",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "عنوان سطح در این خانواده"
+  },
+  {
+   "fieldname": "typical_scope",
+   "fieldtype": "Small Text",
+   "in_list_view": 1,
+   "label": "حوزه اثر / مسئولیت"
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Small Text",
+   "label": "توضیحات تکمیلی"
+  }
+ ],
+ "istable": 1,
+ "modified": "2026-04-14 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "HR",
+ "name": "Job Family Grade",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "translated_doctype": 1
+}
+

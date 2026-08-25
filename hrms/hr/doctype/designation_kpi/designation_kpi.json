@@ -1,0 +1,50 @@
+{
+ "actions": [],
+ "creation": "2026-04-14 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "kpi_name",
+  "target_value",
+  "unit",
+  "measurement_period"
+ ],
+ "fields": [
+  {
+   "fieldname": "kpi_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "نام شاخص",
+   "reqd": 1
+  },
+  {
+   "fieldname": "target_value",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "مقدار هدف"
+  },
+  {
+   "fieldname": "unit",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "واحد اندازه‌گیری"
+  },
+  {
+   "fieldname": "measurement_period",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "دوره ارزیابی",
+   "options": "ماهانه\nفصلی\nسالانه"
+  }
+ ],
+ "istable": 1,
+ "modified": "2026-04-14 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "HR",
+ "name": "Designation KPI",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC"
+}

@@ -1,0 +1,364 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "format:CON-{YY}-{#####}",
+ "creation": "2026-05-04 09:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "contract_info_section",
+  "employee",
+  "employee_name",
+  "column_break_employee_1",
+  "company",
+  "status",
+  "issue_date",
+  "personnel_info_section",
+  "national_id",
+  "id_number",
+  "id_issue_place",
+  "father_name",
+  "column_break_personnel_1",
+  "employee_phone",
+  "employee_address",
+  "job_info_section",
+  "designation",
+  "department",
+  "branch",
+  "column_break_job_1",
+  "job_title",
+  "workplace_details",
+  "work_locations",
+  "contract_dates_section",
+  "contract_type",
+  "start_date",
+  "end_date",
+  "column_break_dates_1",
+  "duration_months",
+  "work_hours_per_week",
+  "issue_date_jalali",
+  "start_date_jalali",
+  "end_date_jalali",
+  "salary_info_section",
+  "salary_table_section",
+  "salary_items",
+  "employee_bank_name",
+  "employee_bank_account",
+  "employee_iban",
+  "employer_payment_section",
+  "payment_bank_name",
+  "employer_bank_name",
+  "employer_bank_account",
+  "notes"
+ ],
+ "fields": [
+  {
+   "fieldname": "contract_info_section",
+   "fieldtype": "Section Break",
+   "label": "اطلاعات اصلی قرارداد"
+  },
+  {
+   "fieldname": "employee",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "همکار",
+   "options": "Employee",
+   "reqd": 1
+  },
+  {
+   "fieldname": "employee_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "نام و نام خانوادگی",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_employee_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "شرکت",
+   "options": "Company",
+   "read_only": 1
+  },
+  {
+   "default": "Draft",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "وضعیت",
+   "options": "Draft\nActive\nEnded\nTerminated",
+   "read_only": 1
+  },
+  {
+   "fieldname": "issue_date",
+   "fieldtype": "Date",
+   "label": "تاریخ صدور"
+  },
+  {
+   "fieldname": "personnel_info_section",
+   "fieldtype": "Section Break",
+   "label": "اطلاعات هویتی همکار"
+  },
+  {
+   "fieldname": "national_id",
+   "fieldtype": "Data",
+   "label": "کد ملی"
+  },
+  {
+   "fieldname": "id_number",
+   "fieldtype": "Data",
+   "label": "شماره شناسنامه"
+  },
+  {
+   "fieldname": "id_issue_place",
+   "fieldtype": "Data",
+   "label": "محل صدور شناسنامه"
+  },
+  {
+   "fieldname": "father_name",
+   "fieldtype": "Data",
+   "label": "نام پدر"
+  },
+  {
+   "fieldname": "column_break_personnel_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "employee_phone",
+   "fieldtype": "Data",
+   "label": "شماره تلفن"
+  },
+  {
+   "fieldname": "employee_address",
+   "fieldtype": "Small Text",
+   "label": "آدرس"
+  },
+  {
+   "fieldname": "job_info_section",
+   "fieldtype": "Section Break",
+   "label": "اطلاعات شغلی"
+  },
+  {
+   "fieldname": "designation",
+   "fieldtype": "Link",
+   "label": "سمت",
+   "options": "Designation",
+   "read_only": 1
+  },
+  {
+   "fieldname": "department",
+   "fieldtype": "Link",
+   "label": "دپارتمان",
+   "options": "Department",
+   "read_only": 1
+  },
+  {
+   "fieldname": "branch",
+   "fieldtype": "Link",
+   "label": "شعبه",
+   "options": "Branch",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_job_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "job_title",
+   "fieldtype": "Data",
+   "label": "عنوان شغل"
+  },
+  {
+   "fieldname": "workplace_details",
+   "fieldtype": "Text",
+   "label": "محل کار و توضیحات"
+  },
+  {
+   "fieldname": "work_locations",
+   "fieldtype": "Table",
+   "label": "محل‌های کار قرارداد",
+   "options": "Employment Contract Location"
+  },
+  {
+   "fieldname": "contract_dates_section",
+   "fieldtype": "Section Break",
+   "label": "نوع و مدت قرارداد"
+  },
+  {
+   "default": "قرارداد کار موقت",
+   "fieldname": "contract_type",
+   "fieldtype": "Select",
+   "label": "نوع قرارداد",
+   "options": "قرارداد کار موقت\nقرارداد کار دائم\nقرارداد پاره‌وقت"
+  },
+  {
+   "fieldname": "start_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "از تاریخ",
+   "reqd": 1
+  },
+  {
+   "fieldname": "end_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "تا تاریخ",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_dates_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "duration_months",
+   "fieldtype": "Float",
+   "label": "مدت (ماه)",
+   "read_only": 1
+  },
+  {
+   "default": "44",
+   "fieldname": "work_hours_per_week",
+   "fieldtype": "Float",
+   "label": "ساعت کار هفتگی"
+  },
+  {
+   "fieldname": "issue_date_jalali",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "Issue Date Jalali",
+   "read_only": 1
+  },
+  {
+   "fieldname": "start_date_jalali",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "Start Date Jalali",
+   "read_only": 1
+  },
+  {
+   "fieldname": "end_date_jalali",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "End Date Jalali",
+   "read_only": 1
+  },
+  {
+   "fieldname": "salary_info_section",
+   "fieldtype": "Section Break",
+   "label": "اطلاعات حقوق و مزایا"
+  },
+  {
+   "fieldname": "salary_table_section",
+   "fieldtype": "Section Break",
+   "label": "جدول اجزای حقوقی قرارداد"
+  },
+  {
+   "fieldname": "salary_items",
+   "fieldtype": "Table",
+   "label": "اقلام حقوقی",
+   "options": "Employment Contract Salary Item"
+  },
+  {
+   "fieldname": "employee_bank_name",
+   "fieldtype": "Data",
+   "label": "بانک همکار"
+  },
+  {
+   "fieldname": "employee_bank_account",
+   "fieldtype": "Data",
+   "label": "شماره حساب همکار"
+  },
+  {
+   "fieldname": "employee_iban",
+   "fieldtype": "Data",
+   "label": "شماره شبا همکار"
+  },
+  {
+   "fieldname": "employer_payment_section",
+   "fieldtype": "Section Break",
+   "label": "اطلاعات پرداخت کارفرما"
+  },
+  {
+   "fieldname": "payment_bank_name",
+   "fieldtype": "Data",
+   "label": "بانک پرداخت حقوق"
+  },
+  {
+   "fieldname": "employer_bank_name",
+   "fieldtype": "Data",
+   "label": "نام بانک کارفرما"
+  },
+  {
+   "fieldname": "employer_bank_account",
+   "fieldtype": "Data",
+   "label": "شماره حساب/کارت کارفرما"
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Small Text",
+   "label": "توضیحات"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2026-05-04 09:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "HR",
+ "name": "Employment Contract",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "amend": 1,
+   "cancel": 1,
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  },
+  {
+   "amend": 1,
+   "cancel": 1,
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "HR Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "HR User",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "employee_name",
+ "track_changes": 1
+}

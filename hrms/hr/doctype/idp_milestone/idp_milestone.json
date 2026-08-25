@@ -1,0 +1,64 @@
+{
+ "actions": [],
+ "creation": "2026-04-14 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "milestone_title",
+  "due_date",
+  "status",
+  "completion_date",
+  "success_criteria",
+  "notes"
+ ],
+ "fields": [
+  {
+   "fieldname": "milestone_title",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "مایلستون",
+   "reqd": 1
+  },
+  {
+   "fieldname": "due_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "موعد"
+  },
+  {
+   "default": "برنامه‌ریزی شده",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "وضعیت",
+   "options": "برنامه‌ریزی شده\nدر حال انجام\nتکمیل شده\nمتوقف"
+  },
+  {
+   "fieldname": "completion_date",
+   "fieldtype": "Date",
+   "label": "تاریخ تکمیل"
+  },
+  {
+   "fieldname": "success_criteria",
+   "fieldtype": "Small Text",
+   "label": "معیار موفقیت"
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Small Text",
+   "label": "توضیحات"
+  }
+ ],
+ "istable": 1,
+ "modified": "2026-04-14 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "HR",
+ "name": "IDP Milestone",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "translated_doctype": 1
+}
+

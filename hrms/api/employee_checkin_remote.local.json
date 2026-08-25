@@ -1,0 +1,36 @@
+{
+  "enabled": 1,
+  "site": "dehati.ir",
+  "dry_run": 1,
+  "batch_size": 1000,
+  "skip_missing_employees": 1,
+  "dedupe_on": "employee+time+log_type",
+  "source_date_from": "",
+  "source_date_to": "",
+  "max_source_rows": 0,
+  "preview_limit": 20,
+  "ssh_tunnel": {
+    "enabled": 1,
+    "gateway_host": "46.100.60.60",
+    "gateway_port": 1600,
+    "gateway_user": "",
+    "gateway_password": "",
+    "sshpass_command": "sshpass",
+    "gateway_private_key": "",
+    "strict_host_key_checking": 0,
+    "local_bind_host": "127.0.0.1",
+    "local_bind_port": 11433,
+    "remote_sql_host": "192.168.150.26",
+    "remote_sql_port": 1433,
+    "connect_timeout_seconds": 30,
+    "ready_wait_seconds": 10,
+    "poll_seconds": 1
+  },
+  "sql": {
+    "host": "127.0.0.1",
+    "port": 11433,
+    "database": "EOS",
+    "user": "sepehr@220",
+    "password": "lakposht1"
+  }
+}

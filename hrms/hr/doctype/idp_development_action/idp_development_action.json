@@ -1,0 +1,95 @@
+{
+ "actions": [],
+ "creation": "2026-04-14 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "action_title",
+  "action_type",
+  "linked_competency",
+  "training_program",
+  "owner",
+  "due_date",
+  "status",
+  "completion_percent",
+  "success_metric",
+  "notes"
+ ],
+ "fields": [
+  {
+   "fieldname": "action_title",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "اقدام توسعه‌ای",
+   "reqd": 1
+  },
+  {
+   "fieldname": "action_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "نوع اقدام",
+   "options": "دوره آموزشی\nکوچینگ\nمنتورینگ\nپروژه کششی\nگواهینامه\nجابجایی شغلی\nسایه‌زنی\nخودآموزی"
+  },
+  {
+   "fieldname": "linked_competency",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "شایستگی مرتبط",
+   "options": "Competency"
+  },
+  {
+   "fieldname": "training_program",
+   "fieldtype": "Link",
+   "label": "برنامه آموزشی",
+   "options": "Training Program"
+  },
+  {
+   "fieldname": "owner",
+   "fieldtype": "Link",
+   "label": "مسئول پیگیری",
+   "options": "User"
+  },
+  {
+   "fieldname": "due_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "موعد"
+  },
+  {
+   "default": "شروع نشده",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "وضعیت",
+   "options": "شروع نشده\nدر حال انجام\nتکمیل شده\nمتوقف"
+  },
+  {
+   "default": "0",
+   "fieldname": "completion_percent",
+   "fieldtype": "Percent",
+   "in_list_view": 1,
+   "label": "درصد پیشرفت"
+  },
+  {
+   "fieldname": "success_metric",
+   "fieldtype": "Small Text",
+   "label": "شاخص موفقیت"
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Small Text",
+   "label": "توضیحات"
+  }
+ ],
+ "istable": 1,
+ "modified": "2026-04-14 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "HR",
+ "name": "IDP Development Action",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "translated_doctype": 1
+}

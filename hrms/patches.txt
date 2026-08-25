@@ -1,0 +1,91 @@
+[pre_model_sync]
+hrms.patches.v15_0.check_version_compatibility_with_frappe #2023-06-27
+
+[post_model_sync]
+hrms.patches.post_install.set_payroll_entry_status
+hrms.patches.v1_0.rearrange_employee_fields
+hrms.patches.post_install.update_allocate_on_in_leave_type
+hrms.patches.v14_0.create_custom_field_for_appraisal_template
+hrms.patches.post_install.update_performance_module_changes #2023-04-17
+hrms.patches.v14_0.update_payroll_frequency_to_none_if_salary_slip_is_based_on_timesheet
+hrms.patches.v14_0.update_ess_user_access #2023-08-14
+execute:frappe.db.set_default("date_format", frappe.db.get_single_value("System Settings", "date_format"))
+hrms.patches.v14_0.create_vehicle_service_item
+hrms.patches.v14_0.add_expense_claim_to_repost_settings
+hrms.patches.v15_0.notify_about_loan_app_separation
+hrms.patches.v15_0.rename_enable_late_entry_early_exit_grace_period
+hrms.patches.v14_0.update_repay_from_salary_and_payroll_payable_account_fields
+hrms.patches.v14_0.create_custom_field_in_loan
+hrms.patches.v14_0.update_loan_repayment_repay_from_salary
+hrms.patches.v15_0.migrate_loan_type_to_loan_product
+hrms.patches.v15_0.rename_and_update_leave_encashment_fields
+hrms.patches.v14_0.update_title_in_employee_onboarding_and_separation_templates
+hrms.patches.v15_0.make_hr_settings_tab_in_company_master
+hrms.patches.v15_0.enable_allow_checkin_setting
+hrms.patches.v15_0.set_default_asset_action_in_fnf
+hrms.patches.v15_0.add_loan_docperms_to_ess #2024-05-14
+hrms.patches.v15_0.migrate_shift_assignment_schedule_to_shift_schedule
+hrms.patches.v15_0.update_payment_status_for_leave_encashment
+hrms.patches.v15_0.create_accounting_dimensions_in_leave_encashment
+hrms.patches.v15_0.create_marginal_relief_field_for_india_localisation
+hrms.patches.v15_0.set_half_day_status_to_present_in_exisiting_half_day_attendance
+hrms.patches.v14_0.create_marginal_relief_field_for_india_localisation
+hrms.patches.v15_0.fix_timesheet_status
+hrms.patches.v15_0.call_set_total_advance_paid_on_advance_documents #2025-07-08
+hrms.patches.v15_0.create_weekly_shift_planner_fields #2026-04-11
+hrms.patches.v15_0.create_employee_grievance_mobile_setup #2026-04-12
+hrms.patches.v15_0.update_employee_grievance_feedback_fields #2026-04-12
+hrms.patches.v15_0.create_iran_localisation_fixtures #2026-04-13
+hrms.patches.v15_0.remap_smart_attendance_report_to_hr #2026-04-13
+hrms.patches.v15_0.seed_iran_payroll_default_rules #2026-04-13
+hrms.patches.v15_0.add_iran_workspace_links #2026-04-13
+hrms.patches.v15_0.update_iran_farsi_labels_and_employee_fields #2026-04-13
+hrms.patches.v15_0.add_iran_payroll_structure_and_components #2026-04-13
+hrms.patches.v15_0.create_meal_management_setup #2026-04-13
+hrms.patches.v15_0.extend_meal_management_for_chef_and_designations #2026-04-13
+hrms.patches.v15_0.localize_designations_and_create_appraisal_templates #2026-04-13
+hrms.patches.v15_0.seed_persian_appraisal_cycles_groups_grades_and_skill_maps #2026-04-13
+hrms.patches.v15_0.seed_hr_goals #2026-04-13
+hrms.patches.v15_0.create_employee_imprest_setup #2026-04-14
+hrms.patches.v15_0.add_imprest_fields_to_journal_entry #2026-04-14
+hrms.patches.v15_0.add_designation_jd_fields #2026-04-14
+hrms.patches.v15_0.localize_designation_labels_and_add_job_architecture #2026-04-14
+hrms.patches.v15_0.add_competency_model_setup #2026-04-14
+hrms.patches.v15_0.add_idp_and_nine_box_employee_fields #2026-04-14
+hrms.patches.v15_0.finalize_farsi_talent_setup #2026-04-15
+hrms.patches.v15_0.ensure_farsi_talent_workspace_visibility #2026-04-15
+hrms.patches.v15_0.restore_human_resources_workspace_structure #2026-04-15
+hrms.patches.v15_0.migrate_employee_attendance_device_mappings #2026-04-21
+hrms.patches.v15_0.backfill_attendance_device_master #2026-04-21
+hrms.patches.v15_0.normalize_attendance_device_ids #2026-04-21
+hrms.patches.v15_0.migrate_employee_break_fields_to_break_assignment #2026-04-24
+hrms.patches.v15_0.update_employee_attendance_shift_and_identity_fields #2026-05-02
+hrms.patches.v16_0.align_employee_master_fields_with_device_mapping_workflow #2026-05-02
+hrms.patches.v16_0.reorganize_employee_tabs_for_attendance_and_shift #2026-05-02
+hrms.patches.v16_0.extend_iran_salary_fields_and_seniority_setup #2026-05-04
+hrms.patches.v16_0.migrate_iran_seniority_table_to_standard #2026-05-04
+hrms.patches.v16_0.add_iran_seniority_workspace_links #2026-05-04
+hrms.patches.v16_0.recalculate_employee_seniority_fields_from_active_law #2026-05-04
+hrms.patches.v16_0.sync_iran_employee_allowance_fields #2026-05-04
+hrms.patches.v16_0.sync_total_receivable_for_iran_employees #2026-05-04
+hrms.patches.v16_0.add_insurance_start_date_for_iran_employees #2026-05-05
+hrms.patches.v16_0.add_employee_salary_type_and_contractual_insurance_fields #2026-05-05
+hrms.patches.v16_0.restructure_employee_form_for_farsi_hrms #2026-05-05
+hrms.patches.v16_0.restructure_employee_form_for_farsi_hrms_v2 #2026-05-05
+hrms.patches.v16_0.fix_employee_tab_content_alignment #2026-05-05
+hrms.patches.v16_0.force_employee_field_order_by_tab_layout #2026-05-05
+hrms.patches.v16_0.force_employee_field_order_exact_farsi_layout #2026-05-05
+hrms.patches.v16_0.update_monthly_technical_bonus_fields #2026-05-05
+hrms.patches.v16_0.make_monthly_technical_fields_editable #2026-05-05
+hrms.patches.v16_0.remove_hourly_technical_fields_and_keep_monthly_manual #2026-05-05
+hrms.patches.v16_0.sync_payroll_workspace_iran_settings_links #2026-05-05
+hrms.patches.v16_0.sync_payroll_workspace_sidebar_iran_links #2026-05-05
+hrms.patches.v16_0.add_farsi_payroll_doctype_translations #2026-05-05
+hrms.patches.v16_0.remove_home_workspace_sidebar_globally #2026-05-05
+hrms.patches.v16_0.ensure_employee_sidebar_routes_to_hr_setup #2026-05-05
+hrms.patches.v16_0.remove_daily_technical_bonus_fields_completely #2026-05-06
+hrms.patches.v16_0.replace_monthly_technical_bonus_with_karane #2026-05-06
+hrms.patches.v16_0.add_insurance_seniority_report_to_payroll_workspace #2026-05-06
+hrms.patches.v16_0.create_shift_allocator_role #2026-06-05
+hrms.patches.v16_0.add_iran_salary_slip_seniority_field #2026-08-02
+hrms.patches.v16_0.add_standard_working_hours_to_shift_type #2026-08-02

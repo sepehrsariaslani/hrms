@@ -1,0 +1,178 @@
+{
+ "actions": [],
+ "allow_import": 1,
+ "autoname": "naming_series:",
+ "creation": "2026-04-14 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "naming_series",
+  "employee",
+  "employee_name",
+  "column_break_emp",
+  "designation",
+  "assessment_date",
+  "assessment_type",
+  "column_break_ctx",
+  "job_family",
+  "job_grade",
+  "assessed_by",
+  "assessment_items_section",
+  "assessment_items",
+  "summary_section",
+  "average_required_level",
+  "average_current_level",
+  "average_gap",
+  "notes"
+ ],
+ "fields": [
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "سری نام‌گذاری",
+   "options": "COMP-ASM-.YYYY.-.####",
+   "reqd": 1
+  },
+  {
+   "fieldname": "employee",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "کارمند",
+   "options": "Employee",
+   "reqd": 1
+  },
+  {
+   "fetch_from": "employee.employee_name",
+   "fieldname": "employee_name",
+   "fieldtype": "Read Only",
+   "in_list_view": 1,
+   "label": "نام کارمند"
+  },
+  {
+   "fetch_from": "employee.designation",
+   "fieldname": "designation",
+   "fieldtype": "Read Only",
+   "label": "سمت"
+  },
+  {
+   "default": "Today",
+   "fieldname": "assessment_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "تاریخ ارزیابی",
+   "reqd": 1
+  },
+  {
+   "fieldname": "assessment_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "نوع ارزیابی",
+   "options": "\nخودارزیابی\nارزیابی مدیر\nارزیابی منابع انسانی\nارزیابی 360 درجه"
+  },
+  {
+   "fieldname": "column_break_emp",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "column_break_ctx",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "job_family",
+   "fieldtype": "Link",
+   "label": "خانواده شغلی",
+   "options": "Job Family",
+   "read_only": 1
+  },
+  {
+   "fieldname": "job_grade",
+   "fieldtype": "Link",
+   "label": "گرید شغلی",
+   "options": "Job Grade",
+   "read_only": 1
+  },
+  {
+   "fieldname": "assessed_by",
+   "fieldtype": "Link",
+   "label": "ارزیابی‌کننده",
+   "options": "User"
+  },
+  {
+   "fieldname": "assessment_items_section",
+   "fieldtype": "Section Break",
+   "label": "آیتم‌های ارزیابی شایستگی"
+  },
+  {
+   "fieldname": "assessment_items",
+   "fieldtype": "Table",
+   "label": "شایستگی‌ها",
+   "options": "Competency Assessment Item"
+  },
+  {
+   "fieldname": "summary_section",
+   "fieldtype": "Section Break",
+   "label": "خلاصه شکاف شایستگی"
+  },
+  {
+   "fieldname": "average_required_level",
+   "fieldtype": "Float",
+   "label": "میانگین سطح موردنیاز",
+   "read_only": 1
+  },
+  {
+   "fieldname": "average_current_level",
+   "fieldtype": "Float",
+   "label": "میانگین سطح فعلی",
+   "read_only": 1
+  },
+  {
+   "fieldname": "average_gap",
+   "fieldtype": "Float",
+   "label": "میانگین شکاف",
+   "read_only": 1
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Text",
+   "label": "یادداشت"
+  }
+ ],
+ "icon": "fa fa-chart-line",
+ "modified": "2026-04-14 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "HR",
+ "name": "Competency Assessment",
+ "naming_rule": "By \"Naming Series\" field",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "HR User",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "import": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "HR Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "quick_entry": 1,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "title_field": "employee_name",
+ "translated_doctype": 1
+}

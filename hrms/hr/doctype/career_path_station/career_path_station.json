@@ -1,0 +1,71 @@
+{
+ "actions": [],
+ "creation": "2026-04-14 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "designation",
+  "job_family",
+  "job_grade",
+  "grade_level",
+  "career_track",
+  "notes"
+ ],
+ "fields": [
+  {
+   "fieldname": "designation",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "شغل / ایستگاه",
+   "options": "Designation",
+   "reqd": 1
+  },
+  {
+   "fetch_from": "designation.job_family",
+   "fieldname": "job_family",
+   "fieldtype": "Read Only",
+   "in_list_view": 1,
+   "label": "خانواده شغلی"
+  },
+  {
+   "fetch_from": "designation.job_grade",
+   "fieldname": "job_grade",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "گرید شغلی",
+   "options": "Job Grade",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "job_grade.level_number",
+   "fieldname": "grade_level",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "سطح گرید",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "designation.career_track",
+   "fieldname": "career_track",
+   "fieldtype": "Read Only",
+   "in_list_view": 1,
+   "label": "مسیر شغلی"
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Small Text",
+   "label": "توضیحات"
+  }
+ ],
+ "istable": 1,
+ "modified": "2026-04-14 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "HR",
+ "name": "Career Path Station",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "translated_doctype": 1
+}

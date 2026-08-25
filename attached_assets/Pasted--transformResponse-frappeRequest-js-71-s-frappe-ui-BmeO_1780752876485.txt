@@ -1,0 +1,19 @@
+
+    transformResponse frappeRequest.js:71
+
+    s frappe-ui-BmeO4nMr.js:1
+
+ frappeRequest.js:71:17
+
+Traceback (most recent call last): File "apps/frappe/frappe/app.py", line 153, in application response = frappe.api.handle(request) File "apps/frappe/frappe/api/__init__.py", line 63, in handle data = endpoint(**arguments) File "apps/frappe/frappe/api/v1.py", line 40, in handle_rpc_call return frappe.handler.handle() ~~~~~~~~~~~~~~~~~~~~~^^ File "apps/frappe/frappe/handler.py", line 53, in handle data = execute_cmd(cmd) File "apps/frappe/frappe/handler.py", line 86, in execute_cmd return frappe.call(method, **frappe.form_dict) ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^ File "apps/frappe/frappe/__init__.py", line 1139, in call return fn(*args, **newargs) File "apps/frappe/frappe/utils/typing_validations.py", line 36, in wrapper return func(*args, **kwargs) File "apps/frappe/frappe/client.py", line 211, in insert return insert_doc(doc).as_dict() ~~~~~~~~~~^^^^^ File "apps/frappe/frappe/client.py", line 527, in insert_doc return frappe.get_doc(doc).insert() ~~~~~~~~~~~~~~~~~~~~~~~~~~^^ File "apps/frappe/frappe/model/document.py", line 447, in insert self.run_before_save_methods() ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^ File "apps/frappe/frappe/model/document.py", line 1335, in run_before_save_methods self.run_method("validate") ~~~~~~~~~~~~~~~^^^^^^^^^^^^ File "apps/frappe/frappe/model/document.py", line 1184, in run_method out = Document.hook(fn)(self, *args, **kwargs) File "apps/frappe/frappe/model/document.py", line 1581, in composer return composed(self, method, *args, **kwargs) File "apps/frappe/frappe/model/document.py", line 1559, in runner add_to_return_value(self, fn(self, *args, **kwargs)) ~~^^^^^^^^^^^^^^^^^^^^^^^ File "apps/frappe/frappe/model/document.py", line 1181, in fn return method_object(*args, **kwargs) File "apps/hrms/hrms/hr/doctype/leave_application/leave_application.py", line 83, in validate self.validate_balance_leaves() ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^ File "apps/hrms/hrms/hr/doctype/leave_application/leave_application.py", line 445, in validate_balance_leaves self.show_insufficient_balance_message(leave_balance_for_consumption) ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ File "apps/hrms/hrms/hr/doctype/leave_application/leave_application.py", line 487, in show_insufficient_balance_message frappe.throw( ~~~~~~~~~~~~^ _("Insufficient leave balance for Leave Type {0}").format(frappe.bold(self.leave_type)), ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ exc=InsufficientLeaveBalanceError, ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ title=_("Insufficient Balance"), ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ ) ^ File "apps/frappe/frappe/utils/messages.py", line 159, in throw msgprint( ~~~~~~~~^ msg, ^^^^ ...<7 lines>... allow_dangerous_html=allow_dangerous_html, ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ ) ^ File "apps/frappe/frappe/utils/messages.py", line 118, in msgprint _raise_exception() ~~~~~~~~~~~~~~~~^^ File "apps/frappe/frappe/utils/messages.py", line 59, in _raise_exception raise exc hrms.hr.doctype.leave_application.leave_application.InsufficientLeaveBalanceError: موجودی مرخصی ناکافی برای نوع مرخصی <strong>مرخصی استحقاقی</strong>  frappeRequest.js:67:21
+
+Error creating Leave Application 3 FormView.vue:578:12
+
+Uncaught (in promise) Error: /api/method/frappe.client.insert InsufficientLeaveBalanceError
+
+    transformResponse frappeRequest.js:71
+
+    s frappe-ui-BmeO4nMr.js:1
+
+ frappeRequest.js:71:17
+

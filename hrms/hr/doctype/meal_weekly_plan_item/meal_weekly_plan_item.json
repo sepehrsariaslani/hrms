@@ -1,0 +1,86 @@
+{
+ "actions": [],
+ "creation": "2026-04-13 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "meal_date",
+  "meal_day_label",
+  "meal_item",
+  "menu_title",
+  "column_break_4",
+  "meal_type",
+  "is_available",
+  "max_portions",
+  "menu_description"
+ ],
+ "fields": [
+  {
+   "fieldname": "meal_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Meal Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "meal_day_label",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Day",
+   "read_only": 1
+  },
+  {
+   "fieldname": "meal_item",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Food Item",
+   "options": "Item"
+  },
+  {
+   "fieldname": "menu_title",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Food Name",
+   "read_only": 1
+  },
+  {
+   "default": "Lunch",
+   "fieldname": "meal_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Meal Type",
+   "options": "Lunch",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_4",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "1",
+   "fieldname": "is_available",
+   "fieldtype": "Check",
+   "label": "Available"
+  },
+  {
+   "fieldname": "max_portions",
+   "fieldtype": "Int",
+   "label": "Max Portions"
+  },
+  {
+   "fieldname": "menu_description",
+   "fieldtype": "Small Text",
+   "label": "Menu Description"
+  }
+ ],
+ "istable": 1,
+ "modified": "2026-04-13 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "HR",
+ "name": "Meal Weekly Plan Item",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC"
+}

@@ -1,0 +1,13 @@
+{
+  "enabled": 1,
+  "connect_command": "printf 'Set your Forti VPN connect command here' && false",
+  "disconnect_command": "printf 'Set your Forti VPN disconnect command here' && true",
+  "connect_timeout_seconds": 60,
+  "disconnect_timeout_seconds": 30,
+  "wait_after_connect_seconds": 5,
+  "reachability_wait_seconds": 90,
+  "reachability_poll_seconds": 3,
+  "targets": [
+    "192.168.150.26:1433"
+  ]
+}

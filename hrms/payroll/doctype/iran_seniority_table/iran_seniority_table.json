@@ -1,0 +1,77 @@
+{
+ "actions": [],
+ "creation": "2026-05-04 10:00:00.000000",
+ "doctype": "DocType",
+ "document_type": "System",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "general_section",
+  "fiscal_year",
+  "enabled",
+  "rules_section",
+  "rules"
+ ],
+ "fields": [
+  {
+   "fieldname": "general_section",
+   "fieldtype": "Section Break",
+   "label": "تنظیمات"
+  },
+  {
+   "fieldname": "fiscal_year",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "سال مالی",
+   "options": "Fiscal Year",
+   "reqd": 1
+  },
+  {
+   "default": "1",
+   "fieldname": "enabled",
+   "fieldtype": "Check",
+   "label": "فعال"
+  },
+  {
+   "fieldname": "rules_section",
+   "fieldtype": "Section Break",
+   "label": "جدول پایه سنوات"
+  },
+  {
+   "fieldname": "rules",
+   "fieldtype": "Table",
+   "label": "ردیف‌ها",
+   "options": "Iran Seniority Rule"
+  }
+ ],
+ "icon": "fa fa-table",
+ "autoname": "field:fiscal_year",
+ "issingle": 0,
+ "module": "Payroll",
+ "name": "Iran Seniority Table",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "print": 1,
+   "email": 1,
+   "share": 1,
+   "role": "System Manager"
+  },
+  {
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "print": 1,
+   "email": 1,
+   "share": 1,
+   "role": "HR Manager"
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "track_changes": 1
+}

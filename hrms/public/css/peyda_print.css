@@ -1,0 +1,32 @@
+@font-face {
+	font-family: "Peyda";
+	src: url("/assets/hrms/fonts/Pevda-Reqular.ttf") format("truetype");
+	font-weight: 400;
+	font-style: normal;
+}
+
+@font-face {
+	font-family: "Peyda";
+	src: url("/assets/hrms/fonts/Peyda-Medium.ttf") format("truetype");
+	font-weight: 500;
+	font-style: normal;
+}
+
+@font-face {
+	font-family: "Peyda";
+	src: url("/assets/hrms/fonts/Peyda-SemiBold.ttf") format("truetype");
+	font-weight: 600;
+	font-style: normal;
+}
+
+@font-face {
+	font-family: "Peyda";
+	src: url("/assets/hrms/fonts/Peyda-Bold.ttf") format("truetype");
+	font-weight: 700;
+	font-style: normal;
+}
+
+.print-format,
+.print-format * {
+	font-family: "Peyda", Tahoma, Arial, sans-serif !important;
+}

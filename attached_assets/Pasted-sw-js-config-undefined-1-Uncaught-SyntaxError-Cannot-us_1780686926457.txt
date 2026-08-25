@@ -1,0 +1,154 @@
+sw.js?config=undefined:1 Uncaught SyntaxError: Cannot use import statement outside a module (at sw.js?config=undefined:1:1)
+main.js:286 Failed to register service worker TypeError: Failed to register a ServiceWorker for scope ('https://dehati.ir/assets/hrms/frontend/') with script ('https://dehati.ir/assets/hrms/frontend/sw.js?config=undefined'): ServiceWorker script evaluation failed
+(anonymous) @ main.js:286
+Promise.catch
+(anonymous) @ main.js:285
+s @ index-CYHy6LDA.js:2
+Promise.then
+l @ index-CYHy6LDA.js:2
+(anonymous) @ index-CYHy6LDA.js:2
+v @ index-CYHy6LDA.js:2
+Rk @ main.js:258
+(anonymous) @ main.js:307
+s @ index-CYHy6LDA.js:2
+Promise.then
+l @ index-CYHy6LDA.js:2
+(anonymous) @ index-CYHy6LDA.js:2
+v @ index-CYHy6LDA.js:2
+(anonymous) @ main.js:293
+Promise.then
+(anonymous) @ main.js:293
+frappe-ui-BmeO4nMr.js:1  POST https://dehati.ir/api/method/hrms.api.weekly_shift.finalize_weekly_shift_finalization 417 (Expectation Failed)
+ux @ request.js:30
+A7 @ frappeRequest.js:4
+(anonymous) @ resources.js:99
+(anonymous) @ frappe-ui-BmeO4nMr.js:1
+We @ frappe-ui-BmeO4nMr.js:1
+s @ resources.js:53
+(anonymous) @ ShiftAllocatorScheduler.vue:692
+C @ ShiftAllocatorScheduler-2kZ1GNKp.js:1
+Promise.then
+g @ ShiftAllocatorScheduler-2kZ1GNKp.js:1
+C @ ShiftAllocatorScheduler-2kZ1GNKp.js:1
+Promise.then
+g @ ShiftAllocatorScheduler-2kZ1GNKp.js:1
+(anonymous) @ ShiftAllocatorScheduler-2kZ1GNKp.js:1
+V @ ShiftAllocatorScheduler-2kZ1GNKp.js:1
+Ge @ ShiftAllocatorScheduler.vue:683
+(anonymous) @ runtime-dom.esm-bundler.js:758
+ra @ runtime-core.esm-bundler.js:199
+Gn @ runtime-core.esm-bundler.js:206
+Gn @ runtime-core.esm-bundler.js:217
+n @ runtime-dom.esm-bundler.js:729
+frappe-ui-BmeO4nMr.js:1 Traceback (most recent call last):
+  File "apps/frappe/frappe/app.py", line 153, in application
+    response = frappe.api.handle(request)
+  File "apps/frappe/frappe/api/__init__.py", line 63, in handle
+    data = endpoint(**arguments)
+  File "apps/frappe/frappe/api/v1.py", line 40, in handle_rpc_call
+    return frappe.handler.handle()
+           ~~~~~~~~~~~~~~~~~~~~~^^
+  File "apps/frappe/frappe/handler.py", line 53, in handle
+    data = execute_cmd(cmd)
+  File "apps/frappe/frappe/handler.py", line 86, in execute_cmd
+    return frappe.call(method, **frappe.form_dict)
+           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "apps/frappe/frappe/__init__.py", line 1139, in call
+    return fn(*args, **newargs)
+  File "apps/frappe/frappe/utils/typing_validations.py", line 36, in wrapper
+    return func(*args, **kwargs)
+  File "apps/hrms/hrms/api/weekly_shift.py", line 114, in finalize_weekly_shift_finalization
+    return finalize_weekly_shift_finalization(finalization_name=finalization_name)
+  File "apps/frappe/frappe/utils/typing_validations.py", line 36, in wrapper
+    return func(*args, **kwargs)
+  File "apps/hrms/hrms/hr/doctype/weekly_shift_finalization/weekly_shift_finalization.py", line 252, in finalize_weekly_shift_finalization
+    doc.submit()
+    ~~~~~~~~~~^^
+  File "apps/frappe/frappe/utils/typing_validations.py", line 36, in wrapper
+    return func(*args, **kwargs)
+  File "apps/frappe/frappe/model/document.py", line 1273, in submit
+    return self._submit()
+           ~~~~~~~~~~~~^^
+  File "apps/frappe/frappe/model/document.py", line 1254, in _submit
+    return self.save()
+           ~~~~~~~~~^^
+  File "apps/frappe/frappe/model/document.py", line 518, in save
+    return self._save(*args, **kwargs)
+           ~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "apps/frappe/frappe/model/document.py", line 572, in _save
+    self.run_post_save_methods()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "apps/frappe/frappe/model/document.py", line 1381, in run_post_save_methods
+    self.run_method("on_submit")
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "apps/frappe/frappe/model/document.py", line 1184, in run_method
+    out = Document.hook(fn)(self, *args, **kwargs)
+  File "apps/frappe/frappe/model/document.py", line 1581, in composer
+    return composed(self, method, *args, **kwargs)
+  File "apps/frappe/frappe/model/document.py", line 1559, in runner
+    add_to_return_value(self, fn(self, *args, **kwargs))
+                              ~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "apps/frappe/frappe/model/document.py", line 1181, in fn
+    return method_object(*args, **kwargs)
+  File "apps/hrms/hrms/hr/doctype/weekly_shift_finalization/weekly_shift_finalization.py", line 47, in on_submit
+    cancel_generated_assignments_for_finalization(self.amended_from)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "apps/hrms/hrms/hr/doctype/weekly_shift_finalization/weekly_shift_finalization.py", line 409, in cancel_generated_assignments_for_finalization
+    assignment_doc.cancel()
+    ~~~~~~~~~~~~~~~~~~~~~^^
+  File "apps/frappe/frappe/utils/typing_validations.py", line 36, in wrapper
+    return func(*args, **kwargs)
+  File "apps/frappe/frappe/model/document.py", line 1278, in cancel
+    return self._cancel()
+           ~~~~~~~~~~~~^^
+  File "apps/frappe/frappe/model/document.py", line 1259, in _cancel
+    return self.save()
+           ~~~~~~~~~^^
+  File "apps/frappe/frappe/model/document.py", line 518, in save
+    return self._save(*args, **kwargs)
+           ~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "apps/frappe/frappe/model/document.py", line 572, in _save
+    self.run_post_save_methods()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "apps/frappe/frappe/model/document.py", line 1383, in run_post_save_methods
+    self.run_method("on_cancel")
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "apps/frappe/frappe/model/document.py", line 1184, in run_method
+    out = Document.hook(fn)(self, *args, **kwargs)
+  File "apps/frappe/frappe/model/document.py", line 1581, in composer
+    return composed(self, method, *args, **kwargs)
+  File "apps/frappe/frappe/model/document.py", line 1559, in runner
+    add_to_return_value(self, fn(self, *args, **kwargs))
+                              ~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "apps/frappe/frappe/model/document.py", line 1181, in fn
+    return method_object(*args, **kwargs)
+  File "apps/hrms/hrms/hr/doctype/shift_assignment/shift_assignment.py", line 39, in on_cancel
+    self.validate_attendance()
+    ~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "apps/hrms/hrms/hr/doctype/shift_assignment/shift_assignment.py", line 69, in validate_attendance
+    frappe.throw(
+    ~~~~~~~~~~~~^
+    	_("Cannot cancel Shift Assignment: {0} as it is linked to Attendance: {1}").format(
+     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    		self.name, get_link_to_form("Attendance", attendances[0])
+      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    	)
+     ^
+    )
+    ^
+  File "apps/frappe/frappe/utils/messages.py", line 159, in throw
+    msgprint(
+    ~~~~~~~~^
+    	msg,
+     ^^^^
+    ...<7 lines>...
+    	allow_dangerous_html=allow_dangerous_html,
+     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "apps/frappe/frappe/utils/messages.py", line 118, in msgprint
+    _raise_exception()
+    ~~~~~~~~~~~~~~~~^^
+  File "apps/frappe/frappe/utils/messages.py", line 59, in _raise_exception
+    raise exc
+frappe.exceptions.ValidationError: نمی‌توان شیفت تخصیص داده شده را لغو کرد: HR-SHA-26-06-00077 زیرا به حضور و غیاب مرتبط است: <a href="https://dehati.ir:443/desk/attendance/HR-ATT-2026-05154">HR-ATT-2026-05154</a>

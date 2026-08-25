@@ -1,0 +1,111 @@
+[
+    {
+        "doctype": "Salary Component",
+        "salary_component": "حق مسکن",
+        "salary_component_abbr": "HA",
+        "description": "Housing allowance for Iran localization",
+        "type": "Earning",
+        "is_tax_applicable": 1,
+        "depends_on_payment_days": 0
+    },
+    {
+        "doctype": "Salary Component",
+        "salary_component": "بن خواربار",
+        "salary_component_abbr": "GA",
+        "description": "Food/grocery allowance for Iran localization",
+        "type": "Earning",
+        "is_tax_applicable": 1,
+        "depends_on_payment_days": 0
+    },
+    {
+        "doctype": "Salary Component",
+        "salary_component": "حق تاهل",
+        "salary_component_abbr": "MA",
+        "description": "Marriage allowance for Iran localization",
+        "type": "Earning",
+        "is_tax_applicable": 1,
+        "depends_on_payment_days": 0
+    },
+    {
+        "doctype": "Salary Component",
+        "salary_component": "حق اولاد",
+        "salary_component_abbr": "CA",
+        "description": "Child allowance for Iran localization",
+        "type": "Earning",
+        "is_tax_applicable": 1,
+        "depends_on_payment_days": 0
+    },
+    {
+        "doctype": "Salary Component",
+        "salary_component": "پایه سنوات",
+        "salary_component_abbr": "SAB",
+        "description": "Seniority allowance for Iran localization",
+        "type": "Earning",
+        "is_tax_applicable": 1,
+        "depends_on_payment_days": 0
+    },
+    {
+        "doctype": "Salary Component",
+        "salary_component": "کارانه",
+        "salary_component_abbr": "TA",
+        "description": "Technical allowance that is not included in social insurance base",
+        "type": "Earning",
+        "is_tax_applicable": 1,
+        "depends_on_payment_days": 0
+    },
+    {
+        "doctype": "Salary Component",
+        "salary_component": "حق سرپرستی",
+        "salary_component_abbr": "SUP",
+        "description": "Supervision allowance for Iran localization",
+        "type": "Earning",
+        "is_tax_applicable": 1,
+        "depends_on_payment_days": 0
+    },
+    {
+        "doctype": "Salary Component",
+        "salary_component": "حق سنوات",
+        "salary_component_abbr": "SR",
+        "description": "Monthly severance reserve (Hagh Sanavat) for Iran localization",
+        "type": "Earning",
+        "is_tax_applicable": 0,
+        "depends_on_payment_days": 0
+    },
+    {
+        "doctype": "Salary Component",
+        "salary_component": "عیدی",
+        "salary_component_abbr": "ER",
+        "description": "Monthly Eidi reserve for Iran localization",
+        "type": "Earning",
+        "is_tax_applicable": 0,
+        "depends_on_payment_days": 0
+    },
+    {
+        "doctype": "Salary Component",
+        "salary_component": "بیمه سهم کارمند",
+        "salary_component_abbr": "EI",
+        "description": "Employee contribution to social insurance",
+        "type": "Deduction",
+        "exempted_from_income_tax": 1,
+        "depends_on_payment_days": 0
+    },
+    {
+        "doctype": "Salary Component",
+        "salary_component": "بیمه سهم کارفرما",
+        "salary_component_abbr": "ESI",
+        "description": "Employer contribution to social insurance",
+        "type": "Deduction",
+        "do_not_include_in_total": 1,
+        "do_not_include_in_accounts": 1,
+        "depends_on_payment_days": 0
+    },
+    {
+        "doctype": "Salary Component",
+        "salary_component": "مالیات بر درآمد",
+        "salary_component_abbr": "IT",
+        "description": "Income tax for Iran localization",
+        "type": "Deduction",
+        "is_income_tax_component": 1,
+        "depends_on_payment_days": 0
+    }
+]

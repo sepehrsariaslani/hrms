@@ -1,0 +1,91 @@
+.attendance-device-db-page {
+	max-width: 1300px;
+	margin: 0 auto;
+	display: grid;
+	grid-template-columns: 1fr;
+	gap: 16px;
+}
+
+.attendance-device-db-card {
+	background: #fff;
+	border: 1px solid #d1d8dd;
+	border-radius: 12px;
+	padding: 16px;
+}
+
+.attendance-device-db-header h3 {
+	margin: 0;
+}
+
+.attendance-device-db-header p {
+	margin-top: 6px;
+	color: #6c7680;
+}
+
+.attendance-device-db-fields {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+	gap: 12px;
+	margin-top: 12px;
+}
+
+.attendance-device-db-actions {
+	display: flex;
+	gap: 8px;
+	justify-content: flex-end;
+	margin-top: 16px;
+}
+
+.attendance-device-db-kpis {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+	gap: 8px;
+	margin-bottom: 10px;
+	font-size: 13px;
+}
+
+.attendance-device-db-table-wrap {
+	overflow: auto;
+	max-height: 560px;
+	border: 1px solid #d1d8dd;
+	border-radius: 8px;
+}
+
+.attendance-device-db-table {
+	width: 100%;
+	border-collapse: collapse;
+	font-size: 12px;
+}
+
+.attendance-device-db-table thead th {
+	position: sticky;
+	top: 0;
+	background: #f3f5f7;
+	z-index: 2;
+}
+
+.attendance-device-db-table th,
+.attendance-device-db-table td {
+	border-bottom: 1px solid #e5eaee;
+	padding: 6px 8px;
+	white-space: nowrap;
+	text-align: right;
+}
+
+.attendance-device-db-table th.col-source,
+.attendance-device-db-table td.col-source {
+	background: #eef1f4;
+}
+
+.attendance-device-db-table th.col-system,
+.attendance-device-db-table td.col-system {
+	background: #ffffff;
+}
+
+.attendance-device-db-table tbody tr.row-full-match td.col-system {
+	background: #eaf9ea;
+}
+
+.attendance-device-db-table tbody tr.row-full-match td.col-source {
+	background: #dff3df;
+}

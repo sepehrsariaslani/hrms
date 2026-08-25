@@ -1,0 +1,60 @@
+{
+ "actions": [],
+ "creation": "2026-04-13 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "law_year",
+  "from_amount",
+  "to_amount",
+  "tax_rate",
+  "fixed_tax",
+  "deduction_amount"
+ ],
+ "fields": [
+  {
+   "fieldname": "law_year",
+   "fieldtype": "Int",
+   "label": "سال قانون",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "from_amount",
+   "fieldtype": "Currency",
+   "label": "از مبلغ",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "to_amount",
+   "fieldtype": "Currency",
+   "label": "تا مبلغ",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "tax_rate",
+   "fieldtype": "Percent",
+   "label": "نرخ مالیات (درصد)",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "fixed_tax",
+   "fieldtype": "Currency",
+   "label": "مالیات ثابت"
+  },
+  {
+   "fieldname": "deduction_amount",
+   "fieldtype": "Currency",
+   "label": "مبلغ کاهشی"
+  }
+ ],
+ "istable": 1,
+ "module": "Payroll",
+ "name": "Iran Payroll Tax Slab",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "ASC"
+}

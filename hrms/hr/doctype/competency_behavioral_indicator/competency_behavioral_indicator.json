@@ -1,0 +1,45 @@
+{
+ "actions": [],
+ "creation": "2026-04-14 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "level_number",
+  "level_title",
+  "behavioral_indicator"
+ ],
+ "fields": [
+  {
+   "fieldname": "level_number",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "سطح",
+   "reqd": 1
+  },
+  {
+   "fieldname": "level_title",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "عنوان سطح"
+  },
+  {
+   "fieldname": "behavioral_indicator",
+   "fieldtype": "Small Text",
+   "in_list_view": 1,
+   "label": "مصداق رفتاری",
+   "reqd": 1
+  }
+ ],
+ "istable": 1,
+ "modified": "2026-04-14 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "HR",
+ "name": "Competency Behavioral Indicator",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "translated_doctype": 1
+}
+
