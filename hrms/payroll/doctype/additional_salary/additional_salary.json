@@ -25,6 +25,7 @@
   "currency",
   "amount_calculation_type",
   "amount",
+  "description",
   "column_break_8",
   "hour_rate_type",
   "hours",
@@ -79,6 +80,11 @@
    "options": "currency",
    "reqd": 1,
    "mandatory_depends_on": "eval:doc.amount_calculation_type!=='Hours'"
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Small Text",
+   "label": "Description"
   },
   {
    "default": "Ordinary Hour Rate",
