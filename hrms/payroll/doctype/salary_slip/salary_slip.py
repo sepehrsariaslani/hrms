@@ -2292,11 +2292,45 @@ class SalarySlip(TransactionBase):
 
 	def process_salary_structure(self, for_preview=0, lwp_days_corrected=None):
 		"""Calculate salary after salary structure details have been updated"""
+		self.prune_stale_accrual_rows_from_earnings()
 		if self.payroll_frequency:
 			self.get_date_details()
 		self.pull_emp_details()
 		self.get_working_days_details(for_preview=for_preview, lwp_days_corrected=lwp_days_corrected)
+		if not for_preview:
+			self.recompute_local_payroll_context()
 		self.calculate_net_pay()
+
+	def prune_stale_accrual_rows_from_earnings(self):
+		"""Remove legacy accrual rows that should live only in accrued_benefits.
+
+		Keep rows created from Additional Salary, since those represent explicit
+		payouts of an accrued component.
+		"""
+		if not getattr(self, "earnings", None):
+			return
+
+		self.set(
+			"earnings",
+			[
+				row
+				for row in self.earnings
+				if not (row.accrual_component and not getattr(row, "additional_salary", None))
+			],
+		)
+
+	def recompute_local_payroll_context(self):
+		"""Synchronize region-specific payroll fields before net-pay computation."""
+		try:
+			from hrms.regional.iran.utils import apply_iran_payroll_rules, apply_smart_attendance_summary
+
+			apply_smart_attendance_summary(self)
+			apply_iran_payroll_rules(self)
+		except Exception:
+			frappe.log_error(
+				frappe.get_traceback(),
+				f"Unable to recompute local payroll context for {self.name or 'new salary slip'}",
+			)
 
 	def pull_emp_details(self):
 		account_details = frappe.get_cached_value(
@@ -2544,30 +2578,7 @@ class SalarySlip(TransactionBase):
 		if not (self.employee and self.start_date and self.end_date):
 			frappe.throw(_("کارمند، تاریخ شروع و پایان الزامی است"))
 
-		# 1. recompute smart-attendance summary (required/worked/ot/shortage hours)
-		try:
-			from hrms.regional.iran.utils import apply_smart_attendance_summary
-
-			apply_smart_attendance_summary(self)
-		except Exception:
-			frappe.log_error(
-				frappe.get_traceback(),
-				f"Unable to refresh smart attendance summary for {self.name}",
-			)
-
-		# 1b. recompute Iran payroll rules (seniority bases, insurance, tax, ...)
-		# as of this slip's date
-		try:
-			from hrms.regional.iran.utils import apply_iran_payroll_rules
-
-			apply_iran_payroll_rules(self)
-		except Exception:
-			frappe.log_error(
-				frappe.get_traceback(),
-				f"Unable to refresh Iran payroll rules for {self.name}",
-			)
-
-		# 2. recompute the earnings/deductions from the salary structure
+		# recompute the earnings/deductions from the salary structure
 		try:
 			self.process_salary_structure()
 		except Exception:

@@ -629,6 +629,19 @@ def upsert_component_row(
 			target = row
 			break
 
+	if table_field == "earnings":
+		component_meta = frappe.db.get_value(
+			"Salary Component",
+			component_name,
+			["accrual_component", "is_flexible_benefit"],
+			as_dict=True,
+			cache=True,
+		) or {}
+		if cint(component_meta.get("accrual_component")):
+			if target:
+				rows.remove(target)
+			return
+
 	if abs(flt(amount)) < 0.0001:
 		if target:
 			rows.remove(target)
@@ -644,6 +657,69 @@ def upsert_component_row(
 		)
 
 	target.amount = flt(amount)
+
+
+def sync_accrual_component_amount(
+	doc,
+	component_name: str,
+	amount: float,
+):
+	component_name = resolve_structure_component_name(doc, "earnings", component_name)
+	if not component_name:
+		return
+
+	component_meta = frappe.db.get_value(
+		"Salary Component",
+		component_name,
+		["accrual_component", "is_flexible_benefit"],
+		as_dict=True,
+		cache=True,
+	) or {}
+	if not cint(component_meta.get("accrual_component")):
+		return
+
+	rows = doc.get("accrued_benefits") or []
+	target = next((row for row in rows if row.salary_component == component_name), None)
+
+	if abs(flt(amount)) < 0.0001:
+		if target:
+			rows.remove(target)
+	else:
+		if not target:
+			target = doc.append("accrued_benefits", {"salary_component": component_name})
+		target.amount = flt(amount)
+
+	if not hasattr(doc, "benefit_ledger_components"):
+		return
+
+	ledger_target = next(
+		(
+			row
+			for row in doc.benefit_ledger_components
+			if row.get("salary_component") == component_name and row.get("is_accrual")
+		),
+		None,
+	)
+
+	if abs(flt(amount)) < 0.0001:
+		if ledger_target:
+			doc.benefit_ledger_components.remove(ledger_target)
+		return
+
+	if ledger_target:
+		ledger_target["amount"] = flt(amount)
+		return
+
+	doc.benefit_ledger_components.append(
+		{
+			"salary_component": component_name,
+			"amount": flt(amount),
+			"is_accrual": 1,
+			"transaction_type": "Accrual",
+			"flexible_benefit": cint(component_meta.get("is_flexible_benefit")),
+			"remarks": "Accrual Component synchronized via Iran payroll rules",
+		}
+	)
 
 
 def get_salary_days(doc) -> float:
@@ -833,6 +909,8 @@ def apply_iran_payroll_rules(doc, method=None):
 	upsert_component_row(doc, "earnings", EARNING_COMPONENTS["supervision"], supervision)
 	upsert_component_row(doc, "earnings", EARNING_COMPONENTS["severance"], severance)
 	upsert_component_row(doc, "earnings", EARNING_COMPONENTS["eidi"], eidi)
+	sync_accrual_component_amount(doc, EARNING_COMPONENTS["severance"], severance)
+	sync_accrual_component_amount(doc, EARNING_COMPONENTS["eidi"], eidi)
 
 	total_earnings = sum(
 		flt(row.amount)
