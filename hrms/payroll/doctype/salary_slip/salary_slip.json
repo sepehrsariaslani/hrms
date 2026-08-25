@@ -46,6 +46,12 @@
   "total_working_hours",
   "hour_rate",
   "base_hour_rate",
+  "additional_salary_hours_section",
+  "additional_earning_hours",
+  "additional_deduction_hours",
+  "column_break_additional_salary_hours",
+  "additional_overtime_hours",
+  "additional_ordinary_hours",
   "help_section",
   "payment_days_calculation_help",
   "earnings_and_deductions_tab",
@@ -433,6 +439,44 @@
    "label": "Hour Rate (Company Currency)",
    "options": "Company:company:default_currency",
    "print_hide_if_no_value": 1
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "additional_salary_hours_section",
+   "fieldtype": "Section Break",
+   "label": "Additional Salary Hours"
+  },
+  {
+   "default": "0",
+   "fieldname": "additional_earning_hours",
+   "fieldtype": "Float",
+   "label": "Additional Earning Hours",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "additional_deduction_hours",
+   "fieldtype": "Float",
+   "label": "Additional Deduction Hours",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_additional_salary_hours",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "additional_overtime_hours",
+   "fieldtype": "Float",
+   "label": "Additional Overtime Hours",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "additional_ordinary_hours",
+   "fieldtype": "Float",
+   "label": "Additional Ordinary Hours",
+   "read_only": 1
   },
   {
    "fieldname": "base_gross_pay",

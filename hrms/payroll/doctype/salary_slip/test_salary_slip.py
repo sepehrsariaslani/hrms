@@ -3,6 +3,7 @@
 
 import calendar
 import random
+from unittest.mock import patch
 
 import frappe
 from frappe.core.doctype.user_permission.test_user_permission import create_user
@@ -30,6 +31,7 @@ from erpnext.setup.doctype.employee.test_employee import make_employee
 
 from hrms.hr.doctype.leave_allocation.test_leave_allocation import create_leave_allocation
 from hrms.hr.doctype.leave_type.test_leave_type import create_leave_type
+from hrms.payroll.doctype.salary_component.test_salary_component import create_salary_component
 from hrms.payroll.doctype.employee_tax_exemption_declaration.test_employee_tax_exemption_declaration import (
 	create_exemption_category,
 	create_payroll_period,
@@ -1968,6 +1970,142 @@ class TestSalarySlip(HRMSTestSuite):
 
 		self.assertIn("Allowance", earnings)
 		self.assertEqual(earnings["Allowance"], 0.0)
+
+	def test_additional_salary_rows_are_aggregated_by_component(self):
+		from hrms.payroll.doctype.salary_structure.test_salary_structure import make_salary_structure
+
+		emp = make_employee(
+			"test_grouped_additional_salary@salary.com",
+			company="_Test Company",
+			**{"date_of_joining": "2021-12-01"},
+		)
+		payroll_period = frappe.get_all("Payroll Period", filters={"company": "_Test Company"}, limit=1)
+		payroll_period = frappe.get_cached_doc("Payroll Period", payroll_period[0].name)
+
+		create_salary_component("Grouped Allowance", type="Earning")
+		salary_structure_doc = make_salary_structure(
+			"Test Grouped Additional Salary component",
+			"Monthly",
+			company="_Test Company",
+			employee=emp,
+			from_date=payroll_period.start_date,
+			payroll_period=payroll_period,
+			base=65000,
+		)
+
+		additional_salary_1 = frappe.get_doc(
+			{
+				"doctype": "Additional Salary",
+				"employee": emp,
+				"company": "_Test Company",
+				"salary_component": "Grouped Allowance",
+				"amount": 1000,
+				"payroll_date": payroll_period.start_date,
+				"currency": "INR",
+			}
+		).insert()
+		additional_salary_1.submit()
+
+		additional_salary_2 = frappe.get_doc(
+			{
+				"doctype": "Additional Salary",
+				"employee": emp,
+				"company": "_Test Company",
+				"salary_component": "Grouped Allowance",
+				"amount": 2000,
+				"payroll_date": payroll_period.start_date,
+				"currency": "INR",
+			}
+		).insert()
+		additional_salary_2.submit()
+
+		salary_slip = make_salary_slip(
+			salary_structure_doc.name, employee=emp, posting_date=payroll_period.start_date
+		)
+		grouped_rows = [row for row in salary_slip.earnings if row.salary_component == "Grouped Allowance"]
+
+		self.assertEqual(len(grouped_rows), 1)
+		self.assertEqual(grouped_rows[0].amount, 3000)
+		self.assertEqual(
+			grouped_rows[0].additional_salary_references.splitlines(),
+			[additional_salary_1.name, additional_salary_2.name],
+		)
+
+	def test_hourly_additional_salary_updates_salary_slip_hour_fields(self):
+		from hrms.payroll.doctype.salary_structure.test_salary_structure import make_salary_structure
+
+		emp = make_employee(
+			"test_hour_fields_additional_salary@salary.com",
+			company="_Test Company",
+			**{"date_of_joining": "2021-12-01"},
+		)
+		payroll_period = frappe.get_all("Payroll Period", filters={"company": "_Test Company"}, limit=1)
+		payroll_period = frappe.get_cached_doc("Payroll Period", payroll_period[0].name)
+
+		create_salary_component("Hourly Reward", type="Earning")
+		create_salary_component("Hourly Penalty", type="Deduction")
+		salary_structure_doc = make_salary_structure(
+			"Test Hourly Additional Salary fields",
+			"Monthly",
+			company="_Test Company",
+			employee=emp,
+			from_date=payroll_period.start_date,
+			payroll_period=payroll_period,
+			base=65000,
+		)
+
+		with patch(
+			"hrms.payroll.doctype.additional_salary.additional_salary.is_iran_company",
+			return_value=True,
+		), patch(
+			"hrms.payroll.doctype.additional_salary.additional_salary.get_iran_employee_hourly_rate_context",
+			return_value=frappe._dict(
+				{
+					"ordinary_hourly_rate": 100,
+					"overtime_rate": 150,
+				}
+			),
+		):
+			reward = frappe.get_doc(
+				{
+					"doctype": "Additional Salary",
+					"employee": emp,
+					"company": "_Test Company",
+					"salary_component": "Hourly Reward",
+					"payroll_date": payroll_period.start_date,
+					"currency": "INR",
+					"amount_calculation_type": "Hours",
+					"hour_rate_type": "Overtime Hour Rate",
+					"hours": 2.5,
+					"amount": 0,
+				}
+			).insert()
+			reward.submit()
+
+			penalty = frappe.get_doc(
+				{
+					"doctype": "Additional Salary",
+					"employee": emp,
+					"company": "_Test Company",
+					"salary_component": "Hourly Penalty",
+					"payroll_date": payroll_period.start_date,
+					"currency": "INR",
+					"amount_calculation_type": "Hours",
+					"hour_rate_type": "Ordinary Hour Rate",
+					"hours": 1.25,
+					"amount": 0,
+				}
+			).insert()
+			penalty.submit()
+
+		salary_slip = make_salary_slip(
+			salary_structure_doc.name, employee=emp, posting_date=payroll_period.start_date
+		)
+
+		self.assertEqual(salary_slip.additional_earning_hours, 2.5)
+		self.assertEqual(salary_slip.additional_deduction_hours, 1.25)
+		self.assertEqual(salary_slip.additional_overtime_hours, 2.5)
+		self.assertEqual(salary_slip.additional_ordinary_hours, 1.25)
 
 
 class TestSalarySlipSafeEval(HRMSTestSuite):

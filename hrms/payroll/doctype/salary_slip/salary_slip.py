@@ -307,13 +307,26 @@ class SalarySlip(TransactionBase):
 			return
 
 		status = "Paid" if self.docstatus == 1 else "Unpaid"
-		earnings = {entry.additional_salary for entry in self.earnings}
+		earnings = set()
+		for entry in self.earnings:
+			earnings.update(self.get_additional_salary_reference_names(entry))
 
 		for additional_salary in additional_salary_docs:
 			if additional_salary.name in earnings:
 				frappe.db.set_value(
 					additional_salary.ref_doctype, additional_salary.ref_docname, "status", status
 				)
+
+	def get_additional_salary_reference_names(self, row) -> set[str]:
+		references = set()
+		if getattr(row, "additional_salary", None):
+			references.add(row.additional_salary)
+
+		reference_blob = (getattr(row, "additional_salary_references", None) or "").strip()
+		if reference_blob:
+			references.update(filter(None, [value.strip() for value in reference_blob.splitlines()]))
+
+		return references
 
 	def create_benefits_ledger_entry(self):
 		if self.benefit_ledger_components:
@@ -1614,11 +1627,12 @@ class SalarySlip(TransactionBase):
 		return current_period_benefit, is_accrual
 
 	def add_additional_salary_components(self, component_type):
+		self.initialize_additional_salary_hours_summary(component_type)
 		additional_salaries = get_additional_salaries(
 			self.employee, self.start_date, self.end_date, component_type
 		)
 
-		for additional_salary in additional_salaries:
+		for additional_salary in self.aggregate_additional_salary_rows(additional_salaries, component_type):
 			component_data = get_salary_component_data(additional_salary.component)
 			remove_if_zero_valued = frappe.get_cached_value(
 				"Salary Component", additional_salary.component, "remove_if_zero_valued"
@@ -1632,6 +1646,7 @@ class SalarySlip(TransactionBase):
 				additional_salary,
 				is_recurring=additional_salary.is_recurring,
 			)
+			self.accumulate_additional_salary_hours(additional_salary, component_type)
 
 			if component_type == "earnings" and hasattr(self, "benefit_ledger_components"):
 				if (
@@ -1656,6 +1671,82 @@ class SalarySlip(TransactionBase):
 							"remarks": remarks,
 						}
 					)
+
+	def initialize_additional_salary_hours_summary(self, component_type):
+		if component_type != "earnings" or getattr(
+			self, "_additional_salary_hours_summary_initialized", False
+		):
+			return
+
+		for fieldname in (
+			"additional_earning_hours",
+			"additional_deduction_hours",
+			"additional_overtime_hours",
+			"additional_ordinary_hours",
+		):
+			if hasattr(self, fieldname):
+				self.set(fieldname, 0)
+
+		self._additional_salary_hours_summary_initialized = True
+
+	def should_aggregate_additional_salary(self, additional_salary, component_data) -> bool:
+		return bool(
+			not additional_salary.overwrite
+			and not additional_salary.is_recurring
+			and not additional_salary.ref_doctype
+			and not component_data.variable_based_on_taxable_salary
+			and not component_data.accrual_component
+			and not component_data.is_flexible_benefit
+		)
+
+	def aggregate_additional_salary_rows(self, additional_salaries, component_type):
+		aggregated_rows = []
+		grouped_rows = {}
+
+		for additional_salary in additional_salaries:
+			component_data = get_salary_component_data(additional_salary.component)
+			if not self.should_aggregate_additional_salary(additional_salary, component_data):
+				additional_salary.reference_names = [additional_salary.name]
+				aggregated_rows.append(additional_salary)
+				continue
+
+			key = (
+				additional_salary.component,
+				additional_salary.amount_calculation_type,
+				additional_salary.hour_rate_type,
+				component_type,
+			)
+			grouped_row = grouped_rows.get(key)
+			if not grouped_row:
+				additional_salary.reference_names = [additional_salary.name]
+				grouped_rows[key] = additional_salary
+				aggregated_rows.append(additional_salary)
+				continue
+
+			grouped_row.amount = flt(grouped_row.amount) + flt(additional_salary.amount)
+			grouped_row.hours = flt(grouped_row.get("hours")) + flt(additional_salary.get("hours"))
+			grouped_row.reference_names.append(additional_salary.name)
+
+		return aggregated_rows
+
+	def accumulate_additional_salary_hours(self, additional_salary, component_type):
+		if additional_salary.get("amount_calculation_type") != "Hours":
+			return
+
+		hours = flt(additional_salary.get("hours"))
+		if not hours:
+			return
+
+		if component_type == "earnings" and hasattr(self, "additional_earning_hours"):
+			self.additional_earning_hours = flt(self.additional_earning_hours) + hours
+		elif component_type == "deductions" and hasattr(self, "additional_deduction_hours"):
+			self.additional_deduction_hours = flt(self.additional_deduction_hours) + hours
+
+		hour_rate_type = additional_salary.get("hour_rate_type")
+		if hour_rate_type == "Overtime Hour Rate" and hasattr(self, "additional_overtime_hours"):
+			self.additional_overtime_hours = flt(self.additional_overtime_hours) + hours
+		elif hour_rate_type == "Ordinary Hour Rate" and hasattr(self, "additional_ordinary_hours"):
+			self.additional_ordinary_hours = flt(self.additional_ordinary_hours) + hours
 
 	def add_tax_components(self):
 		# Calculate variable_based_on_taxable_salary after all components updated in salary slip
@@ -1837,12 +1928,16 @@ class SalarySlip(TransactionBase):
 
 			component_row.is_recurring_additional_salary = is_recurring
 			component_row.additional_salary = additional_salary.name
+			component_row.additional_salary_references = "\n".join(
+				additional_salary.get("reference_names") or [additional_salary.name]
+			)
 			component_row.deduct_full_tax_on_selected_payroll_date = (
 				additional_salary.deduct_full_tax_on_selected_payroll_date
 			)
 		else:
 			component_row.default_amount = default_amount or amount
 			component_row.additional_amount = 0
+			component_row.additional_salary_references = None
 			component_row.deduct_full_tax_on_selected_payroll_date = (
 				component_data.deduct_full_tax_on_selected_payroll_date
 			)

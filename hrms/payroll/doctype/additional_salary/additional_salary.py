@@ -5,9 +5,10 @@
 import frappe
 from frappe import _, bold
 from frappe.model.document import Document
-from frappe.utils import comma_and, date_diff, formatdate, get_link_to_form, getdate
+from frappe.utils import comma_and, date_diff, flt, formatdate, get_link_to_form, getdate
 
 from hrms.hr.utils import validate_active_employee
+from hrms.regional.iran.utils import get_iran_employee_hourly_rate_context, is_iran_company
 
 
 class AdditionalSalary(Document):
@@ -32,9 +33,47 @@ class AdditionalSalary(Document):
 		self.validate_duplicate_additional_salary()
 		self.validate_tax_component_overwrite()
 		self.validate_accrual_component()
+		self.set_hourly_amount()
 
 		if self.amount < 0:
 			frappe.throw(_("Amount should not be less than zero"))
+
+	def set_hourly_amount(self):
+		if self.amount_calculation_type != "Hours":
+			self.hours = 0
+			self.hour_rate = 0
+			return
+
+		# Smart Attendance hourly rewards/penalties store only hours and keep
+		# amount calculation entirely in salary slip formulas.
+		if not self.hour_rate_type:
+			self.hour_rate = 0
+			self.amount = 0
+			return
+
+		if flt(self.hours) <= 0:
+			frappe.throw(_("Hours should be greater than zero for hourly additional salaries."))
+
+		if not is_iran_company(self.company):
+			frappe.throw(_("Hourly additional salary is currently supported only for Iran payroll companies."))
+
+		reference_date = self.payroll_date or self.from_date or self.to_date
+		rate_context = get_iran_employee_hourly_rate_context(
+			self.employee,
+			company=self.company,
+			reference_date=reference_date,
+		)
+		rate = (
+			rate_context.overtime_rate
+			if self.hour_rate_type == "Overtime Hour Rate"
+			else rate_context.ordinary_hourly_rate
+		)
+
+		if flt(rate) <= 0:
+			frappe.throw(_("Unable to determine the hourly rate for this employee."))
+
+		self.hour_rate = flt(rate)
+		self.amount = flt(self.hours) * flt(self.hour_rate)
 
 	def validate_salary_structure(self):
 		salary_structure = frappe.db.get_value(
@@ -276,10 +315,15 @@ def get_additional_salaries(employee, start_date, end_date, component_type):
 			component_field,
 			additional_sal.type,
 			additional_sal.amount,
+			additional_sal.amount_calculation_type,
+			additional_sal.hours,
+			additional_sal.hour_rate_type,
+			additional_sal.hour_rate,
 			additional_sal.is_recurring,
 			overwrite_field,
 			additional_sal.deduct_full_tax_on_selected_payroll_date,
 			additional_sal.ref_doctype,
+			additional_sal.ref_docname,
 		)
 		.where(
 			(additional_sal.employee == employee)
@@ -327,3 +371,27 @@ def get_additional_salaries(employee, start_date, end_date, component_type):
 		additional_salaries.append(d)
 
 	return additional_salaries
+
+
+@frappe.whitelist()
+def get_hourly_additional_salary_details(
+	employee, company=None, reference_date=None, hour_rate_type=None, hours=None
+):
+	if not employee:
+		return {}
+
+	context = get_iran_employee_hourly_rate_context(
+		employee,
+		company=company,
+		reference_date=reference_date,
+	)
+	rate = (
+		context.overtime_rate if hour_rate_type == "Overtime Hour Rate" else context.ordinary_hourly_rate
+	)
+	hours = flt(hours)
+	return {
+		"hour_rate": flt(rate),
+		"amount": flt(rate) * hours,
+		"ordinary_hourly_rate": flt(context.ordinary_hourly_rate),
+		"overtime_rate": flt(context.overtime_rate),
+	}

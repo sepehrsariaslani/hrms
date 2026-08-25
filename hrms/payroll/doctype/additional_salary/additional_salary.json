@@ -23,8 +23,12 @@
   "salary_component",
   "type",
   "currency",
+  "amount_calculation_type",
   "amount",
   "column_break_8",
+  "hour_rate_type",
+  "hours",
+  "hour_rate",
   "deduct_full_tax_on_selected_payroll_date",
   "overwrite_salary_structure_amount",
   "properties_and_references_section",
@@ -60,12 +64,43 @@
    "search_index": 1
   },
   {
+   "default": "Amount",
+   "fieldname": "amount_calculation_type",
+   "fieldtype": "Select",
+   "label": "Amount Calculation Type",
+   "options": "Amount\nHours"
+  },
+  {
+   "depends_on": "eval:doc.amount_calculation_type!=='Hours'",
    "fieldname": "amount",
    "fieldtype": "Currency",
    "in_list_view": 1,
    "label": "Amount",
    "options": "currency",
-   "reqd": 1
+   "reqd": 1,
+   "mandatory_depends_on": "eval:doc.amount_calculation_type!=='Hours'"
+  },
+  {
+   "default": "Ordinary Hour Rate",
+   "depends_on": "eval:doc.amount_calculation_type==='Hours'",
+   "fieldname": "hour_rate_type",
+   "fieldtype": "Select",
+   "label": "Hour Rate Type",
+   "options": "Ordinary Hour Rate\nOvertime Hour Rate"
+  },
+  {
+   "depends_on": "eval:doc.amount_calculation_type==='Hours'",
+   "fieldname": "hours",
+   "fieldtype": "Float",
+   "label": "Hours"
+  },
+  {
+   "depends_on": "eval:doc.amount_calculation_type==='Hours'",
+   "fieldname": "hour_rate",
+   "fieldtype": "Currency",
+   "label": "Hour Rate",
+   "options": "currency",
+   "read_only": 1
   },
   {
    "default": "1",

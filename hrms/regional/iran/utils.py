@@ -246,6 +246,85 @@ def get_seniority_daily_base(
 	return flt(rule.seniority_daily_base) if rule else 0
 
 
+def get_iran_employee_hourly_rate_context(
+	employee, company: str | None = None, reference_date: date | None = None
+) -> frappe._dict:
+	employee_doc = employee if getattr(employee, "doctype", None) == "Employee" else frappe.get_doc("Employee", employee)
+	company = company or employee_doc.company
+
+	if not is_iran_company(company):
+		return frappe._dict()
+
+	settings = get_iran_payroll_settings()
+	reference_date = getdate(reference_date) if reference_date else getdate()
+	rule = get_active_yearly_rule(settings, reference_date) if settings else None
+	designation_rule = (
+		get_designation_salary_rule(settings, employee_doc.designation, company) if settings else None
+	)
+
+	salary_type = get_employee_salary_type(employee_doc)
+	daily_base = flt(employee_doc.get("daily_pay"))
+	monthly_technical_bonus = get_numeric_employee_field_value(employee_doc, "karane")
+	technical_allowance_monthly = get_numeric_employee_field_value(
+		employee_doc, "technical_allowance_monthly"
+	)
+	monthly_technical_total = monthly_technical_bonus + technical_allowance_monthly
+	technical_daily = monthly_technical_total / STANDARD_MONTH_DAYS if monthly_technical_total else 0
+	supervision_monthly = flt(employee_doc.get("supervision_allowance"))
+	overtime_multiplier = flt(rule.overtime_multiplier) if rule and flt(rule.overtime_multiplier) else 1.4
+
+	if salary_type == FIXED_SALARY_TYPE:
+		monthly_base = flt(employee_doc.get("fixed_monthly_salary"))
+		if not monthly_base:
+			monthly_base = daily_base * STANDARD_MONTH_DAYS
+		daily_base = monthly_base / STANDARD_MONTH_DAYS if monthly_base else 0
+	elif salary_type == HOURLY_SALARY_TYPE:
+		hourly_base = flt(employee_doc.get("employee_hourly_salary"))
+		daily_base = hourly_base * STANDARD_DAILY_WORK_HOURS
+		monthly_base = daily_base * STANDARD_MONTH_DAYS
+	else:
+		if designation_rule:
+			daily_base = flt(designation_rule.base_daily_pay)
+		monthly_base = daily_base * STANDARD_MONTH_DAYS
+
+	if salary_type != HOURLY_SALARY_TYPE:
+		hourly_base = daily_base / STANDARD_DAILY_WORK_HOURS if daily_base else 0
+
+	if salary_type == CONTRACTUAL_SALARY_TYPE and designation_rule:
+		daily_base = flt(designation_rule.base_daily_pay)
+		monthly_base = daily_base * STANDARD_MONTH_DAYS
+		hourly_base = daily_base / STANDARD_DAILY_WORK_HOURS if daily_base else 0
+
+	hourly_technical = technical_daily / STANDARD_DAILY_WORK_HOURS if technical_daily else 0
+	overtime_hourly = (hourly_base + hourly_technical) * overtime_multiplier
+	absence_deduction = (
+		daily_base + technical_daily + (supervision_monthly / STANDARD_MONTH_DAYS)
+	) / STANDARD_DAILY_WORK_HOURS
+
+	seniority_daily = get_seniority_daily_base(
+		get_employee_seniority_reference_date(employee_doc),
+		salary_date=reference_date,
+		settings=settings,
+		rule=rule,
+	)
+
+	return frappe._dict(
+		{
+			"hourly_rate": flt(absence_deduction),
+			"ordinary_hourly_rate": flt(absence_deduction),
+			"base_hourly_rate": flt(hourly_base),
+			"overtime_rate": flt(overtime_hourly),
+			"daily_base": flt(daily_base),
+			"monthly_base": flt(monthly_base),
+			"technical_daily": flt(technical_daily),
+			"hourly_technical": flt(hourly_technical),
+			"seniority_daily": flt(seniority_daily),
+			"standard_daily_hours": flt(STANDARD_DAILY_WORK_HOURS),
+			"salary_type": salary_type,
+		}
+	)
+
+
 def sync_iran_employee_compensation_fields(doc, method=None):
 	if not doc or doc.doctype != "Employee":
 		return

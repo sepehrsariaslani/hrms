@@ -12,6 +12,7 @@
   "year_to_date",
   "section_break_5",
   "additional_salary",
+  "additional_salary_references",
   "is_recurring_additional_salary",
   "statistical_component",
   "depends_on_payment_days",
@@ -205,6 +206,13 @@
    "fieldtype": "Link",
    "label": "Additional Salary ",
    "options": "Additional Salary",
+   "read_only": 1
+  },
+  {
+   "fieldname": "additional_salary_references",
+   "fieldtype": "Small Text",
+   "hidden": 1,
+   "label": "Additional Salary References",
    "read_only": 1
   },
   {

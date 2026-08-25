@@ -1,6 +1,8 @@
 # Copyright (c) 2018, Frappe Technologies Pvt. Ltd. and Contributors
 # See license.txt
 
+from unittest.mock import patch
+
 import frappe
 from frappe.utils import add_days, add_months, nowdate
 
@@ -185,6 +187,48 @@ class TestAdditionalSalary(HRMSTestSuite):
 		)
 		with self.assertRaises(frappe.ValidationError):
 			additional_salary_doc.save()
+
+	def test_hourly_additional_salary_amount(self):
+		emp_id = make_employee("test_hourly_additional@salary.com", company="_Test Company")
+		date = nowdate()
+		make_salary_structure(
+			"Test Salary Structure Hourly Additional Salary",
+			"Monthly",
+			employee=emp_id,
+			from_date=add_days(date, -50),
+			company="_Test Company",
+		)
+
+		with patch(
+			"hrms.payroll.doctype.additional_salary.additional_salary.is_iran_company",
+			return_value=True,
+		), patch(
+			"hrms.payroll.doctype.additional_salary.additional_salary.get_iran_employee_hourly_rate_context",
+			return_value=frappe._dict(
+				{
+					"ordinary_hourly_rate": 100,
+					"overtime_rate": 150,
+				}
+			),
+		):
+			additional_salary = frappe.get_doc(
+				{
+					"doctype": "Additional Salary",
+					"employee": emp_id,
+					"company": "_Test Company",
+					"salary_component": "Recurring Salary Component",
+					"payroll_date": date,
+					"currency": "INR",
+					"amount_calculation_type": "Hours",
+					"hour_rate_type": "Overtime Hour Rate",
+					"hours": 2.5,
+					"amount": 0,
+				}
+			)
+			additional_salary.insert()
+
+		self.assertEqual(additional_salary.hour_rate, 150)
+		self.assertEqual(additional_salary.amount, 375)
 
 
 def get_additional_salary(
