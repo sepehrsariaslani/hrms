@@ -263,7 +263,7 @@ class SalarySlip(TransactionBase):
 		hours = min(hours, self.get_standard_working_hours())
 
 		from_time = "09:00:00"
-		start = datetime.combine(leave_date, datetime.min.time())
+		start = datetime.combine(leave_date, datetime.strptime(from_time, "%H:%M:%S").time())
 		to_time = (start + timedelta(hours=hours)).strftime("%H:%M:%S")
 
 		try:

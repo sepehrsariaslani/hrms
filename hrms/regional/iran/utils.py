@@ -1013,18 +1013,13 @@ def apply_iran_payroll_rules(doc, method=None):
 	)
 	employee_insurance = insurable_earnings * (flt(rule.insurance_employee_rate) / 100)
 	employer_insurance = insurable_earnings * (flt(rule.insurance_employer_rate) / 100)
+	set_doc_field_if_exists(doc, "employer_insurance_share_iran", employer_insurance)
 
 	upsert_component_row(
 		doc,
 		"deductions",
 		DEDUCTION_COMPONENTS["employee_insurance"],
 		employee_insurance,
-	)
-	upsert_component_row(
-		doc,
-		"deductions",
-		DEDUCTION_COMPONENTS["employer_insurance"],
-		employer_insurance,
 	)
 	# Income tax is managed خارج از تنظیمات حقوق ایران.
 	upsert_component_row(doc, "deductions", DEDUCTION_COMPONENTS["income_tax"], 0)

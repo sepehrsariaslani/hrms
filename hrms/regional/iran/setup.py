@@ -294,6 +294,14 @@ def get_custom_fields():
 		],
 		"Salary Slip": [
 			{
+				"fieldname": "employer_insurance_share_iran",
+				"fieldtype": "Currency",
+				"label": "بیمه سهم کارفرما",
+				"insert_after": "base_rounded_total",
+				"read_only": 1,
+				"default": "0",
+			},
+			{
 				"fieldname": "iran_attendance_summary_section",
 				"fieldtype": "Section Break",
 				"label": "خلاصه کارکرد هوشمند",
