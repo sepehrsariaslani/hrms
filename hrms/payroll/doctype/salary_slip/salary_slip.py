@@ -386,10 +386,14 @@ class SalarySlip(TransactionBase):
 			)
 			if not account:
 				frappe.throw(_("Please set account in Salary Component {0}").format(row.salary_component))
-			journal.append(
-				"accounts",
-				{"account": account, field: flt(row.amount), "cost_center": row.get("cost_center") or self.cost_center},
-			)
+			cost_center = row.get("cost_center") or self.get("cost_center")
+			if not cost_center and self.payroll_entry:
+				cost_center = frappe.db.get_value("Payroll Entry", self.payroll_entry, "cost_center")
+			cost_center = cost_center or frappe.db.get_value("Company", self.company, "cost_center")
+			account_row = {"account": account, field: flt(row.amount)}
+			if cost_center:
+				account_row["cost_center"] = cost_center
+			journal.append("accounts", account_row)
 
 		for row in self.earnings:
 			if flt(row.amount) and not row.do_not_include_in_accounts:
