@@ -218,6 +218,13 @@ frappe.ui.form.on("Salary Slip", {
 		frm.fields_dict["earnings"].grid.set_column_disp(salary_detail_fields, false);
 		frm.fields_dict["deductions"].grid.set_column_disp(salary_detail_fields, false);
 		frm.trigger("set_dynamic_labels");
+		if (frm.doc.docstatus === 1) {
+			if (frm.doc.journal_entry) {
+				frm.add_custom_button(__("مشاهده سند تعهد حقوق"), () => frappe.set_route("Form", "Journal Entry", frm.doc.journal_entry), __("حسابداری"));
+			} else if (!frm.doc.payroll_entry) {
+				frm.add_custom_button(__("ایجاد سند تعهد حقوق"), () => frappe.confirm(__("این عملیات فقط بدهی حقوق کارمند را ثبت می‌کند و پرداختی انجام نمی‌دهد."), () => frm.call("make_individual_accrual_journal_entry").then((r) => frappe.set_route("Form", "Journal Entry", r.message))), __("حسابداری"));
+			}
+		}
 
 		// Refresh button — recomputes working hours & salary from smart attendance
 		// so the user sees the latest figures before submitting.

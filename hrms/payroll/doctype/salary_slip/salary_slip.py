@@ -356,6 +356,49 @@ class SalarySlip(TransactionBase):
 			after_commit=True,
 		)
 
+	@frappe.whitelist()
+	def make_individual_accrual_journal_entry(self):
+		"""Create one submitted accrual entry for a submitted stand-alone salary slip."""
+		if self.docstatus != 1:
+			frappe.throw(_("Salary Slip must be submitted before creating an accounting entry"))
+		if self.journal_entry:
+			return self.journal_entry
+		if self.payroll_entry:
+			frappe.throw(_("This Salary Slip belongs to a Payroll Entry. Use its accrual Journal Entry."))
+
+		payable_account = frappe.db.get_value("Company", self.company, "default_payroll_payable_account")
+		if not payable_account:
+			frappe.throw(_("Please set Default Payroll Payable Account in Company"))
+
+		journal = frappe.new_doc("Journal Entry")
+		journal.company = self.company
+		journal.posting_date = self.posting_date
+		journal.voucher_type = "Journal Entry"
+		journal.user_remark = _("Accrual for Salary Slip {0}").format(self.name)
+		journal.party_not_required = 0
+
+		def append_component(row, field):
+			account = frappe.db.get_value(
+				"Salary Component Account", {"parent": row.salary_component, "company": self.company}, "account"
+			)
+			if not account:
+				frappe.throw(_("Please set account in Salary Component {0}").format(row.salary_component))
+			journal.append("accounts", {"account": account, field: flt(row.amount), "cost_center": row.cost_center})
+
+		for row in self.earnings:
+			if flt(row.amount) and not row.do_not_include_in_accounts:
+				append_component(row, "debit_in_account_currency")
+		for row in self.deductions:
+			if flt(row.amount) and not row.do_not_include_in_accounts:
+				append_component(row, "credit_in_account_currency")
+		if flt(self.net_pay):
+			journal.append("accounts", {"account": payable_account, "credit_in_account_currency": flt(self.net_pay), "party_type": "Employee", "party": self.employee, "reference_type": self.doctype, "reference_name": self.name})
+
+		journal.insert(ignore_permissions=True)
+		journal.submit()
+		self.db_set("journal_entry", journal.name)
+		return journal.name
+
 	def on_trash(self):
 		from frappe.model.naming import revert_series_if_last
 
