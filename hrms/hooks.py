@@ -47,6 +47,7 @@ app_include_css = "hrms.bundle.css"
 
 # include js in doctype views
 doctype_js = {
+	"Salary Slip": "public/js/salary_slip_accounting.js",
 	"Employee": ["public/js/erpnext/employee.js", "public/js/employee_salary_calculator.js"],
 	"Company": "public/js/erpnext/company.js",
 	"Department": "public/js/erpnext/department.js",
