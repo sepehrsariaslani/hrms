@@ -1137,17 +1137,46 @@ class PayrollEntry(Document):
 
 	def set_journal_entry_in_salary_slips(self, submitted_salary_slips, jv_name=None):
 		SalarySlip = frappe.qb.DocType("Salary Slip")
+		salary_slips = frappe.get_all(
+			"Salary Slip",
+			filters={"name": ["in", [salary_slip.name for salary_slip in submitted_salary_slips]]},
+			fields=["name", "employee"],
+		)
 		(
 			frappe.qb.update(SalarySlip)
 			.set(SalarySlip.journal_entry, jv_name)
-			.where(SalarySlip.name.isin([salary_slip.name for salary_slip in submitted_salary_slips]))
+			.where(SalarySlip.name.isin([salary_slip.name for salary_slip in salary_slips]))
 		).run()
 		if frappe.get_meta("Salary Slip").has_field("salary_accrual_status"):
 			(
 				frappe.qb.update(SalarySlip)
 				.set(SalarySlip.salary_accrual_status, "تعهد ثبت شد")
-				.where(SalarySlip.name.isin([salary_slip.name for salary_slip in submitted_salary_slips]))
+				.where(SalarySlip.name.isin([salary_slip.name for salary_slip in salary_slips]))
 			).run()
+		self.set_salary_slip_references_in_journal_entry(salary_slips, jv_name)
+
+	def set_salary_slip_references_in_journal_entry(self, salary_slips, jv_name):
+		"""Expose a group accrual entry from each related Salary Slip."""
+		if not jv_name:
+			return
+		for salary_slip in salary_slips:
+			frappe.db.set_value(
+				"Journal Entry Account",
+				{"parent": jv_name, "party_type": "Employee", "party": salary_slip.employee},
+				{"reference_type": "Salary Slip", "reference_name": salary_slip.name},
+				update_modified=False,
+			)
+
+		payroll_reference_row = frappe.db.get_value(
+			"Journal Entry Account", {"parent": jv_name, "party": ["in", ("", None)]}, "name"
+		)
+		if payroll_reference_row:
+			frappe.db.set_value(
+				"Journal Entry Account",
+				payroll_reference_row,
+				{"reference_type": "Payroll Entry", "reference_name": self.name},
+				update_modified=False,
+			)
 
 	def set_start_end_dates(self):
 		self.update(
