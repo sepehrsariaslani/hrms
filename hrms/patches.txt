@@ -90,3 +90,4 @@ hrms.patches.v16_0.create_shift_allocator_role #2026-06-05
 hrms.patches.v16_0.add_iran_salary_slip_seniority_field #2026-08-02
 hrms.patches.v16_0.add_standard_working_hours_to_shift_type #2026-08-02
 hrms.patches.v16_0.add_iran_salary_slip_accounting_fields #2026-09-01
+hrms.patches.v16_0.add_payroll_accrual_status_and_links #2026-09-01

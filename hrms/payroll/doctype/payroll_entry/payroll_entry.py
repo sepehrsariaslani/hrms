@@ -683,6 +683,8 @@ class PayrollEntry(Document):
 		journal_entry.company = self.company
 		journal_entry.posting_date = self.posting_date
 		journal_entry.party_not_required = True if not employee_wise_accounting_enabled else False
+		if submitted_salary_slips and journal_entry.meta.has_field("payroll_entry_reference"):
+			journal_entry.payroll_entry_reference = self.name
 
 		journal_entry.set("accounts", accounts)
 		journal_entry.multi_currency = multi_currency
@@ -1140,6 +1142,12 @@ class PayrollEntry(Document):
 			.set(SalarySlip.journal_entry, jv_name)
 			.where(SalarySlip.name.isin([salary_slip.name for salary_slip in submitted_salary_slips]))
 		).run()
+		if frappe.get_meta("Salary Slip").has_field("salary_accrual_status"):
+			(
+				frappe.qb.update(SalarySlip)
+				.set(SalarySlip.salary_accrual_status, "تعهد ثبت شد")
+				.where(SalarySlip.name.isin([salary_slip.name for salary_slip in submitted_salary_slips]))
+			).run()
 
 	def set_start_end_dates(self):
 		self.update(

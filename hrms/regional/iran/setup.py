@@ -61,6 +61,16 @@ def get_fiscal_year_by_date(reference_date=None):
 
 def get_custom_fields():
 	return {
+		"Journal Entry": [
+			{
+				"fieldname": "payroll_entry_reference",
+				"fieldtype": "Link",
+				"label": "ثبت حقوق و دستمزد مرتبط",
+				"options": "Payroll Entry",
+				"read_only": 1,
+				"insert_after": "user_remark",
+			}
+		],
 		"Company": [
 			{
 				"fieldname": "iran_payroll_accounting_section",
@@ -316,6 +326,15 @@ def get_custom_fields():
 			},
 		],
 		"Salary Slip": [
+			{
+				"fieldname": "salary_accrual_status",
+				"fieldtype": "Select",
+				"label": "وضعیت سند تعهد",
+				"options": "بدون سند\nتعهد ثبت شد",
+				"default": "بدون سند",
+				"read_only": 1,
+				"insert_after": "journal_entry",
+			},
 			{"fieldname": "employee_balance_section", "fieldtype": "Section Break", "label": "مانده حساب کارمند", "insert_after": "employer_insurance_share_iran", "collapsible": 1},
 			{"fieldname": "employee_payments_in_period", "fieldtype": "Currency", "label": "پرداخت حقوق در این دوره", "insert_after": "employee_balance_section", "read_only": 1},
 			{"fieldname": "employee_opening_payable_balance", "fieldtype": "Currency", "label": "مانده ابتدای دوره", "insert_after": "employee_payments_in_period", "read_only": 1},

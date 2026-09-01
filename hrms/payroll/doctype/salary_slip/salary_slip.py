@@ -377,6 +377,8 @@ class SalarySlip(TransactionBase):
 		journal.voucher_type = "Journal Entry"
 		journal.user_remark = _("Accrual for Salary Slip {0}").format(self.name)
 		journal.party_not_required = 0
+		if self.payroll_entry and journal.meta.has_field("payroll_entry_reference"):
+			journal.payroll_entry_reference = self.payroll_entry
 
 		def append_component(row, field):
 			account = frappe.db.get_value(
@@ -425,6 +427,8 @@ class SalarySlip(TransactionBase):
 		journal.insert(ignore_permissions=True)
 		journal.submit()
 		self.db_set("journal_entry", journal.name)
+		if self.meta.has_field("salary_accrual_status"):
+			self.db_set("salary_accrual_status", "تعهد ثبت شد")
 		return journal.name
 
 	def get_employer_insurance_share(self):
