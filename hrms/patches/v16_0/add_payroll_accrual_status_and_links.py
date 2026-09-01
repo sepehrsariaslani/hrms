@@ -22,6 +22,16 @@ def execute():
 				salary_slip.payroll_entry,
 				update_modified=False,
 			)
+		journal_account = frappe.db.get_value(
+			"Journal Entry Account", {"parent": salary_slip.journal_entry}, "name"
+		)
+		if journal_account:
+			frappe.db.set_value(
+				"Journal Entry Account",
+				journal_account,
+				{"reference_type": "Payroll Entry", "reference_name": salary_slip.payroll_entry},
+				update_modified=False,
+			)
 		frappe.db.set_value(
 			"Salary Slip",
 			salary_slip.name,
