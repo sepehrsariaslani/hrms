@@ -358,14 +358,15 @@ class SalarySlip(TransactionBase):
 
 	@frappe.whitelist()
 	def make_individual_accrual_journal_entry(self):
-		"""Create one submitted accrual entry for a submitted stand-alone salary slip."""
+		"""Create one submitted accrual entry for a submitted salary slip.
+
+		A Salary Slip that came from a Payroll Entry is supported too. The standard
+		Payroll Entry query excludes linked slips, preventing duplicate accrual.
+		"""
 		if self.docstatus != 1:
 			frappe.throw(_("Salary Slip must be submitted before creating an accounting entry"))
 		if self.journal_entry:
 			return self.journal_entry
-		if self.payroll_entry:
-			frappe.throw(_("This Salary Slip belongs to a Payroll Entry. Use its accrual Journal Entry."))
-
 		payable_account = frappe.db.get_value("Company", self.company, "default_payroll_payable_account")
 		if not payable_account:
 			frappe.throw(_("Please set Default Payroll Payable Account in Company"))
@@ -391,6 +392,28 @@ class SalarySlip(TransactionBase):
 		for row in self.deductions:
 			if flt(row.amount) and not row.do_not_include_in_accounts:
 				append_component(row, "credit_in_account_currency")
+		employer_insurance = flt(self.get("employer_insurance_share_iran"))
+		if employer_insurance:
+			expense_account = frappe.db.get_value(
+				"Company", self.company, "employer_insurance_expense_account_iran"
+			)
+			payable_insurance_account = frappe.db.get_value(
+				"Company", self.company, "employer_insurance_payable_account_iran"
+			)
+			if not expense_account or not payable_insurance_account:
+				frappe.throw(
+					_(
+						"Please set Employer Insurance Expense Account and Employer Insurance Payable Account in Company"
+					)
+				)
+			journal.append(
+				"accounts",
+				{"account": expense_account, "debit_in_account_currency": employer_insurance},
+			)
+			journal.append(
+				"accounts",
+				{"account": payable_insurance_account, "credit_in_account_currency": employer_insurance},
+			)
 		if flt(self.net_pay):
 			journal.append("accounts", {"account": payable_account, "credit_in_account_currency": flt(self.net_pay), "party_type": "Employee", "party": self.employee, "reference_type": self.doctype, "reference_name": self.name})
 
@@ -398,6 +421,53 @@ class SalarySlip(TransactionBase):
 		journal.submit()
 		self.db_set("journal_entry", journal.name)
 		return journal.name
+
+	@frappe.whitelist()
+	def update_employee_financial_summary(self):
+		"""Recalculate the displayed payroll and advance balances from the ledger."""
+		from hrms.regional.iran.utils import set_salary_slip_financial_summary
+
+		set_salary_slip_financial_summary(self)
+		fields = [
+			"employee_payments_in_period",
+			"employee_opening_payable_balance",
+			"employee_current_payable",
+			"employee_payable_balance",
+			"employee_paid_to_date",
+			"employee_accrued_to_date",
+			"employee_advance_in_period",
+			"employee_advance_balance",
+		]
+		values = {field: self.get(field) for field in fields if self.meta.has_field(field)}
+		if values:
+			frappe.db.set_value(self.doctype, self.name, values, update_modified=False)
+		return values
+
+
+@frappe.whitelist()
+def make_individual_accrual_journal_entries(salary_slips):
+	"""Create separate accrual entries for selected submitted Salary Slips."""
+	if isinstance(salary_slips, str):
+		salary_slips = frappe.parse_json(salary_slips)
+	if not isinstance(salary_slips, list) or not salary_slips:
+		frappe.throw(_("Select at least one Salary Slip"))
+
+	created, skipped, errors = [], [], []
+	for name in salary_slips:
+		savepoint = f"salary_slip_accrual_{len(created)}_{len(skipped)}_{len(errors)}"
+		frappe.db.savepoint(savepoint)
+		try:
+			slip = frappe.get_doc("Salary Slip", name)
+			slip.check_permission("write")
+			if slip.docstatus != 1 or slip.journal_entry:
+				skipped.append(name)
+				continue
+			created.append({"salary_slip": name, "journal_entry": slip.make_individual_accrual_journal_entry()})
+		except Exception as exc:
+			frappe.db.rollback(save_point=savepoint)
+			errors.append({"salary_slip": name, "error": str(exc)})
+
+	return {"created": created, "skipped": skipped, "errors": errors}
 
 	def on_trash(self):
 		from frappe.model.naming import revert_series_if_last

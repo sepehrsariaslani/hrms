@@ -61,6 +61,29 @@ def get_fiscal_year_by_date(reference_date=None):
 
 def get_custom_fields():
 	return {
+		"Company": [
+			{
+				"fieldname": "iran_payroll_accounting_section",
+				"fieldtype": "Section Break",
+				"label": "حسابداری حقوق و بیمه ایران",
+				"insert_after": "default_payroll_payable_account",
+				"collapsible": 1,
+			},
+			{
+				"fieldname": "employer_insurance_expense_account_iran",
+				"fieldtype": "Link",
+				"label": "حساب هزینه بیمه سهم کارفرما",
+				"options": "Account",
+				"insert_after": "iran_payroll_accounting_section",
+			},
+			{
+				"fieldname": "employer_insurance_payable_account_iran",
+				"fieldtype": "Link",
+				"label": "حساب بستانکار بیمه سهم کارفرما",
+				"options": "Account",
+				"insert_after": "employer_insurance_expense_account_iran",
+			},
+		],
 		"Employee": [
 			{
 				"fieldname": "iran_payroll_section",
@@ -298,7 +321,10 @@ def get_custom_fields():
 			{"fieldname": "employee_opening_payable_balance", "fieldtype": "Currency", "label": "مانده ابتدای دوره", "insert_after": "employee_payments_in_period", "read_only": 1},
 			{"fieldname": "employee_current_payable", "fieldtype": "Currency", "label": "بدهی ایجادشده از این فیش", "insert_after": "employee_opening_payable_balance", "read_only": 1},
 			{"fieldname": "employee_payable_balance", "fieldtype": "Currency", "label": "مانده قابل پرداخت به کارمند", "insert_after": "employee_current_payable", "read_only": 1},
-			{"fieldname": "employee_advance_balance", "fieldtype": "Currency", "label": "مساعده / طلب کارمند", "insert_after": "employee_payable_balance", "read_only": 1},
+			{"fieldname": "employee_paid_to_date", "fieldtype": "Currency", "label": "کل حقوق پرداخت‌شده تا پایان دوره", "insert_after": "employee_payable_balance", "read_only": 1},
+			{"fieldname": "employee_accrued_to_date", "fieldtype": "Currency", "label": "کل حقوق ثبت‌شده تا پایان دوره", "insert_after": "employee_paid_to_date", "read_only": 1},
+			{"fieldname": "employee_advance_in_period", "fieldtype": "Currency", "label": "مساعده در این دوره", "insert_after": "employee_accrued_to_date", "read_only": 1},
+			{"fieldname": "employee_advance_balance", "fieldtype": "Currency", "label": "مانده مساعده کارمند", "insert_after": "employee_advance_in_period", "read_only": 1},
 			{
 				"fieldname": "employer_insurance_share_iran",
 				"fieldtype": "Currency",

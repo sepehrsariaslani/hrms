@@ -607,6 +607,8 @@ class PayrollEntry(Document):
 				payable_amount,
 			)
 
+			self.add_employer_insurance_accounting_entries(accounts)
+
 			self.set_payable_amount_against_payroll_payable_account(
 				accounts,
 				currencies,
@@ -631,6 +633,34 @@ class PayrollEntry(Document):
 				submitted_salary_slips=submitted_salary_slips,
 				employee_wise_accounting_enabled=employee_wise_accounting_enabled,
 			)
+
+	def add_employer_insurance_accounting_entries(self, accounts):
+		"""Post employer insurance as expense and liability, separate from net pay."""
+		insurance_total = sum(
+			flt(frappe.db.get_value("Salary Slip", slip.name, "employer_insurance_share_iran"))
+			for slip in self.get_sal_slip_list(ss_status=1, as_dict=True)
+		)
+		if not insurance_total:
+			return
+
+		expense_account = frappe.db.get_value(
+			"Company", self.company, "employer_insurance_expense_account_iran"
+		)
+		payable_account = frappe.db.get_value(
+			"Company", self.company, "employer_insurance_payable_account_iran"
+		)
+		if not expense_account or not payable_account:
+			frappe.throw(
+				_(
+					"Please set Employer Insurance Expense Account and Employer Insurance Payable Account in Company"
+				)
+			)
+		accounts.extend(
+			[
+				{"account": expense_account, "debit_in_account_currency": insurance_total},
+				{"account": payable_account, "credit_in_account_currency": insurance_total},
+			]
+		)
 
 	def make_journal_entry(
 		self,

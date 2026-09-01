@@ -1032,7 +1032,7 @@ def apply_iran_payroll_rules(doc, method=None):
 
 
 def set_salary_slip_financial_summary(doc):
-	"""Show payroll liability from posted GL entries, scoped to the company payable account."""
+	"""Show payroll and employee-advance balances from submitted GL entries."""
 	if not doc.employee or not doc.company or not doc.posting_date:
 		return
 	account = frappe.db.get_value("Company", doc.company, "default_payroll_payable_account")
@@ -1051,8 +1051,35 @@ def set_salary_slip_financial_summary(doc):
 	opening = flt(opening_credit) - flt(opening_debit)
 	current = flt(doc.rounded_total or doc.net_pay)
 	paid = flt(period_debit)
+	accrued = flt(opening_credit) + flt(period_credit)
+	paid_to_date = flt(opening_debit) + paid
+	# Before the individual/group accrual exists, show the liability this slip
+	# will create. After it is linked, that amount is already in GL Entry.
+	if not doc.journal_entry:
+		accrued += current
+
+	advance_account = frappe.db.get_value("Company", doc.company, "default_employee_advance_account")
+	advance_in_period = advance_balance = 0
+	if advance_account:
+		advance_in_period = frappe.db.sql(
+			"""select coalesce(sum(debit), 0) - coalesce(sum(credit), 0)
+			from `tabGL Entry`
+			where party_type='Employee' and party=%s and account=%s and is_cancelled=0
+			and posting_date between %s and %s""",
+			(doc.employee, advance_account, doc.start_date, doc.end_date),
+		)[0][0]
+		advance_balance = frappe.db.sql(
+			"""select coalesce(sum(debit), 0) - coalesce(sum(credit), 0)
+			from `tabGL Entry`
+			where party_type='Employee' and party=%s and account=%s and is_cancelled=0
+			and posting_date <= %s""",
+			(doc.employee, advance_account, doc.end_date),
+		)[0][0]
 	set_doc_field_if_exists(doc, "employee_opening_payable_balance", opening)
 	set_doc_field_if_exists(doc, "employee_current_payable", current)
 	set_doc_field_if_exists(doc, "employee_payments_in_period", paid)
-	set_doc_field_if_exists(doc, "employee_payable_balance", opening + current - paid)
-	set_doc_field_if_exists(doc, "employee_advance_balance", max(0, paid - opening - current))
+	set_doc_field_if_exists(doc, "employee_payable_balance", accrued - paid_to_date)
+	set_doc_field_if_exists(doc, "employee_paid_to_date", paid_to_date)
+	set_doc_field_if_exists(doc, "employee_accrued_to_date", accrued)
+	set_doc_field_if_exists(doc, "employee_advance_in_period", advance_in_period)
+	set_doc_field_if_exists(doc, "employee_advance_balance", advance_balance)
