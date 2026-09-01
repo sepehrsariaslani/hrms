@@ -63,6 +63,14 @@ def get_custom_fields():
 	return {
 		"Journal Entry": [
 			{
+				"fieldname": "salary_slip_reference",
+				"fieldtype": "Link",
+				"label": "فیش حقوقی مرتبط",
+				"options": "Salary Slip",
+				"read_only": 1,
+				"insert_after": "payroll_entry_reference",
+			},
+			{
 				"fieldname": "payroll_entry_reference",
 				"fieldtype": "Link",
 				"label": "ثبت حقوق و دستمزد مرتبط",
@@ -333,6 +341,7 @@ def get_custom_fields():
 				"options": "بدون سند\nتعهد ثبت شد",
 				"default": "بدون سند",
 				"read_only": 1,
+				"in_list_view": 1,
 				"insert_after": "journal_entry",
 			},
 			{"fieldname": "employee_balance_section", "fieldtype": "Section Break", "label": "مانده حساب کارمند", "insert_after": "employer_insurance_share_iran", "collapsible": 1},

@@ -377,6 +377,8 @@ class SalarySlip(TransactionBase):
 		journal.voucher_type = "Journal Entry"
 		journal.user_remark = _("Accrual for Salary Slip {0}").format(self.name)
 		journal.party_not_required = 0
+		if journal.meta.has_field("salary_slip_reference"):
+			journal.salary_slip_reference = self.name
 		if self.payroll_entry and journal.meta.has_field("payroll_entry_reference"):
 			journal.payroll_entry_reference = self.payroll_entry
 
