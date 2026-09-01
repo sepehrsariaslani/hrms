@@ -293,6 +293,12 @@ def get_custom_fields():
 			},
 		],
 		"Salary Slip": [
+			{"fieldname": "employee_balance_section", "fieldtype": "Section Break", "label": "مانده حساب کارمند", "insert_after": "employer_insurance_share_iran", "collapsible": 1},
+			{"fieldname": "employee_payments_in_period", "fieldtype": "Currency", "label": "پرداخت حقوق در این دوره", "insert_after": "employee_balance_section", "read_only": 1},
+			{"fieldname": "employee_opening_payable_balance", "fieldtype": "Currency", "label": "مانده ابتدای دوره", "insert_after": "employee_payments_in_period", "read_only": 1},
+			{"fieldname": "employee_current_payable", "fieldtype": "Currency", "label": "بدهی ایجادشده از این فیش", "insert_after": "employee_opening_payable_balance", "read_only": 1},
+			{"fieldname": "employee_payable_balance", "fieldtype": "Currency", "label": "مانده قابل پرداخت به کارمند", "insert_after": "employee_current_payable", "read_only": 1},
+			{"fieldname": "employee_advance_balance", "fieldtype": "Currency", "label": "مساعده / طلب کارمند", "insert_after": "employee_payable_balance", "read_only": 1},
 			{
 				"fieldname": "employer_insurance_share_iran",
 				"fieldtype": "Currency",

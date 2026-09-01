@@ -1028,3 +1028,31 @@ def apply_iran_payroll_rules(doc, method=None):
 	doc.compute_year_to_date()
 	doc.compute_month_to_date()
 	doc.compute_component_wise_year_to_date()
+	set_salary_slip_financial_summary(doc)
+
+
+def set_salary_slip_financial_summary(doc):
+	"""Show payroll liability from posted GL entries, scoped to the company payable account."""
+	if not doc.employee or not doc.company or not doc.posting_date:
+		return
+	account = frappe.db.get_value("Company", doc.company, "default_payroll_payable_account")
+	if not account:
+		return
+	def totals(before=None, start=None, end=None):
+		conditions = ["party_type='Employee'", "party=%s", "account=%s", "is_cancelled=0"]
+		values = [doc.employee, account]
+		if before:
+			conditions.append("posting_date < %s"); values.append(before)
+		if start and end:
+			conditions.append("posting_date between %s and %s"); values.extend([start, end])
+		return frappe.db.sql("select coalesce(sum(credit),0), coalesce(sum(debit),0) from `tabGL Entry` where " + " and ".join(conditions), values)[0]
+	opening_credit, opening_debit = totals(before=doc.start_date)
+	period_credit, period_debit = totals(start=doc.start_date, end=doc.end_date)
+	opening = flt(opening_credit) - flt(opening_debit)
+	current = flt(doc.rounded_total or doc.net_pay)
+	paid = flt(period_debit)
+	set_doc_field_if_exists(doc, "employee_opening_payable_balance", opening)
+	set_doc_field_if_exists(doc, "employee_current_payable", current)
+	set_doc_field_if_exists(doc, "employee_payments_in_period", paid)
+	set_doc_field_if_exists(doc, "employee_payable_balance", opening + current - paid)
+	set_doc_field_if_exists(doc, "employee_advance_balance", max(0, paid - opening - current))
