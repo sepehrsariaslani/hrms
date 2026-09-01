@@ -379,6 +379,11 @@ class SalarySlip(TransactionBase):
 		journal.party_not_required = 0
 		if self.payroll_entry and journal.meta.has_field("payroll_entry_reference"):
 			journal.payroll_entry_reference = self.payroll_entry
+		if self.payroll_entry:
+			# The standard Payroll Entry dashboard uses these reference fields to
+			# show this individual entry under its Connections section.
+			journal.reference_type = "Payroll Entry"
+			journal.reference_name = self.payroll_entry
 
 		def append_component(row, field):
 			account = frappe.db.get_value(
