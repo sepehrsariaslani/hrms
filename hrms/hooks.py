@@ -204,6 +204,7 @@ doc_events = {
 		"on_cancel": [
 			"hrms.hr.doctype.expense_claim.expense_claim.update_payment_for_expense_claim",
 			"hrms.payroll.doctype.salary_slip.salary_slip.unlink_ref_doc_from_salary_slip",
+			"hrms.payroll.doctype.salary_slip.salary_slip.reset_salary_accrual_status_on_journal_entry_cancel",
 			"hrms.hr.doctype.full_and_final_statement.full_and_final_statement.update_full_and_final_statement_status",
 			"hrms.payroll.doctype.salary_withholding.salary_withholding.update_salary_withholding_payment_status",
 		],

@@ -507,6 +507,25 @@ def make_individual_accrual_journal_entries(salary_slips):
 
 	return {"created": created, "skipped": skipped, "errors": errors}
 
+
+def reset_salary_accrual_status_on_journal_entry_cancel(doc, method=None):
+	"""Remove the accrual link only when its own Journal Entry is cancelled."""
+	salary_slips = frappe.get_all(
+		"Salary Slip",
+		filters={"journal_entry": doc.name},
+		pluck="name",
+	)
+	if not salary_slips:
+		return
+
+	for salary_slip in salary_slips:
+		frappe.db.set_value(
+			"Salary Slip",
+			salary_slip,
+			{"journal_entry": "", "salary_accrual_status": "بدون سند"},
+			update_modified=False,
+		)
+
 	def on_trash(self):
 		from frappe.model.naming import revert_series_if_last
 

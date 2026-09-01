@@ -342,6 +342,7 @@ def get_custom_fields():
 				"default": "بدون سند",
 				"read_only": 1,
 				"in_list_view": 1,
+				"in_standard_filter": 1,
 				"insert_after": "journal_entry",
 			},
 			{"fieldname": "employee_balance_section", "fieldtype": "Section Break", "label": "مانده حساب کارمند", "insert_after": "employer_insurance_share_iran", "collapsible": 1},

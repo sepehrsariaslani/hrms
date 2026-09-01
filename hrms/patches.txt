@@ -93,3 +93,4 @@ hrms.patches.v16_0.add_iran_salary_slip_accounting_fields #2026-09-01
 hrms.patches.v16_0.add_payroll_accrual_status_and_links #2026-09-01
 hrms.patches.v16_0.backfill_salary_slip_accrual_links #2026-09-01
 hrms.patches.v16_0.link_existing_individual_salary_accrual_entries #2026-09-01
+hrms.patches.v16_0.add_salary_accrual_status_filter #2026-09-01
