@@ -1,5 +1,11 @@
 frappe.ui.form.on("Salary Slip", {
 	refresh(frm) {
+		if (frm.doc.salary_accrual_status === "تعهد ثبت شد" && frm.doc.journal_entry) {
+			frm.dashboard.add_indicator(
+				__("تعهد حقوق ثبت شد: {0}", [frm.doc.journal_entry]),
+				"green",
+			);
+		}
 		frm.add_custom_button(__("به‌روزرسانی مانده حساب کارمند"), () => {
 			frm.call("update_employee_financial_summary").then(() => frm.reload_doc());
 		}, __("حسابداری"));
