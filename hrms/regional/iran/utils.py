@@ -1012,7 +1012,9 @@ def apply_iran_payroll_rules(doc, method=None):
 		if row.salary_component not in insurance_exempt_earnings
 	)
 	employee_insurance = insurable_earnings * (flt(rule.insurance_employee_rate) / 100)
-	employer_insurance = insurable_earnings * (flt(rule.insurance_employer_rate) / 100)
+	# بیمه سهم کارفرما دقیقاً از روی بیمه سهم کارمند محاسبه می‌شود:
+	# ۷٪ سهم کارمند در برابر ۲۳٪ سهم کارفرما.
+	employer_insurance = employee_insurance * 23 / 7
 	set_doc_field_if_exists(doc, "employer_insurance_share_iran", employer_insurance)
 
 	upsert_component_row(

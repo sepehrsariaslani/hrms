@@ -384,7 +384,10 @@ class SalarySlip(TransactionBase):
 			)
 			if not account:
 				frappe.throw(_("Please set account in Salary Component {0}").format(row.salary_component))
-			journal.append("accounts", {"account": account, field: flt(row.amount), "cost_center": row.cost_center})
+			journal.append(
+				"accounts",
+				{"account": account, field: flt(row.amount), "cost_center": row.get("cost_center") or self.cost_center},
+			)
 
 		for row in self.earnings:
 			if flt(row.amount) and not row.do_not_include_in_accounts:
@@ -392,7 +395,9 @@ class SalarySlip(TransactionBase):
 		for row in self.deductions:
 			if flt(row.amount) and not row.do_not_include_in_accounts:
 				append_component(row, "credit_in_account_currency")
-		employer_insurance = flt(self.get("employer_insurance_share_iran"))
+		employer_insurance = self.get_employer_insurance_share()
+		if employer_insurance and self.meta.has_field("employer_insurance_share_iran"):
+			self.db_set("employer_insurance_share_iran", employer_insurance)
 		if employer_insurance:
 			expense_account = frappe.db.get_value(
 				"Company", self.company, "employer_insurance_expense_account_iran"
@@ -422,13 +427,23 @@ class SalarySlip(TransactionBase):
 		self.db_set("journal_entry", journal.name)
 		return journal.name
 
+	def get_employer_insurance_share(self):
+		employer_insurance = flt(self.get("employer_insurance_share_iran"))
+		if employer_insurance:
+			return employer_insurance
+		employee_insurance = next((flt(row.amount) for row in self.deductions if row.abbr == "EI"), 0)
+		return employee_insurance * 23 / 7
+
 	@frappe.whitelist()
 	def update_employee_financial_summary(self):
 		"""Recalculate the displayed payroll and advance balances from the ledger."""
 		from hrms.regional.iran.utils import set_salary_slip_financial_summary
 
 		set_salary_slip_financial_summary(self)
+		if self.meta.has_field("employer_insurance_share_iran"):
+			self.employer_insurance_share_iran = self.get_employer_insurance_share()
 		fields = [
+			"employer_insurance_share_iran",
 			"employee_payments_in_period",
 			"employee_opening_payable_balance",
 			"employee_current_payable",
