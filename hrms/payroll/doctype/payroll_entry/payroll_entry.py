@@ -1156,17 +1156,9 @@ class PayrollEntry(Document):
 		self.set_salary_slip_references_in_journal_entry(salary_slips, jv_name)
 
 	def set_salary_slip_references_in_journal_entry(self, salary_slips, jv_name):
-		"""Expose a group accrual entry from each related Salary Slip."""
+		"""Keep the group accrual entry visible from its Payroll Entry."""
 		if not jv_name:
 			return
-		for salary_slip in salary_slips:
-			frappe.db.set_value(
-				"Journal Entry Account",
-				{"parent": jv_name, "party_type": "Employee", "party": salary_slip.employee},
-				{"reference_type": "Salary Slip", "reference_name": salary_slip.name},
-				update_modified=False,
-			)
-
 		payroll_reference_row = frappe.db.get_value(
 			"Journal Entry Account", {"parent": jv_name, "party": ["in", ("", None)]}, "name"
 		)

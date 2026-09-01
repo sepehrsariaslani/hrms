@@ -403,7 +403,7 @@ class SalarySlip(TransactionBase):
 				append_component(row, "credit_in_account_currency")
 		if self.payroll_entry and journal.accounts:
 			# Payroll Entry's standard Connections section follows Journal Entry
-			# Account references. The payable line below remains linked to the slip.
+			# Account references.
 			journal.accounts[0].reference_type = "Payroll Entry"
 			journal.accounts[0].reference_name = self.payroll_entry
 		employer_insurance = self.get_employer_insurance_share()
@@ -431,7 +431,15 @@ class SalarySlip(TransactionBase):
 				{"account": payable_insurance_account, "credit_in_account_currency": employer_insurance},
 			)
 		if flt(self.net_pay):
-			journal.append("accounts", {"account": payable_account, "credit_in_account_currency": flt(self.net_pay), "party_type": "Employee", "party": self.employee, "reference_type": self.doctype, "reference_name": self.name})
+			payable_row = {
+				"account": payable_account,
+				"credit_in_account_currency": flt(self.net_pay),
+				"party_type": "Employee",
+				"party": self.employee,
+			}
+			if self.payroll_entry:
+				payable_row.update({"reference_type": "Payroll Entry", "reference_name": self.payroll_entry})
+			journal.append("accounts", payable_row)
 
 		journal.insert(ignore_permissions=True)
 		journal.submit()

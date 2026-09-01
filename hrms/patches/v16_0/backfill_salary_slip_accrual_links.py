@@ -33,12 +33,6 @@ def execute():
 				{"journal_entry": journal_entry, "salary_accrual_status": "تعهد ثبت شد"},
 				update_modified=False,
 			)
-			frappe.db.set_value(
-				"Journal Entry Account",
-				{"parent": journal_entry, "party_type": "Employee", "party": salary_slip.employee},
-				{"reference_type": "Salary Slip", "reference_name": salary_slip.name},
-				update_modified=False,
-			)
 		payroll_reference_row = frappe.db.get_value(
 			"Journal Entry Account", {"parent": journal_entry, "party": ["in", ("", None)]}, "name"
 		)
