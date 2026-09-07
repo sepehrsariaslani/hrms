@@ -3,7 +3,7 @@
 
 import frappe
 from frappe import _
-from frappe.utils import getdate, add_days, nowdate, flt
+from frappe.utils import getdate, add_days, nowdate, flt, cint
 from datetime import datetime, date, timedelta
 
 # Import Jalali helper
@@ -657,6 +657,10 @@ def get_data(filters):
                 "break_hours": 0,
                 "working_hours": 0,
                 "break_details": "",
+				"break_source": "policy",
+				"break_override_minutes": None,
+				"break_override_reason": "",
+				"break_financially_locked": 0,
                 "time_off": 0 if is_holiday else standard_hours,
                 "leave_hours": flt(leave_info["hours"], 2) if leave_info else 0,
                 "leave_type": leave_info["leave_type"] if leave_info else "",
@@ -751,6 +755,18 @@ def get_data(filters):
                                 break_details_parts.append(
                                     f"{bw.get('name', '?')}: {int(bs//3600):02d}:{int((bs%3600)//60):02d}-{int(be//3600):02d}:{int((be%3600)//60):02d} → {flt(effective/3600, 1)}h"
                                 )
+
+                from hrms.hr.doctype.attendance_break_override.attendance_break_override import get_break_override
+
+                override = get_break_override(employee, current_date)
+                row["policy_break_hours"] = flt(break_hours, 2)
+                if override:
+                    break_hours = min(presence_hours, flt(override.break_minutes) / 60)
+                    row["break_source"] = "override"
+                    row["break_override_minutes"] = override.break_minutes
+                    row["break_override_reason"] = override.reason
+                    row["break_financially_locked"] = cint(bool(override.submitted_salary_slips))
+                    break_details_parts = [_("استثنای دستی: {0} دقیقه").format(override.break_minutes)]
 
                 working_hours = max(0, presence_hours - break_hours)
 

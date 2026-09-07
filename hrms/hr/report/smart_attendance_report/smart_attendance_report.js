@@ -93,8 +93,12 @@ frappe.query_reports["Smart Attendance Report"] = {
             let m = Math.round((raw - h) * 60);
             if (m === 60) { h += 1; m = 0; }
             let hhmm = h + ":" + String(m).padStart(2, "0");
-            if (column.fieldname === "break_hours" && raw > 0) {
-                return "<span style='color:#e67e22;font-weight:bold'>" + hhmm + "</span>";
+            if (column.fieldname === "break_hours") {
+                const source = data.break_source === "override" ? "✋ استثنای دستی" : "طبق قانون";
+                const editBtn = `<span onclick="smart_attendance_edit_break_override('${data.employee}', '${data.work_date}', ${Math.round((data.policy_break_hours || raw) * 60)})"
+                    style="cursor:pointer;color:#6f42c1;font-weight:bold;margin-right:6px" title="استثنای استراحت">☕</span>`;
+                const color = raw > 0 ? "#e67e22" : "#777";
+                return editBtn + "<span style='color:" + color + ";font-weight:bold' title='" + source + "'>" + hhmm + "</span>";
             }
             if (column.fieldname === "time_off" && raw > 0) {
                 const leaveBtn = `<span onclick="smart_attendance_hourly_leave('${data.employee}', '${data.work_date}', ${raw})"
@@ -277,6 +281,42 @@ frappe.query_reports["Smart Attendance Report"] = {
 
         return value;
     }
+};
+
+window.smart_attendance_edit_break_override = function (employee, workDate, policyMinutes) {
+    frappe.call({
+        method: "hrms.hr.doctype.attendance_break_override.attendance_break_override.get_attendance_break_override",
+        args: { employee: employee, work_date: workDate },
+        callback: function (r) {
+            const existing = r.message?.override;
+            const dialog = new frappe.ui.Dialog({
+                title: __("استثنای استراحت روزانه"),
+                fields: [
+                    { fieldname: "break_minutes", label: __("استراحت نهایی (دقیقه)"), fieldtype: "Int", reqd: 1, default: existing?.break_minutes ?? 0 },
+                    { fieldname: "reason", label: __("دلیل استثنا"), fieldtype: "Small Text", reqd: 1, default: existing?.reason || "" },
+                    { fieldname: "note", fieldtype: "HTML", options: existing?.submitted_salary_slips?.length ? `<div class="text-warning">قانون فعلی: ${policyMinutes} دقیقه<br>فیش حقوقی ثبت‌شده دارد؛ این تغییر فیش را اصلاح نمی‌کند.</div>` : `<div class='text-muted'>قانون فعلی: ${policyMinutes} دقیقه<br>این مقدار جایگزین قانون پیش‌فرض همان روز می‌شود.</div>` },
+                ],
+                primary_action_label: __("ذخیره"),
+                primary_action(values) {
+                    frappe.call({
+                        method: "hrms.hr.doctype.attendance_break_override.attendance_break_override.save_attendance_break_override",
+                        args: { employee: employee, work_date: workDate, break_minutes: values.break_minutes, reason: values.reason },
+                        callback() { dialog.hide(); frappe.show_alert({ message: __("استثنای استراحت ذخیره شد"), indicator: "green" }); frappe.query_report.refresh(); },
+                    });
+                },
+            });
+            if (existing) {
+                dialog.add_secondary_action(__("حذف استثنا"), () => {
+                    frappe.call({
+                        method: "hrms.hr.doctype.attendance_break_override.attendance_break_override.clear_attendance_break_override",
+                        args: { employee: employee, work_date: workDate },
+                        callback() { dialog.hide(); frappe.query_report.refresh(); },
+                    });
+                });
+            }
+            dialog.show();
+        },
+    });
 };
 
 function call_normalize_midnight(report, filters, callback) {
