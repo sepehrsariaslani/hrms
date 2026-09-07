@@ -458,6 +458,11 @@ class SalarySlip(TransactionBase):
 			return employee_insurance * 23 / 7
 		return flt(self.get("employer_insurance_share_iran"))
 
+	def sync_employer_insurance_share(self):
+		"""Store employer insurance after the final employee-insurance deduction is calculated."""
+		if self.meta.has_field("employer_insurance_share_iran"):
+			self.employer_insurance_share_iran = self.get_employer_insurance_share()
+
 	@frappe.whitelist()
 	def update_employee_financial_summary(self):
 		"""Recalculate the displayed payroll and advance balances from the ledger."""
@@ -1084,6 +1089,7 @@ class SalarySlip(TransactionBase):
 
 		if self.salary_structure:
 			self.calculate_component_amounts("deductions")
+		self.sync_employer_insurance_share()
 
 		set_loan_repayment(self)
 

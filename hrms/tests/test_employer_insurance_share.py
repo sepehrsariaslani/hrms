@@ -21,3 +21,16 @@ class TestEmployerInsuranceShare(unittest.TestCase):
 		)
 
 		self.assertEqual(salary_slip.get_employer_insurance_share(), 23000)
+
+	def test_sync_updates_stored_employer_share_after_final_deductions(self):
+		salary_slip = SalarySlip(
+			{
+				"doctype": "Salary Slip",
+				"employer_insurance_share_iran": 1,
+				"deductions": [{"abbr": "EI", "amount": 7000}],
+			}
+		)
+
+		salary_slip.sync_employer_insurance_share()
+
+		self.assertEqual(salary_slip.employer_insurance_share_iran, 23000)
