@@ -482,49 +482,6 @@ class SalarySlip(TransactionBase):
 		return values
 
 
-@frappe.whitelist()
-def make_individual_accrual_journal_entries(salary_slips):
-	"""Create separate accrual entries for selected submitted Salary Slips."""
-	if isinstance(salary_slips, str):
-		salary_slips = frappe.parse_json(salary_slips)
-	if not isinstance(salary_slips, list) or not salary_slips:
-		frappe.throw(_("Select at least one Salary Slip"))
-
-	created, skipped, errors = [], [], []
-	for name in salary_slips:
-		savepoint = f"salary_slip_accrual_{len(created)}_{len(skipped)}_{len(errors)}"
-		frappe.db.savepoint(savepoint)
-		try:
-			slip = frappe.get_doc("Salary Slip", name)
-			slip.check_permission("write")
-			if slip.docstatus != 1 or slip.journal_entry:
-				skipped.append(name)
-				continue
-			created.append({"salary_slip": name, "journal_entry": slip.make_individual_accrual_journal_entry()})
-		except Exception as exc:
-			frappe.db.rollback(save_point=savepoint)
-			errors.append({"salary_slip": name, "error": str(exc)})
-
-	return {"created": created, "skipped": skipped, "errors": errors}
-
-
-def reset_salary_accrual_status_on_journal_entry_cancel(doc, method=None):
-	"""Remove the accrual link only when its own Journal Entry is cancelled."""
-	salary_slips = frappe.get_all(
-		"Salary Slip",
-		filters={"journal_entry": doc.name},
-		pluck="name",
-	)
-	if not salary_slips:
-		return
-
-	for salary_slip in salary_slips:
-		frappe.db.set_value(
-			"Salary Slip",
-			salary_slip,
-			{"journal_entry": "", "salary_accrual_status": "بدون سند"},
-			update_modified=False,
-		)
 
 	def on_trash(self):
 		from frappe.model.naming import revert_series_if_last
@@ -3084,6 +3041,51 @@ def eval_tax_slab_condition(condition, eval_globals=None, eval_locals=None):
 		frappe.throw(_("Error in formula or condition: {0} in Income Tax Slab").format(e))
 		raise
 
+
+
+@frappe.whitelist()
+def make_individual_accrual_journal_entries(salary_slips):
+	"""Create separate accrual entries for selected submitted Salary Slips."""
+	if isinstance(salary_slips, str):
+		salary_slips = frappe.parse_json(salary_slips)
+	if not isinstance(salary_slips, list) or not salary_slips:
+		frappe.throw(_("Select at least one Salary Slip"))
+
+	created, skipped, errors = [], [], []
+	for name in salary_slips:
+		savepoint = f"salary_slip_accrual_{len(created)}_{len(skipped)}_{len(errors)}"
+		frappe.db.savepoint(savepoint)
+		try:
+			slip = frappe.get_doc("Salary Slip", name)
+			slip.check_permission("write")
+			if slip.docstatus != 1 or slip.journal_entry:
+				skipped.append(name)
+				continue
+			created.append({"salary_slip": name, "journal_entry": slip.make_individual_accrual_journal_entry()})
+		except Exception as exc:
+			frappe.db.rollback(save_point=savepoint)
+			errors.append({"salary_slip": name, "error": str(exc)})
+
+	return {"created": created, "skipped": skipped, "errors": errors}
+
+
+def reset_salary_accrual_status_on_journal_entry_cancel(doc, method=None):
+	"""Remove the accrual link only when its own Journal Entry is cancelled."""
+	salary_slips = frappe.get_all(
+		"Salary Slip",
+		filters={"journal_entry": doc.name},
+		pluck="name",
+	)
+	if not salary_slips:
+		return
+
+	for salary_slip in salary_slips:
+		frappe.db.set_value(
+			"Salary Slip",
+			salary_slip,
+			{"journal_entry": "", "salary_accrual_status": "بدون سند"},
+			update_modified=False,
+		)
 
 def get_lwp_or_ppl_for_date_range(employee, start_date, end_date):
 	LeaveApplication = frappe.qb.DocType("Leave Application")
