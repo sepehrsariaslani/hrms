@@ -832,6 +832,54 @@ def normalize_localized_numeric_input(value):
 	)
 
 
+def get_smart_attendance_hours_summary(rows, employee):
+	"""Return a consistent attendance-hour breakdown for one employee."""
+	presence_hours = 0
+	break_hours = 0
+	net_worked_hours = 0
+	overtime_hours = 0
+	required_hours = 0
+	shortage_hours = 0
+	holiday_hours = 0
+	late_minutes = 0
+	early_exit_minutes = 0
+	night_hours = 0
+
+	for row in rows or []:
+		if row.get("employee") != employee:
+			continue
+		presence_hours += flt(row.get("presence_hours"))
+		break_hours += flt(row.get("break_hours"))
+		net_worked_hours += flt(row.get("working_hours"))
+		overtime_hours += flt(row.get("overtime"))
+		required_hours += flt(row.get("standard_hours"))
+		shortage_hours += flt(row.get("time_off"))
+		holiday_hours += flt(row.get("holiday_work"))
+		late_minutes += flt(row.get("late_minutes"))
+		early_exit_minutes += flt(row.get("early_exit_minutes"))
+		night_hours += flt(row.get("night_hours"))
+
+	presence_hours = flt(presence_hours, 2)
+	break_hours = flt(break_hours, 2)
+	net_worked_hours = flt(net_worked_hours, 2)
+	overtime_hours = flt(overtime_hours, 2)
+	return frappe._dict(
+		{
+			"presence_hours": presence_hours,
+			"break_hours": break_hours,
+			"net_worked_hours": net_worked_hours,
+			"overtime_hours": overtime_hours,
+			"regular_worked_hours": flt(max(net_worked_hours - overtime_hours, 0), 2),
+			"required_hours": flt(required_hours, 2),
+			"shortage_hours": flt(shortage_hours, 2),
+			"holiday_hours": flt(holiday_hours, 2),
+			"late_minutes": flt(late_minutes, 2),
+			"early_exit_minutes": flt(early_exit_minutes, 2),
+			"night_hours": flt(night_hours, 2),
+		}
+	)
+
+
 def apply_smart_attendance_summary(doc, method=None):
 	if not (doc.employee and doc.start_date and doc.end_date):
 		return
@@ -853,32 +901,7 @@ def apply_smart_attendance_summary(doc, method=None):
 		)
 		return
 
-	required_hours = 0
-	worked_hours = 0
-	overtime_hours = 0
-	shortage_hours = 0
-	holiday_hours = 0
-	late_minutes = 0
-	early_exit_minutes = 0
-	night_hours = 0
-
-	for row in rows or []:
-		if row.get("employee") != doc.employee:
-			continue
-
-		required_hours += flt(row.get("standard_hours"))
-		worked_hours += flt(row.get("working_hours"))
-		overtime_hours += flt(row.get("overtime"))
-		shortage_hours += flt(row.get("time_off"))
-		holiday_hours += flt(row.get("holiday_work"))
-		late_minutes += flt(row.get("late_minutes"))
-		early_exit_minutes += flt(row.get("early_exit_minutes"))
-		night_hours += flt(row.get("night_hours"))
-
-	required_hours = flt(required_hours, 2)
-	worked_hours = flt(worked_hours, 2)
-	overtime_hours = flt(overtime_hours, 2)
-	shortage_hours = flt(shortage_hours, 2)
+	summary = get_smart_attendance_hours_summary(rows, doc.employee)
 
 	# The smart-attendance report already deducts approved leave hours from the
 	# shortage (کسر کار), so `time_off` here is the precise shortage figure that
@@ -887,19 +910,23 @@ def apply_smart_attendance_summary(doc, method=None):
 	# (leave_details is a separate, human-editable breakdown of the same hours.)
 
 	# Single source of truth for the "worked hours" figure.
-	set_doc_field_if_exists(doc, "required_working_hours_iran", required_hours)
-	set_doc_field_if_exists(doc, "worked_hours_iran", worked_hours)
-	set_doc_field_if_exists(doc, "overtime_hours_iran", overtime_hours)
-	set_doc_field_if_exists(doc, "shortage_hours_iran", shortage_hours)
-	set_doc_field_if_exists(doc, "holiday_hours_iran", flt(holiday_hours, 2))
-	set_doc_field_if_exists(doc, "late_minutes_iran", flt(late_minutes, 2))
-	set_doc_field_if_exists(doc, "early_exit_minutes_iran", flt(early_exit_minutes, 2))
-	set_doc_field_if_exists(doc, "night_hours_iran", flt(night_hours, 2))
+	set_doc_field_if_exists(doc, "required_working_hours_iran", summary.required_hours)
+	set_doc_field_if_exists(doc, "worked_hours_iran", summary.net_worked_hours)
+	set_doc_field_if_exists(doc, "overtime_hours_iran", summary.overtime_hours)
+	set_doc_field_if_exists(doc, "shortage_hours_iran", summary.shortage_hours)
+	set_doc_field_if_exists(doc, "holiday_hours_iran", summary.holiday_hours)
+	set_doc_field_if_exists(doc, "late_minutes_iran", summary.late_minutes)
+	set_doc_field_if_exists(doc, "early_exit_minutes_iran", summary.early_exit_minutes)
+	set_doc_field_if_exists(doc, "night_hours_iran", summary.night_hours)
+	set_doc_field_if_exists(doc, "presence_hours_iran", summary.presence_hours)
+	set_doc_field_if_exists(doc, "break_hours_iran", summary.break_hours)
+	set_doc_field_if_exists(doc, "net_worked_hours_iran", summary.net_worked_hours)
+	set_doc_field_if_exists(doc, "regular_worked_hours_iran", summary.regular_worked_hours)
 
 	# Backward compatibility with existing custom print formats.
-	set_doc_field_if_exists(doc, "employee_working_hours", worked_hours)
-	set_doc_field_if_exists(doc, "overtime", overtime_hours)
-	set_doc_field_if_exists(doc, "absence", shortage_hours)
+	set_doc_field_if_exists(doc, "employee_working_hours", summary.net_worked_hours)
+	set_doc_field_if_exists(doc, "overtime", summary.overtime_hours)
+	set_doc_field_if_exists(doc, "absence", summary.shortage_hours)
 
 	# NOTE: the attendance_* fields (attendance_working_hours,
 	# attendance_presence_hours, attendance_time_off, attendance_overtime,
