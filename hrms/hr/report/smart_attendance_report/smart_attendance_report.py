@@ -722,29 +722,35 @@ def get_data(filters):
                 break_hours = 0
                 break_details_parts = []
                 if pairs:
-                    first_in_seconds = time_to_seconds(session["first_in"])
-                    last_out_seconds = time_to_seconds(session["last_out"])
-                    if session.get("last_out_date") and session["last_out_date"] != current_date:
-                        last_out_seconds += 24 * 3600
-                    break_hours = calculate_break_hours(
-                        first_in_seconds, last_out_seconds, break_windows_for_day
-                    )
+                    # Presence is the sum of real IN/OUT pairs. Do not treat an
+                    # employee who leaves and comes back later as continuously
+                    # present for either attendance or break calculations.
+                    break_hours = calculate_break_hours_for_pairs(pairs, break_windows_for_day)
 
                     # Build per-break detail strings for display
-                    for bw in break_windows_for_day:
-                        bs = bw.get("start", 0)
-                        be = bw.get("end", 0)
-                        if be <= bs:
-                            be += 24 * 3600
-                        overlap = max(0, min(last_out_seconds, be) - max(first_in_seconds, bs))
-                        if overlap <= 0:
-                            overlap = max(0, min(last_out_seconds, be + 24 * 3600) - max(first_in_seconds, bs + 24 * 3600))
-                        if overlap > 0:
-                            ded_sec = max(0, int(bw.get("deduction_seconds") or 0))
-                            effective = min(overlap, ded_sec or overlap)
-                            break_details_parts.append(
-                                f"{bw.get('name', '?')}: {int(bs//3600):02d}:{int((bs%3600)//60):02d}-{int(be//3600):02d}:{int((be%3600)//60):02d} → {flt(effective/3600, 1)}h"
-                            )
+                    for pair in pairs:
+                        pair_start = pair.get("in_seconds")
+                        pair_end = pair.get("out_seconds")
+                        if pair_start is None or pair_end is None:
+                            continue
+                        if pair_end <= pair_start:
+                            pair_end += 24 * 3600
+                        for bw in break_windows_for_day:
+                            if bw.get("calculation_type") == "Fixed by Worked Hours":
+                                continue
+                            bs = bw.get("start", 0)
+                            be = bw.get("end", 0)
+                            if be <= bs:
+                                be += 24 * 3600
+                            overlap = max(0, min(pair_end, be) - max(pair_start, bs))
+                            if overlap <= 0:
+                                overlap = max(0, min(pair_end, be + 24 * 3600) - max(pair_start, bs + 24 * 3600))
+                            if overlap > 0:
+                                ded_sec = max(0, int(bw.get("deduction_seconds") or 0))
+                                effective = min(overlap, ded_sec or overlap)
+                                break_details_parts.append(
+                                    f"{bw.get('name', '?')}: {int(bs//3600):02d}:{int((bs%3600)//60):02d}-{int(be//3600):02d}:{int((be%3600)//60):02d} → {flt(effective/3600, 1)}h"
+                                )
 
                 working_hours = max(0, presence_hours - break_hours)
 
@@ -771,15 +777,15 @@ def get_data(filters):
                     early_min = (shift_end_seconds - last_out_seconds) / 60
                     row["early_exit_minutes"] = flt(max(early_min, 0), 2)
 
-                # Night hours = intersection of the presence span with the night window.
-                if session["first_in"] and session["last_out"]:
-                    first_in_seconds = time_to_seconds(session["first_in"])
-                    last_out_seconds = time_to_seconds(session["last_out"])
-                    if session.get("last_out_date") and session["last_out_date"] != current_date:
-                        last_out_seconds += 24 * 3600
-                    row["night_hours"] = flt(
-                        calculate_night_hours(first_in_seconds, last_out_seconds), 2
-                    )
+                # Night work also uses completed presence pairs, never the span
+                # between the first entry and final exit.
+                row["night_hours"] = flt(
+                    sum(
+                        calculate_night_hours(pair.get("in_seconds"), pair.get("out_seconds"))
+                        for pair in pairs
+                    ),
+                    2,
+                )
 
                 if is_holiday:
                     row["time_off"] = 0
@@ -1102,6 +1108,29 @@ def calculate_break_hours(start_seconds, end_seconds, break_windows=None):
 
     break_seconds = min(break_seconds, span_seconds)
     return break_seconds / 3600
+
+
+def calculate_break_hours_for_pairs(pairs, break_windows=None):
+    """Return break deductions for actual attendance pairs, without counting gaps as presence."""
+    if not pairs or not break_windows:
+        return 0
+
+    total_presence_seconds = sum(flt(pair.get("duration_seconds")) for pair in pairs)
+    break_seconds = 0
+
+    for window in break_windows:
+        if window.get("calculation_type") == "Fixed by Worked Hours":
+            # Threshold-based breaks are evaluated once against total attendance,
+            # rather than independently for every IN/OUT pair.
+            break_seconds += calculate_break_hours(0, total_presence_seconds, [window]) * 3600
+            continue
+
+        for pair in pairs:
+            break_seconds += calculate_break_hours(
+                pair.get("in_seconds"), pair.get("out_seconds"), [window]
+            ) * 3600
+
+    return flt(min(break_seconds, total_presence_seconds) / 3600, 2)
 
 
 NIGHT_WINDOW_START = 22 * 3600  # 22:00

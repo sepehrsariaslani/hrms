@@ -911,7 +911,7 @@ def apply_smart_attendance_summary(doc, method=None):
 
 	# Single source of truth for the "worked hours" figure.
 	set_doc_field_if_exists(doc, "required_working_hours_iran", summary.required_hours)
-	set_doc_field_if_exists(doc, "worked_hours_iran", summary.net_worked_hours)
+	set_doc_field_if_exists(doc, "worked_hours_iran", summary.regular_worked_hours)
 	set_doc_field_if_exists(doc, "overtime_hours_iran", summary.overtime_hours)
 	set_doc_field_if_exists(doc, "shortage_hours_iran", summary.shortage_hours)
 	set_doc_field_if_exists(doc, "holiday_hours_iran", summary.holiday_hours)
