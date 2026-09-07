@@ -9,6 +9,40 @@ frappe.listview_settings["Salary Slip"] = {
 		return [__("ارسال شده"), "blue", "docstatus,=,1"];
 	},
 	onload(listview) {
+		listview.page.add_action_item(__("رفرش گروهی از حضور و غیاب"), () => {
+			const slips = listview.get_checked_items().map((item) => item.name);
+			if (!slips.length) {
+				frappe.msgprint(__("حداقل یک فیش حقوقی را انتخاب کنید."));
+				return;
+			}
+			frappe.confirm(
+				__("فقط فیش‌های پیش‌نویس انتخاب‌شده از حضور و غیاب رفرش می‌شوند. فیش‌های ارسال‌شده و لغوشده نادیده گرفته می‌شوند."),
+				() => frappe.call({
+					method: "hrms.payroll.doctype.salary_slip.salary_slip.bulk_refresh_from_smart_attendance",
+					args: { salary_slips: slips },
+					freeze: true,
+					freeze_message: __("در حال رفرش فیش‌های حقوقی"),
+					callback: (r) => {
+						const result = r.message || {};
+						const errors = result.errors || [];
+						const details = errors.length
+							? `<br><br>${errors.map((item) => `${frappe.utils.escape_html(item.salary_slip)}: ${frappe.utils.escape_html(item.error)}`).join("<br>")}`
+							: "";
+						frappe.msgprint({
+							title: __("نتیجه رفرش گروهی"),
+							message: __("{0} فیش رفرش شد؛ {1} فیش نادیده گرفته شد؛ {2} خطا داشت.", [
+								(result.refreshed || []).length,
+								(result.skipped || []).length,
+								errors.length,
+							]) + details,
+							indicator: errors.length ? "orange" : "green",
+						});
+						listview.refresh();
+					},
+				}),
+			);
+		});
+
 		listview.page.add_action_item(__("ایجاد اسناد تعهد حقوق"), () => {
 			const slips = listview.get_checked_items().map((item) => item.name);
 			if (!slips.length) {

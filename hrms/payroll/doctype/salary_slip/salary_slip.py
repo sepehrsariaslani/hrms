@@ -3076,6 +3076,36 @@ def make_individual_accrual_journal_entries(salary_slips):
 	return {"created": created, "skipped": skipped, "errors": errors}
 
 
+@frappe.whitelist()
+def bulk_refresh_from_smart_attendance(salary_slips):
+	"""Refresh selected draft salary slips without allowing one failure to stop the batch."""
+	if isinstance(salary_slips, str):
+		salary_slips = frappe.parse_json(salary_slips)
+	if not isinstance(salary_slips, list) or not salary_slips:
+		frappe.throw(_("Select at least one Salary Slip"))
+
+	refreshed, skipped, errors, processed = [], [], [], set()
+	for index, name in enumerate(salary_slips):
+		if not name or name in processed:
+			continue
+		processed.add(name)
+		savepoint = f"salary_slip_bulk_refresh_{index}"
+		frappe.db.savepoint(savepoint)
+		try:
+			slip = frappe.get_doc("Salary Slip", name)
+			slip.check_permission("write")
+			if slip.docstatus != 0:
+				skipped.append({"salary_slip": name, "reason": _("Only draft Salary Slips can be refreshed")})
+				continue
+			slip.refresh_from_smart_attendance()
+			refreshed.append(name)
+		except Exception as exc:
+			frappe.db.rollback(save_point=savepoint)
+			errors.append({"salary_slip": name, "error": str(exc)})
+
+	return {"refreshed": refreshed, "skipped": skipped, "errors": errors}
+
+
 def reset_salary_accrual_status_on_journal_entry_cancel(doc, method=None):
 	"""Remove the accrual link only when its own Journal Entry is cancelled."""
 	salary_slips = frappe.get_all(
