@@ -451,11 +451,12 @@ class SalarySlip(TransactionBase):
 		return journal.name
 
 	def get_employer_insurance_share(self):
-		employer_insurance = flt(self.get("employer_insurance_share_iran"))
-		if employer_insurance:
-			return employer_insurance
-		employee_insurance = next((flt(row.amount) for row in self.deductions if row.abbr == "EI"), 0)
-		return employee_insurance * 23 / 7
+		employee_insurance = next(
+			(flt(row.amount) for row in self.deductions if row.abbr == "EI"), None
+		)
+		if employee_insurance is not None:
+			return employee_insurance * 23 / 7
+		return flt(self.get("employer_insurance_share_iran"))
 
 	@frappe.whitelist()
 	def update_employee_financial_summary(self):
