@@ -1771,6 +1771,7 @@ class SalarySlip(TransactionBase):
 			remove_if_zero_valued = frappe.get_cached_value(
 				"Salary Component", additional_salary.component, "remove_if_zero_valued"
 			)
+			self.accumulate_additional_salary_hours(additional_salary, component_type)
 			if flt(additional_salary.amount) == 0 and remove_if_zero_valued:
 				continue
 			self.update_component_row(
@@ -1780,8 +1781,6 @@ class SalarySlip(TransactionBase):
 				additional_salary,
 				is_recurring=additional_salary.is_recurring,
 			)
-			self.accumulate_additional_salary_hours(additional_salary, component_type)
-
 			if component_type == "earnings" and hasattr(self, "benefit_ledger_components"):
 				if (
 					additional_salary.ref_doctype == "Employee Benefit Claim"
@@ -1807,9 +1806,7 @@ class SalarySlip(TransactionBase):
 					)
 
 	def initialize_additional_salary_hours_summary(self, component_type):
-		if component_type != "earnings" or getattr(
-			self, "_additional_salary_hours_summary_initialized", False
-		):
+		if component_type != "earnings":
 			return
 
 		for fieldname in (
@@ -1820,8 +1817,6 @@ class SalarySlip(TransactionBase):
 		):
 			if hasattr(self, fieldname):
 				self.set(fieldname, 0)
-
-		self._additional_salary_hours_summary_initialized = True
 
 	def should_aggregate_additional_salary(self, additional_salary, component_data) -> bool:
 		return bool(
