@@ -28,3 +28,14 @@ class TestHourlyPenaltyConfiguration(unittest.TestCase):
 				1,
 				name,
 			)
+
+	def test_dehati_amended_structure_names_are_clean(self):
+		self.assertFalse(
+			frappe.get_all(
+				"Salary Structure",
+				filters={"company": "عظیمیه", "docstatus": 2},
+				pluck="name",
+			)
+		)
+		for name in ("قرارداد", "حقوق روزانه", "ساعتی"):
+			self.assertTrue(frappe.db.exists("Salary Structure", {"name": name, "docstatus": 1}))

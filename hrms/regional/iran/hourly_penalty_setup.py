@@ -8,6 +8,63 @@ HOURLY_PENALTY_COMPONENT = "جریمه ساعتی"
 HOURLY_PENALTY_ABBR = "HRDH"
 
 
+def clean_dehati_amended_salary_structure_names(company: str = "عظیمیه") -> dict:
+	"""Delete cancelled predecessors and restore clean names to their active amendments."""
+	if company != "عظیمیه":
+		frappe.throw("این عملیات فقط برای شرکت عظیمیه مجاز است")
+
+	cancelled_names = frappe.get_all(
+		"Salary Structure",
+		filters={"company": company, "docstatus": 2},
+		pluck="name",
+	)
+	if not cancelled_names:
+		return {"deleted_structures": [], "deleted_assignments": [], "renamed_structures": {}}
+
+	replacements = {}
+	for old_name in cancelled_names:
+		active_names = frappe.get_all(
+			"Salary Structure",
+			filters={"company": company, "docstatus": ["!=", 2], "amended_from": old_name},
+			pluck="name",
+		)
+		if len(active_names) != 1:
+			frappe.throw(f"برای ساختار لغوشده {old_name} باید دقیقاً یک نسخهٔ فعال وجود داشته باشد")
+		replacements[old_name] = active_names[0]
+
+	frappe.db.savepoint("clean_hourly_penalty_structure_names")
+	try:
+		cancelled_assignments = frappe.get_all(
+			"Salary Structure Assignment",
+			filters={"company": company, "docstatus": 2, "salary_structure": ["in", cancelled_names]},
+			pluck="name",
+		)
+		active_assignments = frappe.get_all(
+			"Salary Structure Assignment",
+			filters={"company": company, "docstatus": ["!=", 2], "amended_from": ["!=", ""]},
+			pluck="name",
+		)
+		for name in active_assignments:
+			frappe.db.set_value("Salary Structure Assignment", name, "amended_from", "", update_modified=False)
+		for name in cancelled_assignments:
+			frappe.delete_doc("Salary Structure Assignment", name, force=1, ignore_permissions=True)
+
+		for old_name, new_name in replacements.items():
+			frappe.db.set_value("Salary Structure", new_name, "amended_from", "", update_modified=False)
+			frappe.delete_doc("Salary Structure", old_name, force=1, ignore_permissions=True)
+			frappe.rename_doc("Salary Structure", new_name, old_name, force=True)
+
+		frappe.db.commit()
+		return {
+			"deleted_structures": cancelled_names,
+			"deleted_assignments": cancelled_assignments,
+			"renamed_structures": {new: old for old, new in replacements.items()},
+		}
+	except Exception:
+		frappe.db.rollback(save_point="clean_hourly_penalty_structure_names")
+		raise
+
+
 def rebuild_dehati_payroll_for_hourly_penalty(company: str = "عظیمیه") -> dict:
 	"""Remove incorrect payroll documents and make hourly penalties usable in every active structure."""
 	if company != "عظیمیه":
