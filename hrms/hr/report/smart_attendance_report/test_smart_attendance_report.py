@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime
 
 import frappe
 from frappe.utils import flt
@@ -6,6 +6,7 @@ from frappe.utils import flt
 from erpnext.setup.doctype.employee.test_employee import make_employee
 
 from hrms.hr.doctype.leave_allocation.test_leave_allocation import create_leave_allocation
+from hrms.hr.doctype.employee_checkin.test_employee_checkin import make_checkin
 from hrms.hr.doctype.shift_type.test_shift_type import make_shift_assignment, setup_shift_type
 from hrms.hr.report.smart_attendance_report.smart_attendance_report import (
 	ensure_single_day_leave_application,
@@ -120,3 +121,67 @@ class TestSmartAttendanceReport(HRMSTestSuite):
 		doc = frappe.get_doc("Leave Application", leave_application)
 		self.assertEqual(8.88, flt(doc.total_leave_hours, 2))
 		self.assertEqual(1.21, flt(doc.total_leave_days, 2))
+
+	def test_last_period_day_pairs_with_next_day_overnight_exit(self):
+		shift = setup_shift_type(
+			shift_type="Smart Attendance Overnight Boundary Shift",
+			start_time="15:00:00",
+			end_time="00:30:00",
+			standard_working_hours=7.33,
+		)
+		employee = make_employee(
+			"smart.attendance.overnight.boundary@example.com",
+			company="_Test Company",
+			default_shift=shift.name,
+		)
+		make_checkin(employee, datetime(2026, 8, 10, 15, 30), "IN")
+		make_checkin(employee, datetime(2026, 8, 11, 0, 3), "OUT")
+
+		rows = get_data(
+			{
+				"employee": employee,
+				"from_date": date(2026, 8, 10),
+				"to_date": date(2026, 8, 11),
+			}
+		)
+
+		self.assertEqual(len(rows), 2)
+		self.assertEqual(rows[0]["time_off"], 0)
+		self.assertEqual(rows[0]["actual_end"], "00:03(+1)")
+		self.assertEqual(rows[0]["log_status"], "✅ کامل")
+		self.assertEqual(rows[1]["all_logs"], "")
+		self.assertFalse(rows[1]["has_issue"])
+
+	def test_approved_leave_overrides_single_stray_checkin_shortage(self):
+		shift = setup_shift_type(
+			shift_type="Smart Attendance Leave Stray Log Shift",
+			start_time="08:00:00",
+			end_time="16:20:00",
+			standard_working_hours=7.33,
+		)
+		employee = make_employee(
+			"smart.attendance.leave.stray@example.com",
+			company="_Test Company",
+			default_shift=shift.name,
+		)
+		create_leave_allocation(
+			employee=employee,
+			leave_type="_Test Leave Type",
+			from_date=date(2026, 8, 1),
+			to_date=date(2026, 8, 31),
+			new_leaves_allocated=15,
+		).insert().submit()
+		make_leave_application(employee, date(2026, 8, 12), date(2026, 8, 12), "_Test Leave Type")
+		make_checkin(employee, datetime(2026, 8, 12, 0, 1), "OUT")
+
+		rows = get_data(
+			{
+				"employee": employee,
+				"from_date": date(2026, 8, 12),
+				"to_date": date(2026, 8, 12),
+			}
+		)
+
+		self.assertEqual(rows[0]["leave_hours"], 7.33)
+		self.assertEqual(rows[0]["time_off"], 0)
+		self.assertTrue(rows[0]["has_issue"])

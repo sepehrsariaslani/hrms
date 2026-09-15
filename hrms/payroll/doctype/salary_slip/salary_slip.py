@@ -2765,11 +2765,12 @@ class SalarySlip(TransactionBase):
 
 	def get_shortage_hours(self):
 		"""Compute the shortage (کسر کار) hours from smart attendance for this period."""
-		if flt(self.get("shortage_hours_iran")):
-			return flt(self.get("shortage_hours_iran"))
+		if not (self.employee and self.start_date and self.end_date):
+			return 0
 
 		try:
 			from hrms.hr.report.smart_attendance_report.smart_attendance_report import get_data
+			from hrms.regional.iran.utils import get_smart_attendance_hours_summary
 
 			rows = get_data(
 				{
@@ -2778,11 +2779,7 @@ class SalarySlip(TransactionBase):
 					"to_date": self.end_date,
 				}
 			)
-			shortage = 0
-			for row in rows or []:
-				if row.get("employee") == self.employee:
-					shortage += flt(row.get("time_off"))
-			return flt(shortage, 2)
+			return get_smart_attendance_hours_summary(rows, self.employee).shortage_hours
 		except Exception:
 			return 0
 

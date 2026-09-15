@@ -310,6 +310,10 @@ def get_data(filters):
         filters["to_date"] = nowdate()
 
     extended_from = add_days(filters.get("from_date"), -1)
+    # Read one extra calendar day so an overnight IN on the final report day
+    # can be closed by its early-morning OUT. Rows are still emitted only for
+    # the requested period below.
+    checkin_to_date = add_days(filters.get("to_date"), 1)
 
     employees_to_include = get_employees_to_include(filters)
 
@@ -343,7 +347,7 @@ def get_data(filters):
             log_type{excl_col}
         FROM `tabEmployee Checkin`
         WHERE DATE(time) >= %(extended_from)s
-          AND DATE(time) <= %(to_date)s
+          AND DATE(time) <= %(checkin_to_date)s
           {employee_filter}
         ORDER BY employee, time
     """.format(excl_col=excl_col, employee_filter=employee_filter)
@@ -352,6 +356,7 @@ def get_data(filters):
         "extended_from": extended_from,
         "from_date": filters.get("from_date"),
         "to_date": filters.get("to_date"),
+        "checkin_to_date": checkin_to_date,
         **employee_params,
     }
 
@@ -446,6 +451,9 @@ def get_data(filters):
                     work_sessions[key]["last_out"] = out_log.log_time
                     work_sessions[key]["last_out_name"] = out_log.name
                     work_sessions[key]["last_out_date"] = out_log.work_date
+
+                    if out_log.work_date != in_log.work_date:
+                        used_overnight_logs.add(out_log.name)
 
                     i = j + 1
                 else:
@@ -570,7 +578,11 @@ def get_data(filters):
         while current_date <= to_date:
             key = (employee, current_date)
             session = work_sessions.get(key)
-            all_logs = all_logs_lookup.get(key, [])
+            all_logs = [
+                log
+                for log in all_logs_lookup.get(key, [])
+                if log["name"] not in used_overnight_logs
+            ]
             shift = shifts.get((employee, current_date), {})
             break_windows_for_day = get_break_windows_for_date(employee_break_assignments, employee, current_date)
             holiday_info = holidays.get((employee, current_date), {})
@@ -600,9 +612,6 @@ def get_data(filters):
                 out_count = 0
 
                 for log in all_logs:
-                    if log["name"] in used_overnight_logs:
-                        continue
-
                     is_excl = log.get("is_excluded", False)
                     time_text = safe_time_text(log.get("log_time"))
                     log_type_icon = "⬇️" if log["log_type"] == "IN" else "⬆️"
@@ -887,6 +896,12 @@ def get_data(filters):
                 else:
                     row["log_status"] = "تعطیل"
                     row["issue_flag"] = ""
+
+            # Approved leave replaces the day's shortage regardless of whether
+            # attendance was complete, missing, or contained one stray log.
+            # Keep the attendance issue metadata intact for follow-up.
+            if not is_holiday and row.get("leave_hours"):
+                row["time_off"] = 0
 
             if filters.get("only_issues"):
                 if row["has_issue"]:

@@ -3,6 +3,7 @@
 
 import calendar
 import random
+from datetime import date, datetime
 from unittest.mock import patch
 
 import frappe
@@ -30,6 +31,8 @@ from erpnext.setup.doctype.employee.employee import InactiveEmployeeStatusError
 from erpnext.setup.doctype.employee.test_employee import make_employee
 
 from hrms.hr.doctype.leave_allocation.test_leave_allocation import create_leave_allocation
+from hrms.hr.doctype.employee_checkin.test_employee_checkin import make_checkin
+from hrms.hr.doctype.shift_type.test_shift_type import setup_shift_type
 from hrms.hr.doctype.leave_type.test_leave_type import create_leave_type
 from hrms.payroll.doctype.salary_component.test_salary_component import create_salary_component
 from hrms.payroll.doctype.employee_tax_exemption_declaration.test_employee_tax_exemption_declaration import (
@@ -59,6 +62,29 @@ class TestSalarySlip(HRMSTestSuite):
 		frappe.db.set_single_value("HR Settings", "leave_approval_notification_template", None)
 		create_ss_email_template()
 		frappe.flags.pop("via_payroll_entry", None)
+
+	def test_salary_slip_shortage_uses_fresh_smart_attendance(self):
+		shift = setup_shift_type(
+			shift_type="Salary Slip Fresh Shortage Shift",
+			start_time="08:00:00",
+			end_time="16:20:00",
+			standard_working_hours=7.33,
+		)
+		employee = make_employee(
+			"salary.slip.fresh.shortage@example.com",
+			company="_Test Company",
+			default_shift=shift.name,
+		)
+		make_checkin(employee, datetime(2026, 8, 20, 8, 0), "IN")
+		make_checkin(employee, datetime(2026, 8, 20, 16, 20), "OUT")
+
+		slip = frappe.new_doc("Salary Slip")
+		slip.employee = employee
+		slip.start_date = date(2026, 8, 20)
+		slip.end_date = date(2026, 8, 20)
+		slip.shortage_hours_iran = 99
+
+		self.assertEqual(slip.get_shortage_hours(), 0)
 
 	@HRMSTestSuite.change_settings("Payroll Settings", {"show_leave_balances_in_salary_slip": True})
 	def test_leave_details(self):
