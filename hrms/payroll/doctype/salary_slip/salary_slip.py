@@ -2799,6 +2799,14 @@ class SalarySlip(TransactionBase):
 		if not (self.employee and self.start_date and self.end_date):
 			frappe.throw(_("کارمند، تاریخ شروع و پایان الزامی است"))
 
+		# Salary-structure formulas can use attendance values such as
+		# ``overtime_hours_iran``. Populate them first, so the existing overtime
+		# component is recalculated from the current attendance report. This never
+		# creates an Additional Salary or an hourly reward/penalty record.
+		from hrms.regional.iran.utils import apply_smart_attendance_summary
+
+		apply_smart_attendance_summary(self)
+
 		# recompute the earnings/deductions from the salary structure
 		try:
 			self.process_salary_structure()
@@ -3096,6 +3104,37 @@ def bulk_refresh_from_smart_attendance(salary_slips):
 			errors.append({"salary_slip": name, "error": str(exc)})
 
 	return {"refreshed": refreshed, "skipped": skipped, "errors": errors}
+
+
+@frappe.whitelist()
+def refresh_draft_salary_slips_from_smart_attendance(employee=None, from_date=None, to_date=None):
+	"""Refresh matching *draft* salary slips from attendance without creating payroll records."""
+	if not from_date or not to_date:
+		frappe.throw(_("از تاریخ و تا تاریخ الزامی است"))
+	frappe.has_permission("Salary Slip", "write", throw=True)
+
+	filters = {
+		"docstatus": 0,
+		"start_date": ["<=", to_date],
+		"end_date": [">=", from_date],
+	}
+	if employee:
+		filters["employee"] = employee
+
+	refreshed, errors = [], []
+	for index, name in enumerate(frappe.get_all("Salary Slip", filters=filters, pluck="name")):
+		savepoint = f"smart_attendance_salary_slip_refresh_{index}"
+		frappe.db.savepoint(savepoint)
+		try:
+			slip = frappe.get_doc("Salary Slip", name)
+			slip.check_permission("write")
+			slip.refresh_from_smart_attendance()
+			refreshed.append(name)
+		except Exception as exc:
+			frappe.db.rollback(save_point=savepoint)
+			errors.append({"salary_slip": name, "error": str(exc)})
+
+	return {"success": not errors, "refreshed": refreshed, "errors": errors}
 
 
 def reset_salary_accrual_status_on_journal_entry_cancel(doc, method=None):
