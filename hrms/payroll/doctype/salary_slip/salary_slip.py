@@ -1762,6 +1762,7 @@ class SalarySlip(TransactionBase):
 
 	def add_additional_salary_components(self, component_type):
 		self.initialize_additional_salary_hours_summary(component_type)
+		self.clear_additional_salary_component_rows(component_type)
 		additional_salaries = get_additional_salaries(
 			self.employee, self.start_date, self.end_date, component_type
 		)
@@ -1818,11 +1819,27 @@ class SalarySlip(TransactionBase):
 			if hasattr(self, fieldname):
 				self.set(fieldname, 0)
 
+	def clear_additional_salary_component_rows(self, component_type):
+		"""Remove generated Additional Salary rows before rebuilding the current draft."""
+		self.set(
+			component_type,
+			[
+				row
+				for row in self.get(component_type)
+				if not self.get_additional_salary_reference_names(row)
+			],
+		)
+
 	def should_aggregate_additional_salary(self, additional_salary, component_data) -> bool:
+		non_aggregable_references = {
+			"Arrear",
+			"Payroll Correction",
+			"Employee Benefit Claim",
+		}
 		return bool(
 			not additional_salary.overwrite
 			and not additional_salary.is_recurring
-			and not additional_salary.ref_doctype
+			and additional_salary.ref_doctype not in non_aggregable_references
 			and not component_data.variable_based_on_taxable_salary
 			and not component_data.accrual_component
 			and not component_data.is_flexible_benefit
