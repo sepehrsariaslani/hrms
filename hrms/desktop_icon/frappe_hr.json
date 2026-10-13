@@ -7,7 +7,7 @@
  "icon_type": "App",
  "idx": 14,
  "label": "Frappe HR",
- "link": "/desk/people",
+ "link": "/desk/human-resources",
  "link_type": "External",
  "logo_url": "/assets/hrms/images/frappe-hr-logo.svg",
  "modified": "2026-01-09 17:29:44.070361",
