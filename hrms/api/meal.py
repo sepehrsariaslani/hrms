@@ -71,6 +71,13 @@ def list_company_meal_reservations(
 
 
 @frappe.whitelist()
+def get_today_pos_meal_reservations(company: str, limit: int = 100) -> dict:
+	from hrms.hr.doctype.meal_weekly_plan.meal_weekly_plan import get_today_pos_meal_reservations
+
+	return get_today_pos_meal_reservations(company=company, limit=limit)
+
+
+@frappe.whitelist()
 def mark_meal_delivery(plan_name: str, meal_date: str, employee: str, delivered: int = 1) -> dict:
 	from hrms.hr.doctype.meal_weekly_plan.meal_weekly_plan import mark_meal_delivery
 

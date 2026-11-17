@@ -467,6 +467,81 @@ def list_company_meal_reservations(
 	)
 
 
+def get_today_pos_meal_reservations(company: str, limit: int = 100) -> dict:
+	"""Read bounded, unclaimed lunch reservations for a scoped POS company."""
+	user = frappe.session.user
+	company = str(company or "").strip()
+	if not company or not frappe.db.exists("Company", company):
+		frappe.throw(_("A valid company is required."))
+
+	roles = set(frappe.get_roles(user))
+	pos_roles = {"Restaurant Manager", "Desk User"}
+	if not can_manage_meals(user, company):
+		if not roles.intersection(pos_roles) or _active_pos_company_for_user(user) != company:
+			frappe.throw(_("You are not allowed to access POS meal reservations for this company."), frappe.PermissionError)
+
+	if not frappe.db.has_column("Meal Reservation", "restaurant_pos_sales_order"):
+		frappe.throw(_("Employee meal POS fields are not installed."))
+	if not is_company_meal_enabled(company):
+		return {"company": company, "meal_date": nowdate(), "reservations": []}
+
+	try:
+		page_size = max(1, min(cint(limit or 100), 100))
+	except (TypeError, ValueError):
+		page_size = 100
+	meal_date = nowdate()
+	rows = frappe.db.sql(
+		"""
+		SELECT r.name AS reservation, r.employee, r.employee_name, r.company,
+		       r.reservation_date AS meal_date, r.meal_item AS item_code,
+		       r.meal_title AS item_name, r.reservation_status AS status,
+		       r.modified
+		  FROM `tabMeal Reservation` r
+		  JOIN `tabEmployee` e ON e.name = r.employee
+		  JOIN `tabMeal Weekly Plan` p ON p.name = r.meal_plan
+		 WHERE r.company = %s AND e.company = %s AND e.status = 'Active'
+		   AND p.company = %s AND p.status = 'Published'
+		   AND r.reservation_date = %s AND r.meal_type = 'Lunch'
+		   AND r.reservation_status = 'Reserved'
+		   AND IFNULL(r.restaurant_pos_sales_order, '') = ''
+		 ORDER BY r.employee_name, r.employee, r.name
+		 LIMIT %s
+		""",
+		(company, company, company, meal_date, page_size),
+		as_dict=True,
+	)
+	return {"company": company, "meal_date": meal_date, "reservations": list(rows or [])}
+
+
+def _active_pos_company_for_user(user: str) -> str:
+	"""Resolve a POS cashier's scope from their open shift or user default."""
+	profile = ""
+	if frappe.db.exists("DocType", "POS Opening Shift"):
+		filters = {"user": user}
+		if frappe.db.has_column("POS Opening Shift", "status"):
+			filters["status"] = "Open"
+		rows = frappe.get_all(
+			"POS Opening Shift",
+			filters=filters,
+			fields=["pos_profile"],
+			order_by="modified desc",
+			limit_page_length=1,
+			ignore_permissions=True,
+		)
+		profile = (rows[0].get("pos_profile") if rows else "") or ""
+	if not profile:
+		for key in ("pos_profile", "POS Profile", "pos profile"):
+			try:
+				profile = frappe.defaults.get_user_default(key) or ""
+			except Exception:
+				profile = ""
+			if profile:
+				break
+	if not profile or not frappe.db.exists("POS Profile", profile):
+		return ""
+	return frappe.db.get_value("POS Profile", profile, "company") or ""
+
+
 @frappe.whitelist()
 def mark_meal_delivery(plan_name: str, meal_date: str, employee: str, delivered: int = 1) -> dict:
 	plan = frappe.get_doc("Meal Weekly Plan", plan_name)
